@@ -1,12 +1,14 @@
 import { useState } from 'react'
+import { NoisePage } from './pages/NoisePage'
 import { ObjectViewerPage } from './pages/ObjectViewerPage'
 import './App.css'
 
-type PageId = 'objects'
+type PageId = 'objects' | 'noise'
 
 // One entry per week of the course; newest last.
 const PAGES: { id: PageId; week: string; title: string }[] = [
   { id: 'objects', week: 'Week 1', title: '3D Objects' },
+  { id: 'noise', week: 'Week 2', title: 'Noise' },
 ]
 
 function App() {
@@ -33,7 +35,7 @@ function App() {
       </header>
 
       <main className="app-page">
-        <ObjectViewerPage />
+        {page === 'objects' ? <ObjectViewerPage /> : <NoisePage />}
       </main>
     </div>
   )

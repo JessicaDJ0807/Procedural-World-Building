@@ -3,13 +3,14 @@ import * as THREE from 'three'
 import { RotationGizmo } from '../RotationGizmo'
 import { SceneCanvas } from '../SceneCanvas'
 import { Slider } from '../Slider'
+import { ACCENT_BLUE } from '../theme'
 import { SHAPES, type ShapeName } from '../shapes'
 
 export function ObjectViewerPage() {
   const [shape, setShape] = useState<ShapeName>('box')
   const [spinSpeed, setSpinSpeed] = useState(0)
   const [scale, setScale] = useState(1)
-  const [color, setColor] = useState('#6ea8fe')
+  const [color, setColor] = useState(ACCENT_BLUE)
   const [metalness, setMetalness] = useState(0.2)
   const [roughness, setRoughness] = useState(0.35)
   const [wireframe, setWireframe] = useState(false)

@@ -119,7 +119,8 @@
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-.control-widget h2 {
+.control-widget h2,
+.noise-sidebar h2 {
   margin: 0 0 16px;
   font-size: 15px;
   font-weight: 600;
@@ -246,4 +247,179 @@
 .reset-button:hover {
   background: rgba(255, 255, 255, 0.12);
   color: #e8ecf4;
+}
+
+/* ---- Noise page (Week 2) ---- */
+
+.noise-page {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  color: #e8ecf4;
+  font: 14px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.noise-viewport {
+  flex: 1;
+  min-width: 0; /* lets the canvas shrink instead of pushing the sidebar out */
+  overflow: hidden;
+}
+
+.noise-viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.noise-sidebar {
+  flex: none;
+  width: 296px;
+  padding: 18px 16px 20px;
+  overflow-y: auto;
+  border-left: 1px solid rgba(255, 255, 255, 0.09);
+  background: #171922;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.map-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.readout {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #8b93a3;
+  font-variant-numeric: tabular-nums;
+}
+
+.readout strong {
+  color: #ffb347;
+  font-weight: 600;
+}
+
+/* ---- Layer stack (Week 2) ---- */
+
+.layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.layer-card {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.layer-card.is-open {
+  border-color: rgba(110, 168, 254, 0.4);
+  background: rgba(110, 168, 254, 0.06);
+}
+
+.layer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+}
+
+.layer-head input[type='checkbox'] {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  accent-color: #6ea8fe;
+  cursor: pointer;
+}
+
+.layer-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0; /* lets the meta line ellipsize instead of widening the card */
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.layer-name {
+  font-size: 13px;
+  color: #e8ecf4;
+}
+
+.layer-meta {
+  overflow: hidden;
+  font-size: 11px;
+  color: #7f8798;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layer-actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.layer-actions button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: #8b93a3;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.layer-actions button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8ecf4;
+}
+
+.layer-actions button:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.layer-body {
+  padding: 10px 10px 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.layer-body .control:last-of-type {
+  margin-bottom: 12px;
+}
+
+.button-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.button-row .reset-button {
+  margin-bottom: 0;
+}
+
+.reset-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.reset-button:disabled:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #c5ccd8;
 }
