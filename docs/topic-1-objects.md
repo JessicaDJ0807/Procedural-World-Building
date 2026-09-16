@@ -1,7 +1,7 @@
-# Week 1 — 3D Objects
+# Topic 1 — 3D Objects
 
 A real-time WebGL object viewer: pick a primitive, orient it, and light it.
-The week's purpose was the render loop and the material model rather than any
+The topic's purpose was the render loop and the material model rather than any
 generated content — the object is given, and everything around it is the work.
 
 [← back to the README](../README.md)

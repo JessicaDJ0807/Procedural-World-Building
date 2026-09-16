@@ -6,11 +6,16 @@ import './App.css'
 
 type PageId = 'objects' | 'noise' | 'voxels'
 
-// One entry per week of the course; newest last.
-const PAGES: { id: PageId; week: string; title: string; render: () => ReactElement }[] = [
-  { id: 'objects', week: 'Week 1', title: '3D Objects', render: () => <ObjectViewerPage /> },
-  { id: 'noise', week: 'Week 2', title: 'Noise', render: () => <NoisePage /> },
-  { id: 'voxels', week: 'Week 3', title: 'Voxels', render: () => <VoxelPage /> },
+// One entry per topic, newest last.
+//
+// Topics rather than weeks: the course meets weekly but not every week
+// produces a page — some are lectures — so a "Week 3" label would drift
+// further from the calendar with every gap, and numbering it honestly would
+// mean leaving holes. A topic is the unit of work, and it never has gaps.
+const PAGES: { id: PageId; topic: string; title: string; render: () => ReactElement }[] = [
+  { id: 'objects', topic: 'Topic 1', title: '3D Objects', render: () => <ObjectViewerPage /> },
+  { id: 'noise', topic: 'Topic 2', title: 'Noise', render: () => <NoisePage /> },
+  { id: 'voxels', topic: 'Topic 3', title: 'Voxels', render: () => <VoxelPage /> },
 ]
 
 /**
@@ -55,17 +60,17 @@ function App() {
     <div className={`app-shell${focused ? ' is-focused' : ''}`}>
       <header className="app-nav">
         <span className="app-brand">Procedural World Building</span>
-        <nav className="week-nav">
+        <nav className="topic-nav">
           {PAGES.map((entry) => (
             <button
               key={entry.id}
               type="button"
-              className={`week-link${page === entry.id ? ' is-active' : ''}`}
+              className={`topic-link${page === entry.id ? ' is-active' : ''}`}
               aria-current={page === entry.id ? 'page' : undefined}
               onClick={() => setPage(entry.id)}
             >
-              <span className="week-label">{entry.week}</span>
-              <span className="week-title">{entry.title}</span>
+              <span className="topic-label">{entry.topic}</span>
+              <span className="topic-title">{entry.title}</span>
             </button>
           ))}
         </nav>

@@ -25,14 +25,14 @@
   white-space: nowrap;
 }
 
-.week-nav {
+.topic-nav {
   display: flex;
   align-items: stretch;
   gap: 4px;
   height: 100%;
 }
 
-.week-link {
+.topic-link {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -47,17 +47,17 @@
   cursor: pointer;
 }
 
-.week-link:hover {
+.topic-link:hover {
   color: #c5ccd8;
   background: rgba(255, 255, 255, 0.04);
 }
 
-.week-link.is-active {
+.topic-link.is-active {
   color: #e8ecf4;
   border-bottom-color: #6ea8fe;
 }
 
-.week-label {
+.topic-label {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -65,11 +65,11 @@
   color: #6f7789;
 }
 
-.week-link.is-active .week-label {
+.topic-link.is-active .topic-label {
   color: #9eb4ff;
 }
 
-.week-title {
+.topic-title {
   font-size: 13px;
   white-space: nowrap;
 }
@@ -249,7 +249,7 @@
   color: #e8ecf4;
 }
 
-/* ---- Noise page (Week 2) ---- */
+/* ---- Noise page (Topic 2) ---- */
 
 .noise-page {
   display: flex;
@@ -303,7 +303,7 @@
   font-weight: 600;
 }
 
-/* ---- Layer stack (Week 2) ---- */
+/* ---- Layer stack (Topic 2) ---- */
 
 .layer-list {
   display: flex;
@@ -517,7 +517,7 @@
   .focus-hint { animation: none; opacity: 0.5; }
 }
 
-/* ---- Voxel page (Week 3) ---- */
+/* ---- Voxel page (Topic 3) ---- */
 
 .voxel-page {
   display: flex;
@@ -539,7 +539,7 @@
   font-weight: 600;
 }
 
-.placeholder-week {
+.placeholder-topic {
   margin: 0;
   font-size: 12px;
   letter-spacing: 0.08em;

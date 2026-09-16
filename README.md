@@ -1,20 +1,21 @@
 # Procedural World Building
 
 Coursework for a weekly design course, built with React, TypeScript, and
-Three.js. Each week's work lives on its own page behind a nav shell, so the app
-accumulates as the course goes rather than replacing what came before.
+Three.js. The course meets weekly, but not every week produces work — so the
+pages are numbered by **topic** rather than by week, and the app accumulates as
+the course goes rather than replacing what came before.
 
-Each week has its own write-up in [`docs/`](docs/); this page is the map.
+Each topic has its own write-up in [`docs/`](docs/); this page is the map.
 
-## Weeks
+## Topics
 
-### [Week 1 — 3D Objects](docs/week-1-objects.md)
+### [Topic 1 — 3D Objects](docs/topic-1-objects.md)
 
 A real-time WebGL object viewer. Five primitives swapped in place, a draggable
 XYZ gizmo storing orientation as a quaternion so the object never gimbal-locks,
 and material controls lit by a generated `RoomEnvironment` cubemap.
 
-### [Week 2 — Noise](docs/week-2-noise.md)
+### [Topic 2 — Noise](docs/topic-2-noise.md)
 
 A field of values in `[0, 1]`, built and then progressively shaped:
 
@@ -30,7 +31,7 @@ A field of values in `[0, 1]`, built and then progressively shaped:
 - **Output** — eight per-cell shaping ops, five colour ramps interpolated in
   OKLab, and three geometry modes: height field, point cloud, or planet.
 
-### [Week 3 — Voxels](docs/week-3-voxels.md)
+### [Topic 3 — Voxels](docs/topic-3-voxels.md)
 
 Placeholder — the page, nav entry, and styling exist; the work has yet to land.
 
@@ -41,8 +42,8 @@ Placeholder — the page, nav entry, and styling exist; the work has yet to land
 | `H` | Hide every panel and give the whole window to the object. Press again to bring them back |
 | `Esc` | Always restores the panels, never hides them |
 
-Focus mode works on every week — it hides the week nav, Week 2's sidebar and
-Week 1's floating control widget. `Esc` only ever restores, which is what makes
+Focus mode works on every topic — it hides the topic nav, Topic 2's sidebar and
+Topic 1's floating control widget. `Esc` only ever restores, which is what makes
 hiding the UI safe to try, and a small clickable reminder stays in the corner.
 The shortcut is ignored while a select or text field has focus, since a letter
 key means something there, but it still works from a slider or checkbox, which
@@ -65,15 +66,15 @@ Then open the URL Vite prints (default `http://localhost:5173`).
 ```
 src/
 ├── main.tsx                  Entry point
-├── App.tsx                   Week nav shell, page switching, focus mode
+├── App.tsx                   Topic nav shell, page switching, focus mode
 ├── Slider.tsx                Labelled range input, shared by both pages
 ├── InfoTip.tsx               Hover explanation, portalled out of the scrolling panel
-├── LayerPanel.tsx            Layer stack editor (Week 2)
+├── LayerPanel.tsx            Layer stack editor (Topic 2)
 ├── pages/
-│   ├── ObjectViewerPage.tsx  Week 1 — viewer and its control panel
-│   ├── NoisePage.tsx         Week 2 — viewport, sidebar, and noise state
-│   └── VoxelPage.tsx         Week 3 — placeholder, no content yet
-├── SceneCanvas.tsx           Week 1 Three.js scene, render loop, disposal
+│   ├── ObjectViewerPage.tsx  Topic 1 — viewer and its control panel
+│   ├── NoisePage.tsx         Topic 2 — viewport, sidebar, and noise state
+│   └── VoxelPage.tsx         Topic 3 — placeholder, no content yet
+├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
 ├── theme.ts                  Shared accent colour and hex parsing
@@ -87,22 +88,20 @@ src/
 └── index.css                 Global reset
 
 docs/
-├── week-1-objects.md         Week 1 write-up
-├── week-2-noise.md           Week 2 write-up — the long one
-└── week-3-voxels.md          Week 3 write-up
+├── topic-1-objects.md         Topic 1 write-up
+├── topic-2-noise.md           Topic 2 write-up — the long one
+└── topic-3-voxels.md          Topic 3 write-up
 
 CLAUDE.md                     Working agreements, for AI assistants and humans
 ```
 
-Adding a week is one page component plus one entry in the `PAGES` array in
-`App.tsx`, which carries its own `render` — the shell opens on the last entry.
-
-Adding a week is one page component, one entry in the `PAGES` array in
-`App.tsx`, and one file in `docs/`.
+Adding a topic is one page component, one entry in the `PAGES` array in
+`App.tsx` — which carries its own `render`, and the shell opens on the last
+entry — and one file in `docs/`.
 
 ## Conventions
 
-Decisions specific to a week live in that week's write-up. These hold
+Decisions specific to a topic live in that topic's write-up. These hold
 everywhere.
 
 **Scenes are built once and mutated in place.** Geometry swaps replace
@@ -121,8 +120,8 @@ cannot land inside a panel you cannot see. Both canvases watch their container
 with a `ResizeObserver`, so the view reflows to the full width rather than
 stretching.
 
-**Work for a week happens on its own branch** — `week-3-voxels` and so on —
-and lands on `main` collapsed into one to three commits, when the week is done
+**Work for a topic happens on its own branch** — `topic-3-voxels` and so on —
+and lands on `main` collapsed into one to three commits, when the topic is done
 and not before. A merge would replay every branch commit onto main and only
 `git log --first-parent` would hide them; compressing first means the log stays
 short however it is read, while the reasoning survives in the commit messages

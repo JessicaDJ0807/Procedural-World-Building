@@ -347,7 +347,7 @@ export function NoiseViewport({
   const containerRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<Scene | null>(null)
   // Read by the render loop rather than passed into it, so changing the speed
-  // never tears the scene down — the same routing Week 1 uses for its spin.
+  // never tears the scene down — the same routing Topic 1 uses for its spin.
   const spinRef = useRef(spin)
   useEffect(() => {
     spinRef.current = spin

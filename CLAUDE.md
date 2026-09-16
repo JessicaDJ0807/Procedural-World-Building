@@ -1,18 +1,23 @@
 # Procedural World Building — working agreements
 
 Coursework for a weekly design course. React 19 · TypeScript · Vite · three.js.
-Each week is a page under `src/pages/`, reachable from the `PAGES` array in
-`src/App.tsx`. The app accumulates: earlier weeks are preserved, never replaced.
+Each **topic** is a page under `src/pages/`, reachable from the `PAGES` array in
+`src/App.tsx`. The app accumulates: earlier topics are preserved, never replaced.
+
+**Topics are not weeks.** The course meets weekly but not every week produces
+work — some are lectures — so pages, branches and docs are numbered by topic.
+Topic 3 is the third body of work, not the third week. Never renumber to match
+a calendar, and never leave a gap.
 
 ## Git workflow
 
-`main` must read as **one to three commits per week**. Nothing else matters
+`main` must read as **one to three commits per topic**. Nothing else matters
 about its shape.
 
-- **Work on a branch**, named for the week: `week-3-voxels`. Commit as often as
+- **Work on a branch**, named for the topic: `topic-3-voxels`. Commit as often as
   is useful there — that is your call, no need to ask.
 - **Never commit, merge, or rebase onto `main` unless explicitly asked.** The
-  user decides when a week lands.
+  user decides when a topic lands.
 - **When asked to land**, collapse the branch into 1–3 coherent commits and put
   those on `main`. Do not merge the branch as-is: a merge replays every branch
   commit onto main, and only `git log --first-parent` would hide them.
@@ -38,22 +43,22 @@ branch until the user has pushed.
 
 ## Documentation
 
-- **Each week has its own write-up**: `docs/week-N-<topic>.md`. The root
-  `README.md` is a map — per-week summaries with links, Keyboard, Getting
+- **Each topic has its own write-up**: `docs/topic-N-<name>.md`. The root
+  `README.md` is a map — per-topic summaries with links, Keyboard, Getting
   started, Project structure, Conventions, Built with. Keep it short.
 - **Docs ship with the change, unprompted.** A feature is not done until the
-  README or its week's file describes it.
-- **A decision goes next to the feature it explains** — in that week's
+  README or its topic's file describes it.
+- **A decision goes next to the feature it explains** — in that topic's
   `## Notes` section. Only genuinely cross-cutting notes belong in the root
   README's Conventions.
 - When you change a default or a behaviour, grep the docs for claims about the
   old one. Stale numbers are the usual failure here.
 
-## Adding a week
+## Adding a topic
 
 One page component in `src/pages/`, one entry in the `PAGES` array in
-`App.tsx` (the shell opens on the last entry), and one `docs/week-N-*.md`.
-Don't modify or fold away earlier weeks.
+`App.tsx` (the shell opens on the last entry), and one `docs/topic-N-*.md`.
+Don't modify or fold away earlier topics.
 
 ## Before you say it works
 

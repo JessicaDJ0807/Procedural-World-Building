@@ -1,4 +1,4 @@
-# Week 2 — Noise
+# Topic 2 — Noise
 
 A layered noise stack, smoothed by a cellular automaton, carved by hydraulic
 erosion, and graphed as 3D geometry — a height field, a point cloud, or a

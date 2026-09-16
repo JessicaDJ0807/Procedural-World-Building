@@ -1,4 +1,4 @@
-/** The accent blue Week 1 starts its material on, and Week 2 tints its field with. */
+/** The accent blue Topic 1 starts its material on, and Topic 2 tints its field with. */
 export const ACCENT_BLUE = '#6ea8fe'
 
 /** `#rrggbb` to three channels in [0, 1]. Malformed input falls back to white. */
