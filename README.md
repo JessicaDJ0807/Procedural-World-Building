@@ -90,6 +90,8 @@ docs/
 ├── week-1-objects.md         Week 1 write-up
 ├── week-2-noise.md           Week 2 write-up — the long one
 └── week-3-voxels.md          Week 3 write-up
+
+CLAUDE.md                     Working agreements, for AI assistants and humans
 ```
 
 Adding a week is one page component plus one entry in the `PAGES` array in
@@ -120,10 +122,14 @@ with a `ResizeObserver`, so the view reflows to the full width rather than
 stretching.
 
 **Work for a week happens on its own branch** — `week-3-voxels` and so on —
-and lands on `main` collapsed into one to three commits. A merge would replay
-every branch commit onto main and only `git log --first-parent` would hide
-them; compressing first means the log is short however it is read, and the
-reasoning survives in the commit messages rather than being discarded.
+and lands on `main` collapsed into one to three commits, when the week is done
+and not before. A merge would replay every branch commit onto main and only
+`git log --first-parent` would hide them; compressing first means the log stays
+short however it is read, while the reasoning survives in the commit messages
+rather than being discarded.
+
+These conventions are restated in [`CLAUDE.md`](CLAUDE.md), which is where an
+AI assistant working in this repo will actually look for them.
 
 ## Built with
 
