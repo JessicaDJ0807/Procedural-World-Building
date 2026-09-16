@@ -2,8 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LayerPanel } from '../LayerPanel'
 import { NoiseMapPreview, type Cell } from '../NoiseMapPreview'
 import { NoiseViewport, type GeometryMode } from '../NoiseViewport'
+import { InfoTip } from '../InfoTip'
 import { Slider } from '../Slider'
 import { ACCENT_BLUE } from '../theme'
+import {
+  CONTINUOUS,
+  FULL_DOMAIN,
+  MAX_BANDS,
+  PALETTES,
+  buildLut,
+  fieldDomain,
+  getPalette,
+  type PaletteName,
+} from '../palette'
 import {
   DEFAULT_SURVIVE,
   MAX_GENERATIONS,
@@ -27,6 +38,7 @@ import {
   compositeLayers,
   defaultParamsFor,
   fbmOctaves,
+  warpField,
   getShapingOp,
   type NoiseLayer,
   type ShapingName,
@@ -116,7 +128,15 @@ export function NoisePage() {
   const [relief, setRelief] = useState(0.18)
   const [slice, setSlice] = useState(0)
   const [selected, setSelected] = useState<Cell | null>(null)
+  const [spin, setSpin] = useState(0)
+  const [wireframe, setWireframe] = useState(false)
   const [tint, setTint] = useState(ACCENT_BLUE)
+  const [paletteName, setPaletteName] = useState<PaletteName>('terrain')
+  const [bands, setBands] = useState(CONTINUOUS)
+  const [fitRamp, setFitRamp] = useState(true)
+  // Built once per palette, then indexed per cell: converting live would be
+  // 21 ms against 0.21 ms for a 128² field.
+  const lut = useMemo(() => buildLut(paletteName, tint, bands), [paletteName, tint, bands])
 
   // Gorges over River valleys: on a six-octave stack it measures 0.997 for
   // straightness against 0.990, because its narrow cuts add structure at the
@@ -133,6 +153,13 @@ export function NoisePage() {
   const [survive, setSurvive] = useState(DEFAULT_SURVIVE[2])
   const [generation, setGeneration] = useState(0)
   const [playing, setPlaying] = useState(false)
+
+  const [warpAmount, setWarpAmount] = useState(0)
+  const [warpFrequency, setWarpFrequency] = useState(4)
+  const [warpSeed, setWarpSeed] = useState(1)
+  const [talus, setTalus] = useState(0.02)
+  const [talusStrength, setTalusStrength] = useState(0.5)
+  const [thermalPasses, setThermalPasses] = useState(0)
 
   const [octaves, setOctaves] = useState(DEFAULT_OCTAVES)
   const [persistence, setPersistence] = useState(DEFAULT_PERSISTENCE)
@@ -185,17 +212,26 @@ export function NoisePage() {
     () => compositeLayers(resolution, dimensions, layers),
     [resolution, dimensions, layers],
   )
+  // Warping sits between compositing and the automaton: it moves where the
+  // noise puts its features, which is a question about the field rather than
+  // about the rule applied to it.
+  const warped = useMemo(
+    () => warpField(composite, resolution, dimensions, {
+      amount: warpAmount, frequency: warpFrequency, seed: warpSeed,
+    }),
+    [composite, resolution, dimensions, warpAmount, warpFrequency, warpSeed],
+  )
   // Re-run from the composite every time rather than mutating a running state:
   // a generation count is then just a number, so editing a layer mid-run stays
   // consistent instead of leaving a stale automaton behind.
   const automata = useMemo(
     () =>
-      runAutomata(composite, resolution, dimensions, {
+      runAutomata(warped, resolution, dimensions, {
         threshold: caThreshold,
         survive,
         generations: generation,
       }),
-    [composite, resolution, dimensions, caThreshold, survive, generation],
+    [warped, resolution, dimensions, caThreshold, survive, generation],
   )
   // Erosion only makes sense on a height field: a volume has no "down", and the
   // planet is sampled from a 3D field precisely so it needs no surface grid.
@@ -211,6 +247,11 @@ export function NoisePage() {
     () => applyShaping(terrain, outputShaping, outputParams),
     [terrain, outputShaping, outputParams],
   )
+  // Fitting stretches the colouring only — geometry still uses the raw value,
+  // so a fitted ramp never changes the shape of the terrain.
+  const domain = useMemo(() => (fitRamp ? fieldDomain(field) : FULL_DOMAIN), [fitRamp, field])
+  const ramp = useMemo(() => ({ ...lut, ...domain }), [lut, domain])
+
   const overlay = useMemo(
     () =>
       showCutFill && activeErosion
@@ -248,9 +289,15 @@ export function NoisePage() {
       const cap = dropletsFor(MAX_RAIN_DENSITY, resolution)
       const budget = Math.min(dropletsFor(density, resolution), cap - (previous?.droplets ?? 0))
       if (budget <= 0) return current
-      return erodeStep(previous, automata.field, resolution, budget, erosionSeed * 7919, erosionParams)
+      return erodeStep(
+        previous, automata.field, resolution, budget, erosionSeed * 7919, erosionParams,
+        { talus, strength: talusStrength, passes: thermalPasses },
+      )
     })
-  }, [automata.field, resolution, density, erosionSeed, erosionParams])
+  }, [
+    automata.field, resolution, density, erosionSeed, erosionParams,
+    talus, talusStrength, thermalPasses,
+  ])
 
   useEffect(() => {
     if (!runningErosion) return
@@ -301,8 +348,10 @@ export function NoisePage() {
         field={field}
         heightScale={mode === 'planet' ? relief : heightScale}
         selected={inRange ? { ...inRange, z: sliceZ } : null}
-        tint={tint}
+        ramp={ramp}
         overlay={overlay}
+        spin={spin}
+        wireframe={wireframe}
       />
 
       <aside className="noise-sidebar" aria-label="Noise controls">
@@ -312,7 +361,7 @@ export function NoisePage() {
           field={mapField}
           selected={inRange}
           onSelect={setSelected}
-          tint={tint}
+          ramp={ramp}
         />
         <p className="readout">
           {inRange && selectedValue !== null ? (
@@ -326,22 +375,80 @@ export function NoisePage() {
           )}
         </p>
 
-        <h3 className="control-group">Geometry</h3>
+        <h3 className="control-group">
+          <InfoTip text={"How the field is drawn: which colours it maps to, which shape it becomes, and how finely it is sampled. Nothing here changes the field itself — only how you see it."}>Geometry</InfoTip>
+        </h3>
 
         <label className="control">
           <span className="control-label">
-            Colour
-            <span className="control-value">{tint}</span>
+            <InfoTip text={"Which colours the field maps onto. Scaling one colour by the value is a luminance ramp, and the eye resolves luminance far worse than hue — a terrain ramp offers about 165 distinguishable steps against 74 for a single hue."}>Palette</InfoTip>
+          </span>
+          <select
+            value={paletteName}
+            onChange={(event) => setPaletteName(event.target.value as PaletteName)}
+          >
+            {PALETTES.map((palette) => (
+              <option key={palette.value} value={palette.value}>
+                {palette.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {getPalette(paletteName).stops === null && (
+          <label className="control">
+            <span className="control-label">
+              <InfoTip text={"The colour the single-hue ramp runs to from black. Shown only for Single hue; every other palette carries its own stops."}>Colour</InfoTip>
+              <span className="control-value">{tint}</span>
+            </span>
+            <input
+              type="color"
+              value={tint}
+              onChange={(event) => setTint(event.target.value)}
+            />
+          </label>
+        )}
+
+        <Slider
+          label="Bands"
+          info={"Quantises the ramp into flat steps, turning a smooth field into contour-like regions. It bands the RAMP rather than the field, so the surface underneath stays smooth — unlike the Terrace shaping op, which genuinely terraces the terrain."}
+          value={bands}
+          display={bands < 2 ? 'continuous' : String(bands)}
+          min={CONTINUOUS}
+          max={MAX_BANDS}
+          step={1}
+          onChange={setBands}
+        />
+
+        <label className="control control-toggle">
+          <span className="control-label">
+            <InfoTip text={"Stretches the ramp across the field’s actual minimum and maximum. Without it the default stack reaches only 113 of 256 ramp entries, so most of the palette goes unused — fewer distinguishable steps than the old single-colour ramp managed."}>Fit ramp to range</InfoTip>
           </span>
           <input
-            type="color"
-            value={tint}
-            onChange={(event) => setTint(event.target.value)}
+            type="checkbox"
+            checked={fitRamp}
+            onChange={(event) => setFitRamp(event.target.checked)}
           />
         </label>
 
+        <p className="readout">
+          ramp spans{' '}
+          <strong>
+            {domain.min.toFixed(2)}–{(domain.min + domain.span).toFixed(2)}
+          </strong>
+          {!fitRamp && ' — the field uses only part of it'}
+        </p>
+
         <label className="control">
-          <span className="control-label">Mode</span>
+          <span className="control-label">
+            <InfoTip
+              text={`What the field is drawn as. ${
+                GEOMETRIES.find((g) => g.value === mode)?.hint ?? ''
+              } Height field graphs the map as a surface, Volumetric draws every cell of a 3D field as a point, and Planet displaces a sphere by the 3D field sampled at each vertex.`}
+            >
+              Mode
+            </InfoTip>
+          </span>
           <select
             value={mode}
             onChange={(event) => selectMode(event.target.value as GeometryMode)}
@@ -357,6 +464,7 @@ export function NoisePage() {
         {mode === 'surface' && (
           <Slider
             label="Height"
+          info={"Vertical scale of the surface. Purely display: it stretches what you see without touching the values, so it is the right way to recover relief lost to averaging octaves."}
             value={heightScale}
             display={heightScale.toFixed(2)}
             min={0}
@@ -366,9 +474,25 @@ export function NoisePage() {
           />
         )}
 
+        {mode === 'surface' && (
+          <label className="control control-toggle">
+            <span className="control-label">
+              <InfoTip text={"Draws the sampling lattice over the surface: one line per row and per column, so you can see the grid the field is actually stored on. Only the lattice — not the triangulation, whose diagonals come from how each quad was split rather than from the data. At 128² the lines land a few pixels apart and read as a haze; drop the resolution to see individual cells."}>
+                Wireframe
+              </InfoTip>
+            </span>
+            <input
+              type="checkbox"
+              checked={wireframe}
+              onChange={(event) => setWireframe(event.target.checked)}
+            />
+          </label>
+        )}
+
         {mode === 'planet' && (
           <Slider
             label="Relief"
+          info={"How far the noise displaces the sphere. Its own value rather than a reused Height, because 0.8 on a radius-0.85 planet is an asteroid."}
             value={relief}
             display={relief.toFixed(2)}
             min={0}
@@ -381,6 +505,7 @@ export function NoisePage() {
         {mode !== 'surface' && (
           <Slider
             label="Slice (z)"
+          info={"Which z-plane of the 3D volume the sidebar map shows. The geometry always draws the whole volume; this only moves the cross-section you inspect."}
             value={sliceZ}
             display={`${sliceZ} / ${resolution - 1}`}
             min={0}
@@ -392,6 +517,7 @@ export function NoisePage() {
 
         <Slider
           label="Resolution"
+          info={"Cells per side. A volume costs the cube of this, which is why it caps at 32 where a height field caps at 128; switching modes clamps it on the way in."}
           value={resolution}
           display={mode === 'surface' ? `${resolution}²` : `${resolution}³`}
           min={2}
@@ -400,10 +526,24 @@ export function NoisePage() {
           onChange={setResolution}
         />
 
-        <h3 className="control-group">Layers</h3>
+        <Slider
+          label="Spin"
+          info={"Turns the object about its vertical axis, in degrees per second. Useful for reading relief: a shape that is ambiguous when still usually resolves as soon as the shading moves across it."}
+          value={spin}
+          display={spin === 0 ? 'off' : `${spin}°/s`}
+          min={0}
+          max={90}
+          step={1}
+          onChange={setSpin}
+        />
+
+        <h3 className="control-group">
+          <InfoTip text={"The noise stack the field is built from. Each layer samples its own lattice and composites onto the running result, bottom-up."}>Layers</InfoTip>
+        </h3>
 
         <Slider
           label="Octaves"
+          info={"How many doublings of frequency the stack spans. More octaves fill in the scales between coarse shape and fine detail, which is what stops a field reading as random."}
           value={octaves}
           display={`${octaves} · f${FBM_BASE_FREQUENCY}–f${Math.min(resolution, FBM_BASE_FREQUENCY * 2 ** (octaves - 1))}`}
           min={1}
@@ -413,6 +553,7 @@ export function NoisePage() {
         />
         <Slider
           label="Persistence"
+          info={"How much quieter each octave is than the one below. This is the roughness dial: around 0.3 reads as rolling hills, 0.5 is balanced, and past about 0.7 it stops looking like terrain at all."}
           value={persistence}
           display={persistence.toFixed(2)}
           min={0.2}
@@ -421,14 +562,14 @@ export function NoisePage() {
           onChange={setPersistence}
         />
         <button type="button" className="reset-button" onClick={rebuildStack}>
-          Rebuild as fBm stack
+          <InfoTip
+            text={`Replaces the whole stack with ${octaves} octaves of doubling frequency at ${persistence.toFixed(
+              2,
+            )}× amplitude each. Seeds are the octave index, so rebuilding at a different persistence redraws the same terrain at a different roughness rather than an unrelated one.`}
+          >
+            Rebuild as fBm stack
+          </InfoTip>
         </button>
-        <p className="hint">
-          Replaces the stack with octaves of doubling frequency and{' '}
-          {persistence.toFixed(2)}× amplitude. Persistence is the roughness dial:
-          below ~0.4 reads as rolling hills, above ~0.7 stops looking like
-          terrain at all.
-        </p>
 
         <LayerPanel
           layers={layers}
@@ -441,10 +582,48 @@ export function NoisePage() {
           onAdd={addLayer}
         />
 
-        <h3 className="control-group">Automata</h3>
+        <h3 className="control-group">
+          <InfoTip text={"Looks the field up at coordinates displaced by another noise field, so strata fold and ridges curve instead of sitting where the lattice put them."}>Warp</InfoTip>
+        </h3>
+
+        <Slider
+          label="Warp amount"
+          info={"Maximum displacement in cells. Below about 20 it moves where features are without changing how rough they are; past that it starts shearing the fine octaves apart. 0 leaves the field untouched."}
+          value={warpAmount}
+          display={warpAmount === 0 ? 'off' : `${warpAmount} cells`}
+          min={0}
+          max={40}
+          step={1}
+          onChange={setWarpAmount}
+        />
+        {warpAmount > 0 && (
+          <>
+            <Slider
+              label="Warp scale"
+          info={"Lattice frequency of the offset fields. A low value bends whole regions into folds; a high one only jitters edges."}
+              value={warpFrequency}
+              display={`f${warpFrequency}`}
+              min={2}
+              max={Math.min(32, resolution)}
+              step={1}
+              onChange={setWarpFrequency}
+            />
+            <button
+              type="button"
+              className="reset-button"
+              onClick={() => setWarpSeed((current) => current + 1)}
+            >
+              New warp
+            </button>
+          </>
+        )}
+        <h3 className="control-group">
+          <InfoTip text={"A neighbour rule applied repeatedly. Where shaping is per-cell f(x), this is f(x, neighbours) — which is what turns speckled noise into connected landmasses."}>Automata</InfoTip>
+        </h3>
 
         <Slider
           label="Alive above"
+          info={"The value at or above which a cell starts the run alive. Set it under the field minimum and every cell is alive so nothing can flip; set it over the maximum and everything dies."}
           value={caThreshold}
           display={caThreshold.toFixed(2)}
           min={0}
@@ -454,6 +633,7 @@ export function NoisePage() {
         />
         <Slider
           label="Survive at"
+          info={"How many cells in the block must be live for a cell to be live next pass. The block includes the cell itself — without a vote of its own a cell cannot hold its state and the field just erodes away."}
           value={survive}
           display={`${survive} / ${BLOCK_SIZE[dimensions]}`}
           min={1}
@@ -504,22 +684,31 @@ export function NoisePage() {
 
         <p className="hint">
           Each pass sets a cell live when at least {survive} of the{' '}
-          {BLOCK_SIZE[dimensions]} cells in its {dimensions === 2 ? '3×3' : '3×3×3'} block
-          (itself included) are live. Live cells keep their value; dead cells go to 0.
+          {BLOCK_SIZE[dimensions]} cells in its {dimensions === 2 ? '3×3' : '3×3×3'}{' '}
+          <InfoTip text={"The cell itself is counted along with its neighbours. Counting only the 8 surrounding cells looks like the same rule but is not: with no vote of its own a cell cannot hold its state, and the field erodes away instead of settling."}>
+            block (itself included)
+          </InfoTip>{' '}
+          are live. Live cells keep their value; dead cells go to 0.
         </p>
 
-        <h3 className="control-group">Erosion</h3>
+        <h3 className="control-group">
+          <InfoTip text={"Simulated water running over the height field, cutting where it runs fast and dropping what it carries where it slows. This is what produces valley networks, which noise alone never does."}>Erosion</InfoTip>
+        </h3>
 
         {!canErode ? (
           <p className="hint">
-            Droplets need a height field to run downhill on. A volume has no
-            “down”, and the planet is displaced from the 3D field precisely so it
-            needs no surface grid — switch to Height field to erode.
+            Erosion needs a{' '}
+            <InfoTip text={"Droplets have to run downhill, and only a height field has a downhill. A volume has no “down” at all, and the planet is displaced from the 3D field precisely so that it needs no surface grid — so there is no lattice for droplets to follow. Eroding the planet would mean running the simulation over the icosphere’s vertex adjacency instead, which is a separate and much larger job."}>
+              height field
+            </InfoTip>
+            . Switch Mode to erode.
           </p>
         ) : (
           <>
             <label className="control">
-              <span className="control-label">Preset</span>
+              <span className="control-label">
+            <InfoTip text={"A measured starting point for the droplet parameters. Nudging any slider below switches this to Custom, since the preset name would otherwise describe terrain it did not carve."}>Preset</InfoTip>
+          </span>
               <select value={presetName} onChange={(event) => selectPreset(event.target.value)}>
                 {EROSION_PRESETS.map((preset) => (
                   <option key={preset.value} value={preset.value}>
@@ -532,6 +721,7 @@ export function NoisePage() {
 
             <Slider
               label="Rain per tick"
+          info={"Droplets per cell, not a flat count. A fixed count means something different at every resolution: 5,000 droplets is 0.3 per cell at 128 but 1.2 at 64, so the same setting that carves valleys on one grid strips the relief off another."}
               value={density}
               display={`${density.toFixed(2)} /cell · ${dropletsFor(density, resolution).toLocaleString()}`}
               min={RAIN_DENSITY_RANGE.min}
@@ -546,6 +736,7 @@ export function NoisePage() {
                 <Slider
                   key={spec.key}
                   label={spec.label}
+                  info={spec.info}
                   value={value}
                   display={spec.format ? spec.format(value) : value.toFixed(2)}
                   min={spec.min}
@@ -556,8 +747,44 @@ export function NoisePage() {
               )
             })}
 
+            <Slider
+              label="Talus passes"
+          info={"Thermal slippage passes run after the droplets each tick. Where droplets transport material, this is purely local: a cell hands its excess to neighbours below its angle of repose."}
+              value={thermalPasses}
+              display={thermalPasses === 0 ? 'off' : `${thermalPasses} / tick`}
+              min={0}
+              max={8}
+              step={1}
+              onChange={setThermalPasses}
+            />
+            {thermalPasses > 0 && (
+              <>
+                <Slider
+                  label="Angle of repose"
+          info={"The steepest slope a cell can hold before it slumps. Lower values settle the terrain into gentler, more uniform hillsides."}
+                  value={talus}
+                  display={talus.toFixed(3)}
+                  min={0.002}
+                  max={0.08}
+                  step={0.002}
+                  onChange={setTalus}
+                />
+                <Slider
+                  label="Slump strength"
+          info={"How much of the excess moves per pass. Half the worst excess is the most that moves in one go — moving all of it would overshoot and oscillate."}
+                  value={talusStrength}
+                  display={talusStrength.toFixed(2)}
+                  min={0.05}
+                  max={1}
+                  step={0.05}
+                  onChange={setTalusStrength}
+                />
+              </>
+            )}
             <label className="control control-toggle">
-              <span className="control-label">Colour by cut / fill</span>
+              <span className="control-label">
+            <InfoTip text={"Tints the surface by where material moved rather than by height: warm where the droplets cut, cool where they dropped their load. This is the clearest view of the channel network."}>Colour by cut / fill</InfoTip>
+          </span>
               <input
                 type="checkbox"
                 checked={showCutFill}
@@ -613,20 +840,29 @@ export function NoisePage() {
             </button>
 
             <p className="hint">
-              {getPreset(presetName).value === presetName
-                ? getPreset(presetName).hint
-                : 'Custom settings.'}{' '}
-              Channels are cut early and worn flat later, so watch the relief
-              figure — once it drops far, the run is lowering the whole field
-              rather than carving it.
+              <InfoTip
+                text={`${
+                  getPreset(presetName).value === presetName
+                    ? getPreset(presetName).hint
+                    : 'Custom settings.'
+                } Channel structure is cut in the first few ticks and worn away afterwards: concentration peaks around 0.3 droplets per cell and decays from there, so more erosion is not better.`}
+              >
+                Watch the relief figure
+              </InfoTip>{' '}
+              — once it drops far, the run is lowering the whole field rather
+              than carving it.
             </p>
           </>
         )}
 
-        <h3 className="control-group">Output</h3>
+        <h3 className="control-group">
+          <InfoTip text={"A final remap of the finished field, applied after everything else. Shaping here reshapes the terrain you see without touching any layer."}>Output</InfoTip>
+        </h3>
 
         <label className="control">
-          <span className="control-label">Shaping</span>
+          <span className="control-label">
+            <InfoTip text={"A remap applied to every cell independently. Unlike the automaton it has no notion of neighbours, so it reshapes the distribution of values rather than their arrangement."}>Shaping</InfoTip>
+          </span>
           <select
             value={outputShapingName}
             onChange={(event) => {
@@ -649,6 +885,7 @@ export function NoisePage() {
             <Slider
               key={param.key}
               label={param.label}
+              info={param.info}
               value={value}
               display={param.format ? param.format(value) : value.toFixed(2)}
               min={param.min}
@@ -659,7 +896,6 @@ export function NoisePage() {
           )
         })}
 
-        <p className="hint">{GEOMETRIES.find((g) => g.value === mode)?.hint}</p>
         <p className="hint">Drag to orbit, scroll to zoom, right-drag to pan.</p>
       </aside>
     </div>

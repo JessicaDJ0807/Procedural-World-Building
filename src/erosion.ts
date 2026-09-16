@@ -36,6 +36,8 @@ export type ErosionParams = {
 export type ErosionParamSpec = {
   key: keyof ErosionParams
   label: string
+  /** Hover explanation for the control. */
+  info: string
   min: number
   max: number
   step: number
@@ -49,14 +51,14 @@ export type ErosionParamSpec = {
  * near the bottom.
  */
 export const EROSION_PARAM_SPECS: ErosionParamSpec[] = [
-  { key: 'erosion', label: 'Erosion rate', min: 0.01, max: 0.6, step: 0.01 },
-  { key: 'capacity', label: 'Carry capacity', min: 0.5, max: 12, step: 0.5 },
-  { key: 'deposition', label: 'Deposition', min: 0.02, max: 1, step: 0.02 },
-  { key: 'inertia', label: 'Inertia', min: 0, max: 0.9, step: 0.01 },
-  { key: 'gravity', label: 'Gravity', min: 1, max: 20, step: 0.5, format: (v) => v.toFixed(1) },
-  { key: 'evaporation', label: 'Evaporation', min: 0, max: 0.1, step: 0.005, format: (v) => v.toFixed(3) },
-  { key: 'lifetime', label: 'Droplet life', min: 8, max: 64, step: 1, format: (v) => `${v} steps` },
-  { key: 'radius', label: 'Erosion radius', min: 1, max: 4, step: 1, format: (v) => `${v} cells` },
+  { key: 'erosion', label: 'Erosion rate', info: 'How greedily a droplet cuts when it is carrying less than it could. Low values wear broadly and keep the ridges; high values dig fast and strip relief with them.', min: 0.01, max: 0.6, step: 0.01 },
+  { key: 'capacity', label: 'Carry capacity', info: 'How much sediment a droplet can hold per unit of slope and speed. This is the single most destructive control: above about 2 it never fills up, so it keeps cutting all the way downhill and flattens the terrain instead of carving it.', min: 0.5, max: 12, step: 0.5 },
+  { key: 'deposition', label: 'Deposition', info: 'How much of the excess a droplet drops each step once it is over capacity. Low values hold the load and carry it further, cutting cleaner channels; high values backfill what was just cut.', min: 0.02, max: 1, step: 0.02 },
+  { key: 'inertia', label: 'Inertia', info: 'How much of its previous direction a droplet keeps. At 0 it follows the steepest slope exactly; higher values let it carry on across a bend, which smooths the path but blurs the channel.', min: 0, max: 0.9, step: 0.01 },
+  { key: 'gravity', label: 'Gravity', info: 'Converts a change in height into speed. Faster droplets have more capacity, so raising this makes steep ground erode disproportionately harder than gentle ground.', min: 1, max: 20, step: 0.5, format: (v) => v.toFixed(1) },
+  { key: 'evaporation', label: 'Evaporation', info: "Water lost per step. A drier droplet carries less, so this is effectively how far a droplet's influence reaches before it gives up.", min: 0, max: 0.1, step: 0.005, format: (v) => v.toFixed(3) },
+  { key: 'lifetime', label: 'Droplet life', info: 'Steps a droplet lives for before it expires and drops whatever it still holds. Longer lives let separate cuts join into continuous channels rather than isolated nicks.', min: 8, max: 64, step: 1, format: (v) => `${v} steps` },
+  { key: 'radius', label: 'Erosion radius', info: 'How many cells each cut is spread over. A wider brush wears hillsides; a narrow one carves. Note the falloff divides by radius + 1, so radius 1 still covers 5 cells rather than collapsing to a single one.', min: 1, max: 4, step: 1, format: (v) => `${v} cells` },
 ]
 
 export type ErosionPreset = {
@@ -246,6 +248,71 @@ function relief(field: Float32Array): number {
   return max - min
 }
 
+/* ---------------------------------------------------------------------------
+ * Thermal erosion
+ * ------------------------------------------------------------------------- */
+
+/** Neighbour offsets, with the diagonal distance the talus check has to respect. */
+const TALUS_NEIGHBOURS: [number, number, number][] = [
+  [1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1],
+  [1, 1, Math.SQRT2], [1, -1, Math.SQRT2], [-1, 1, Math.SQRT2], [-1, -1, Math.SQRT2],
+]
+
+/**
+ * Talus slippage: material on a slope steeper than rock will hold slumps down it.
+ *
+ * Where the droplets are a transport process — they pick material up, carry it,
+ * and put it somewhere else — this is purely local. Nothing is carried; a cell
+ * simply gives its excess to whichever neighbours sit below its angle of
+ * repose. That is what puts scree at the foot of a cliff and stops slopes
+ * getting arbitrarily steep, neither of which hydraulic erosion does on its own.
+ *
+ * Writes go to a separate buffer and are applied together, so a pass does not
+ * depend on the order cells happen to be visited in — the same reason the
+ * cellular automaton swaps buffers instead of writing in place.
+ */
+export function thermalPass(height: Float32Array, resolution: number, talus: number, strength: number) {
+  const delta = new Float32Array(height.length)
+  const r = resolution
+
+  for (let y = 0; y < r; y++) {
+    for (let x = 0; x < r; x++) {
+      const i = y * r + x
+      const h = height[i]
+      let total = 0
+      let steepest = 0
+
+      for (const [dx, dy, distance] of TALUS_NEIGHBOURS) {
+        const j = (((y + dy) % r + r) % r) * r + (((x + dx) % r + r) % r)
+        // Scaling by distance is what keeps the result from growing eight-armed
+        // stars: a diagonal neighbour is further away, so the same height drop
+        // is a gentler slope.
+        const drop = (h - height[j]) / distance
+        if (drop > talus) {
+          total += drop - talus
+          if (drop - talus > steepest) steepest = drop - talus
+        }
+      }
+      if (total <= 0) continue
+
+      // Half the worst excess, shared out in proportion to each drop: moving the
+      // whole excess would overshoot and oscillate between the two cells.
+      const moved = strength * steepest * 0.5
+      delta[i] -= moved
+      for (const [dx, dy, distance] of TALUS_NEIGHBOURS) {
+        const j = (((y + dy) % r + r) % r) * r + (((x + dx) % r + r) % r)
+        const drop = (h - height[j]) / distance
+        if (drop > talus) delta[j] += moved * ((drop - talus) / total)
+      }
+    }
+  }
+
+  for (let i = 0; i < height.length; i++) {
+    const v = height[i] + delta[i]
+    height[i] = v < 0 ? 0 : v > 1 ? 1 : v
+  }
+}
+
 /**
  * Advances a run by `droplets` more droplets and returns a NEW run.
  *
@@ -262,6 +329,7 @@ export function erodeStep(
   droplets: number,
   seed: number,
   params: ErosionParams,
+  thermal: { talus: number; strength: number; passes: number } = { talus: 0, strength: 0, passes: 0 },
 ): ErosionRun {
   const height = Float32Array.from(previous ? previous.height : source)
   const brush = buildBrush(params.radius)
@@ -328,6 +396,13 @@ export function erodeStep(
       sample(height, resolution, px, py, here)
       deposit(height, resolution, here, sediment)
     }
+  }
+
+  // Thermal runs after the droplets rather than alongside them: the water cuts
+  // the slope, then the slope slumps to something it can hold. Interleaving
+  // them per droplet would cost the same and say less.
+  for (let pass = 0; pass < thermal.passes; pass++) {
+    thermalPass(height, resolution, thermal.talus, thermal.strength)
   }
 
   // Clamped, not rescaled, matching the rest of the pipeline: erosion genuinely

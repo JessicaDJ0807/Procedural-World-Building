@@ -423,3 +423,126 @@
   background: rgba(255, 255, 255, 0.06);
   color: #c5ccd8;
 }
+
+/* ---- Hover explanations ---- */
+
+/* A dotted underline is the only signal that a term has more behind it, so it
+   has to read as an affordance without competing with the control itself. */
+.infotip-trigger {
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.35);
+  cursor: help;
+}
+
+.infotip-trigger:hover,
+.infotip-trigger:focus-visible {
+  border-bottom-color: #6ea8fe;
+  color: #e8ecf4;
+  outline: none;
+}
+
+/* Portalled to <body>, so it escapes the sidebar's overflow clipping. */
+.infotip-box {
+  position: fixed;
+  z-index: 20;
+  width: 280px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(24, 26, 35, 0.97);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  color: #c5ccd8;
+  font: 12px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  pointer-events: none; /* never steals the hover that opened it */
+  backdrop-filter: blur(8px);
+}
+
+/* Group headings carry explanations too, and inherit the heading's colour. */
+.control-group .infotip-trigger {
+  border-bottom-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ---- Focus mode (H) ---- */
+
+/* display:none rather than opacity, so hidden controls also leave the tab order. */
+.app-shell.is-focused .app-nav,
+.app-shell.is-focused .noise-sidebar,
+.app-shell.is-focused .control-widget {
+  display: none;
+}
+
+.focus-hint {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(20, 22, 30, 0.8);
+  color: #8b93a3;
+  font: 12px/1 system-ui, 'Segoe UI', Roboto, sans-serif;
+  cursor: pointer;
+  /* Bright while it is still news, then faint enough to forget about. */
+  animation: focus-hint-settle 400ms ease-out 2.6s forwards;
+}
+
+.focus-hint:hover,
+.focus-hint:focus-visible {
+  animation: none;
+  opacity: 1;
+  color: #e8ecf4;
+  border-color: rgba(255, 255, 255, 0.28);
+  outline: none;
+}
+
+.focus-hint kbd {
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  font: inherit;
+  font-weight: 600;
+  color: #9eb4ff;
+}
+
+@keyframes focus-hint-settle {
+  to { opacity: 0.22; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-hint { animation: none; opacity: 0.5; }
+}
+
+/* ---- Voxel page (Week 3) ---- */
+
+.voxel-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #e8ecf4;
+  font: 14px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.page-placeholder {
+  text-align: center;
+}
+
+.page-placeholder h2 {
+  margin: 4px 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.placeholder-week {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8b93a3;
+}

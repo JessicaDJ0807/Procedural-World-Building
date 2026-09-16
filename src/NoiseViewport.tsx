@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 import type { Cell } from './NoiseMapPreview'
-import { hexToRgb } from './theme'
+import { rampIndex, type Ramp } from './palette'
 
 export type GeometryMode = 'surface' | 'volume' | 'planet'
 
@@ -15,24 +15,28 @@ type NoiseViewportProps = {
   heightScale: number
   /** Cell to mark, in map coordinates. `z` is the slice in volume mode. */
   selected: (Cell & { z: number }) | null
-  /** `#rrggbb`. Cell value scales it, so 1 is the colour itself and 0 is black. */
-  tint: string
+  /** Colour ramp the cell value indexes into. */
+  ramp: Ramp
   /**
-   * Signed height change per cell to colour the surface by instead of the tint:
+   * Signed height change per cell to colour the surface by instead of the ramp:
    * negative where material was cut, positive where it was dropped. Surface mode
    * only, and `null` to colour by value as usual.
    */
   overlay: { cut: Float32Array; scale: number } | null
+  /** Degrees per second the field turns about its vertical axis. 0 is still. */
+  spin: number
+  /** Draws the sampling lattice over the height field. Surface mode only. */
+  wireframe: boolean
 }
 
 const SPAN = 2.4 // width and depth of the field in world units
 const VISIBILITY_FLOOR = 0.06 // below this a volume cell is omitted, not drawn dark
 
-// Cut reads warm, fill reads cool, and untouched ground keeps a dimmed tint so
-// the terrain is still legible underneath the overlay rather than flat-shaded.
+// Cut reads warm, fill reads cool, and untouched ground keeps a dimmed ramp
+// colour so the terrain is still legible underneath the overlay.
 const CUT_COLOUR: [number, number, number] = [0.94, 0.42, 0.22]
 const FILL_COLOUR: [number, number, number] = [0.42, 0.86, 0.98]
-const OVERLAY_BASE = 0.34 // how much of the tint survives where nothing moved
+const OVERLAY_BASE = 0.34 // how much of the ramp colour survives where nothing moved
 
 /** Default framing per mode: a flat sheet reads well closer in than a full cube. */
 const FRAMING: Record<GeometryMode, { position: [number, number, number]; target: number }> = {
@@ -43,6 +47,19 @@ const FRAMING: Record<GeometryMode, { position: [number, number, number]; target
 
 // PolyhedronGeometry splits each edge into detail+1 segments, so this is
 // 20·32² = 20,480 faces over 10,242 unique vertices — not 4^detail.
+/**
+ * How strongly the lattice is drawn, given how dense it is.
+ *
+ * Line count rises with the resolution while the viewport does not, so a fixed
+ * opacity that reads as a lattice at 32² covers the terrain at 128² and the
+ * colour is lost under it. Fading in proportion keeps roughly the same amount
+ * of ink on screen either way, so the lines stay an annotation rather than
+ * becoming the image.
+ */
+function latticeOpacity(resolution: number): number {
+  return THREE.MathUtils.clamp(14 / resolution, 0.13, 0.5)
+}
+
 const PLANET_DETAIL = 31
 const PLANET_RADIUS = 0.85
 
@@ -50,8 +67,11 @@ type Scene = {
   scene: THREE.Scene
   camera: THREE.PerspectiveCamera
   controls: OrbitControls
-  ground: THREE.GridHelper
+  /** Holds everything that turns. */
+  spinner: THREE.Group
   surface: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>
+  /** Lattice lines over the surface, sharing its position attribute. */
+  lattice: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>
   cloud: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial>
   planet: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>
   /** Unit-sphere direction per planet vertex, fixed for the life of the mesh. */
@@ -128,11 +148,11 @@ function writePlanet(
   field: Float32Array,
   resolution: number,
   relief: number,
-  tint: string,
+  ramp: Ramp,
 ) {
   const position = geometry.getAttribute('position') as THREE.BufferAttribute
   const color = geometry.getAttribute('color') as THREE.BufferAttribute
-  const [tr, tg, tb] = hexToRgb(tint)
+  const lut = ramp.linear
 
   for (let i = 0; i < position.count; i++) {
     const dx = directions[i * 3]
@@ -141,7 +161,8 @@ function writePlanet(
     const value = sampleVolume(field, resolution, dx, dy, dz)
     const radius = PLANET_RADIUS + value * relief
     position.setXYZ(i, dx * radius, dy * radius, dz * radius)
-    color.setXYZ(i, value * tr, value * tg, value * tb)
+    const c = rampIndex(ramp, value) * 3
+    color.setXYZ(i, lut[c], lut[c + 1], lut[c + 2])
   }
   position.needsUpdate = true
   color.needsUpdate = true
@@ -192,35 +213,79 @@ function buildSurfaceGrid(resolution: number): THREE.BufferGeometry {
   return geometry
 }
 
+/**
+ * Lattice lines for the surface: rows and columns, nothing else.
+ *
+ * Deliberately not `material.wireframe`, which draws the TRIANGULATION — and
+ * the diagonal across every quad is an artifact of how that quad was split,
+ * not anything the field did. Drawing it would double the line count and
+ * suggest a structure the sampling grid does not have.
+ *
+ * The geometry shares the surface's `position` attribute instance rather than
+ * copying it, so every height `writeSurface` writes moves the lines too: there
+ * is no second buffer that can fall out of step with the terrain.
+ */
+function buildSurfaceLattice(
+  surface: THREE.BufferGeometry,
+  resolution: number,
+): THREE.BufferGeometry {
+  const r = resolution
+  // r rows and r columns, each spanning r-1 segments.
+  const indices = new Uint32Array(2 * r * (r - 1) * 2)
+  let i = 0
+  for (let y = 0; y < r; y++) {
+    for (let x = 0; x < r - 1; x++) {
+      indices[i++] = y * r + x
+      indices[i++] = y * r + x + 1
+    }
+  }
+  for (let x = 0; x < r; x++) {
+    for (let y = 0; y < r - 1; y++) {
+      indices[i++] = y * r + x
+      indices[i++] = (y + 1) * r + x
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', surface.getAttribute('position'))
+  geometry.setIndex(new THREE.BufferAttribute(indices, 1))
+  return geometry
+}
+
 function writeSurface(
   geometry: THREE.BufferGeometry,
   field: Float32Array,
   heightScale: number,
-  tint: string,
+  ramp: Ramp,
   overlay: { cut: Float32Array; scale: number } | null,
 ) {
   const position = geometry.getAttribute('position') as THREE.BufferAttribute
   const color = geometry.getAttribute('color') as THREE.BufferAttribute
-  const [tr, tg, tb] = hexToRgb(tint)
+  // Vertex colours are read as linear light, so the ramp's linear side is the
+  // correct one here — the sRGB bytes the map uses would render washed out.
+  const lut = ramp.linear
   // A zero scale means nothing has moved yet, so there is no overlay to draw.
   const cut = overlay && overlay.scale > 0 ? overlay : null
 
   for (let i = 0; i < field.length; i++) {
     const value = field[i]
     position.setY(i, value * heightScale)
+    const c = rampIndex(ramp, value) * 3
     if (cut) {
       const delta = cut.cut[i]
       const magnitude = Math.min(1, (delta < 0 ? -delta : delta) / cut.scale)
       const [er, eg, eb] = delta < 0 ? CUT_COLOUR : FILL_COLOUR
-      const base = value * OVERLAY_BASE
+      const br = lut[c] * OVERLAY_BASE
+      const bg = lut[c + 1] * OVERLAY_BASE
+      const bb = lut[c + 2] * OVERLAY_BASE
       color.setXYZ(
         i,
-        base * tr + (er - base * tr) * magnitude,
-        base * tg + (eg - base * tg) * magnitude,
-        base * tb + (eb - base * tb) * magnitude,
+        br + (er - br) * magnitude,
+        bg + (eg - bg) * magnitude,
+        bb + (eb - bb) * magnitude,
       )
     } else {
-      color.setXYZ(i, value * tr, value * tg, value * tb)
+      color.setXYZ(i, lut[c], lut[c + 1], lut[c + 2])
     }
   }
   position.needsUpdate = true
@@ -234,8 +299,8 @@ function writeSurface(
  * drawn black: a dense field is opaque from any angle, so leaving the dark
  * cells out is the only way to see into the volume.
  */
-function buildCloud(resolution: number, field: Float32Array, tint: string): THREE.BufferGeometry {
-  const [tr, tg, tb] = hexToRgb(tint)
+function buildCloud(resolution: number, field: Float32Array, ramp: Ramp): THREE.BufferGeometry {
+  const lut = ramp.linear
   const step = SPAN / resolution
   const origin = -SPAN / 2 + step / 2
 
@@ -253,9 +318,10 @@ function buildCloud(resolution: number, field: Float32Array, tint: string): THRE
         positions[i] = origin + x * step
         positions[i + 1] = origin + y * step
         positions[i + 2] = origin + z * step
-        colors[i] = value * tr
-        colors[i + 1] = value * tg
-        colors[i + 2] = value * tb
+        const c = rampIndex(ramp, value) * 3
+        colors[i] = lut[c]
+        colors[i + 1] = lut[c + 1]
+        colors[i + 2] = lut[c + 2]
         i += 3
       }
     }
@@ -273,11 +339,19 @@ export function NoiseViewport({
   field,
   heightScale,
   selected,
-  tint,
+  ramp,
   overlay,
+  spin,
+  wireframe,
 }: NoiseViewportProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<Scene | null>(null)
+  // Read by the render loop rather than passed into it, so changing the speed
+  // never tears the scene down — the same routing Week 1 uses for its spin.
+  const spinRef = useRef(spin)
+  useEffect(() => {
+    spinRef.current = spin
+  }, [spin])
 
   useEffect(() => {
     const container = containerRef.current
@@ -306,9 +380,6 @@ export function NoiseViewport({
     controls.maxDistance = 14
     controls.update()
 
-    const ground = new THREE.GridHelper(6, 12, 0x333947, 0x272b36)
-    scene.add(ground)
-
     scene.add(new THREE.AmbientLight(0xffffff, 0.5))
     const key = new THREE.DirectionalLight(0xffffff, 1.15)
     key.position.set(3, 5, 2)
@@ -317,6 +388,11 @@ export function NoiseViewport({
     fill.position.set(-3, 1, -3)
     scene.add(fill)
 
+    // Everything that represents the field turns together, so the marker and
+    // the lattice stay locked to the terrain they belong to.
+    const spinner = new THREE.Group()
+    scene.add(spinner)
+
     const surface = new THREE.Mesh(
       new THREE.BufferGeometry(),
       new THREE.MeshStandardMaterial({
@@ -324,36 +400,54 @@ export function NoiseViewport({
         roughness: 0.85,
         metalness: 0.05,
         side: THREE.DoubleSide, // the underside is visible when orbiting below
+        // The lattice lines sit exactly on the triangle edges they trace, so
+        // without nudging the mesh back in depth the two z-fight into a
+        // stipple. Offsetting the fill rather than lifting the lines keeps
+        // them on the surface at every camera distance.
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
       }),
     )
-    scene.add(surface)
+    spinner.add(surface)
+
+    const lattice = new THREE.LineSegments(
+      new THREE.BufferGeometry(),
+      new THREE.LineBasicMaterial({ color: 0xe6ecfa, transparent: true }),
+    )
+    // The shared position attribute is rewritten every tick and this geometry
+    // never recomputes its bounds, so a stale sphere could cull the lines away.
+    lattice.frustumCulled = false
+    spinner.add(lattice)
 
     const { geometry: planetGeometry, directions: planetDirections } = buildPlanetBase()
     const planet = new THREE.Mesh(
       planetGeometry,
       new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0.05 }),
     )
-    scene.add(planet)
+    spinner.add(planet)
 
     const cloud = new THREE.Points(
       new THREE.BufferGeometry(),
       new THREE.PointsMaterial({ vertexColors: true, sizeAttenuation: true, size: 0.05 }),
     )
-    scene.add(cloud)
+    spinner.add(cloud)
 
     const marker = new THREE.Mesh(
       new THREE.SphereGeometry(0.045, 16, 12),
       new THREE.MeshBasicMaterial({ color: 0xffb347 }),
     )
     marker.visible = false
-    scene.add(marker)
+    // Inside the group so the marker stays stuck to the cell it points at.
+    spinner.add(marker)
 
     sceneRef.current = {
       scene,
       camera,
       controls,
-      ground,
+      spinner,
       surface,
+      lattice,
       cloud,
       planet,
       planetDirections,
@@ -372,12 +466,17 @@ export function NoiseViewport({
     observer.observe(container)
 
     let frameId = 0
-    const animate = () => {
+    let lastTime = performance.now()
+    const animate = (time: number) => {
+      // Clamped so a backgrounded tab does not resume with one enormous jump.
+      const delta = Math.min((time - lastTime) / 1000, 0.1)
+      lastTime = time
+      spinner.rotation.y += THREE.MathUtils.degToRad(spinRef.current) * delta
       controls.update()
       renderer.render(scene, camera)
       frameId = requestAnimationFrame(animate)
     }
-    animate()
+    frameId = requestAnimationFrame(animate)
 
     return () => {
       cancelAnimationFrame(frameId)
@@ -386,14 +485,14 @@ export function NoiseViewport({
       sceneRef.current = null
       surface.geometry.dispose()
       surface.material.dispose()
+      lattice.geometry.dispose()
+      lattice.material.dispose()
       cloud.geometry.dispose()
       cloud.material.dispose()
       planet.geometry.dispose()
       planet.material.dispose()
       marker.geometry.dispose()
       ;(marker.material as THREE.Material).dispose()
-      ground.geometry.dispose()
-      ;(ground.material as THREE.Material).dispose()
       renderer.dispose()
       renderer.domElement.remove()
     }
@@ -417,25 +516,29 @@ export function NoiseViewport({
     objects.surface.visible = mode === 'surface'
     objects.cloud.visible = mode === 'volume'
     objects.planet.visible = mode === 'planet'
-    // A world floating above a floor grid reads as a prop, not a planet.
-    objects.ground.visible = mode !== 'planet'
+    objects.lattice.visible = mode === 'surface' && wireframe
 
     if (mode === 'surface') {
       if (objects.surfaceResolution !== resolution) {
         objects.surface.geometry.dispose()
+        objects.lattice.geometry.dispose()
         objects.surface.geometry = buildSurfaceGrid(resolution)
+        // Rebuilt together: the lattice holds the surface's position attribute,
+        // so a lattice left behind would index a buffer that no longer exists.
+        objects.lattice.geometry = buildSurfaceLattice(objects.surface.geometry, resolution)
         objects.surfaceResolution = resolution
       }
-      writeSurface(objects.surface.geometry, field, heightScale, tint, overlay)
+      objects.lattice.material.opacity = latticeOpacity(resolution)
+      writeSurface(objects.surface.geometry, field, heightScale, ramp, overlay)
     } else if (mode === 'planet') {
-      writePlanet(objects.planet.geometry, objects.planetDirections, field, resolution, heightScale, tint)
+      writePlanet(objects.planet.geometry, objects.planetDirections, field, resolution, heightScale, ramp)
     } else {
       // The cull makes the point count vary, so this geometry cannot be reused.
       objects.cloud.geometry.dispose()
-      objects.cloud.geometry = buildCloud(resolution, field, tint)
+      objects.cloud.geometry = buildCloud(resolution, field, ramp)
       objects.cloud.material.size = Math.max((SPAN / resolution) * 0.75, 0.012)
     }
-  }, [mode, resolution, field, heightScale, tint, overlay])
+  }, [mode, resolution, field, heightScale, ramp, overlay, wireframe])
 
   useEffect(() => {
     const objects = sceneRef.current

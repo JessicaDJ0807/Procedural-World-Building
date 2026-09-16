@@ -1,3 +1,4 @@
+import { InfoTip } from './InfoTip'
 import { Slider } from './Slider'
 import {
   BLEND_MODES,
@@ -95,6 +96,7 @@ export function LayerPanel({
                 <div className="layer-body">
                   <Slider
                     label="Frequency"
+                    info={"Lattice cells per side for this layer, interpolated up to the display resolution. A coarse lattice under a fine one is the octave stacking fractal noise is built from; at frequency equal to the resolution it degenerates back to per-cell white noise."}
                     value={Math.min(layer.frequency, maxFrequency)}
                     display={String(Math.min(layer.frequency, maxFrequency))}
                     min={2}
@@ -104,6 +106,7 @@ export function LayerPanel({
                   />
                   <Slider
                     label="Spread (σ)"
+                    info={"Standard deviation of this layer’s distribution, about a mean of 0.5. Out-of-range samples are clamped rather than rescaled, so a large spread genuinely piles mass onto pure black and white."}
                     value={layer.spread}
                     display={layer.spread.toFixed(3)}
                     min={0.01}
@@ -113,7 +116,9 @@ export function LayerPanel({
                   />
 
                   <label className="control">
-                    <span className="control-label">Blend</span>
+                    <span className="control-label">
+                      <InfoTip text={"How this layer combines with everything beneath it. The stack starts from 0 and the bottom layer blends against that like any other, so a bottom layer set to Multiply yields nothing — exactly as it would in an image editor."}>Blend</InfoTip>
+                    </span>
                     <select
                       value={layer.blendName}
                       onChange={(event) =>
@@ -130,6 +135,7 @@ export function LayerPanel({
 
                   <Slider
                     label="Opacity"
+                    info={"How much of the blend result is kept. Because Normal blend is a lerp rather than a sum, this is also what sets the layer’s weight in the finished field — which is why an fBm stack needs the odd-looking 1, 0.33, 0.14 sequence."}
                     value={layer.opacity}
                     display={`${Math.round(layer.opacity * 100)}%`}
                     min={0}
@@ -139,7 +145,9 @@ export function LayerPanel({
                   />
 
                   <label className="control">
-                    <span className="control-label">Shaping</span>
+                    <span className="control-label">
+                      <InfoTip text={"A remap applied to this layer alone, before it is blended. Shaping the finished composite instead is what the Output section does."}>Shaping</InfoTip>
+                    </span>
                     <select
                       value={layer.shapingName}
                       onChange={(event) => {

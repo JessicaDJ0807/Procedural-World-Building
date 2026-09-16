@@ -8,6 +8,28 @@ accumulates as the course goes rather than replacing what came before.
 | --- | --- | --- |
 | 1 | 3D Objects | A real-time WebGL object viewer with material and orientation controls |
 | 2 | Noise | A layered noise stack, smoothed by a cellular automaton, carved by hydraulic erosion, and graphed as 3D geometry |
+| 3 | Voxels | Placeholder — the page, nav entry, and styling exist; the work has yet to land |
+
+### Keyboard
+
+| Key | Effect |
+| --- | --- |
+| `H` | Hide every panel and give the whole window to the object. Press again to bring them back |
+| `Esc` | Always restores the panels, never hides them |
+
+Focus mode works on every week — it hides the week nav, Week 2's sidebar and
+Week 1's floating control widget. Panels are hidden with `display: none` rather
+than made transparent, so their controls also leave the tab order; tabbing while
+hidden cannot land inside a panel you cannot see. Both canvases already watch
+their container with a `ResizeObserver`, so the view reflows to the full width
+rather than stretching.
+
+`Esc` only ever restores, which is what makes hiding the UI safe to try, and a
+small reminder stays in the corner — bright for a few seconds, then faint enough
+to ignore, and clickable if the key slips your mind. The shortcut is ignored
+while a select or text field has focus, since a letter key means something there,
+but it still works from a slider or checkbox, which is where focus usually sits
+after changing a value.
 
 ## Week 1 — 3D Objects
 
@@ -29,20 +51,55 @@ Every cell holds a value in `[0, 1]`, built from a stack of noise layers. The
 composited map drives geometry in the centre viewport; the map itself sits in
 the sidebar as the source you inspect and tune.
 
-Drag to orbit, scroll to zoom, right-drag to pan.
+Drag to orbit, scroll to zoom, right-drag to pan, and a **Spin** slider turns
+the object about its vertical axis in degrees per second. Spin is a reading
+tool as much as a flourish: relief that is ambiguous in a still frame usually
+resolves as soon as the shading moves across it.
 
-It opens on a six-octave fBm stack at 128², height 1.4, with the automaton off
-and the erosion preset on Gorges — the configuration that measures closest to
-real topography (see [Building an fBm stack](#building-an-fbm-stack)). Press
-**Rain** to erode it.
+**Every term in the panel explains itself on hover.** Control labels carry a
+dotted underline; hovering or tabbing to one opens a box with what the setting
+does and, where it matters, what it costs. The explanations live next to the
+values they describe — parameter definitions carry their own text in
+`erosion.ts` and `noise.ts` — so a control and its description cannot drift
+apart.
+
+It opens on a six-octave fBm stack at 128², height 1.4, the Terrain palette
+fitted to the field's range, the automaton off, and the erosion preset on
+Gorges — the configuration that measures closest to real topography (see
+[Building an fBm stack](#building-an-fbm-stack)). Press **Rain** to erode it.
 
 ### Geometry modes
 
 | Mode | What it draws |
 | --- | --- |
-| **Height field** | The map as a graph — one vertex per cell, raised to its value and welded into a continuous surface. A **Height** slider scales the relief. |
+| **Height field** | The map as a graph — one vertex per cell, raised to its value and welded into a continuous surface. A **Height** slider scales the relief, and a **Wireframe** checkbox draws the sampling lattice over it. |
 | **Volumetric cloud** | True 3D noise, one point per cell. The sidebar map shows a single z-slice, moved with the **Slice** slider. |
 | **Planet** | A sphere whose every vertex is displaced by the 3D field sampled at its own position. A **Relief** slider scales the displacement. |
+
+#### The wireframe draws the lattice, not the triangulation
+
+`material.wireframe` is the one-line way to get a mesh outline, and it draws
+the wrong thing. Every quad in the surface is split into two triangles, so the
+built-in wireframe adds a diagonal across each cell — a line that records how
+the index buffer was written, not anything the field did. The lattice here is
+a separate `LineSegments` indexed as rows and columns only — 2·R·(R−1)
+segments, where the triangulation's distinct edges come to that plus one
+diagonal per quad, (R−1)² more. Every line it draws is a real edge of the
+sampling grid.
+
+It shares the surface's `position` attribute *instance* rather than copying
+it, so the lines follow every height `writeSurface` writes — an erosion tick,
+a Height drag, an automaton generation — with no second buffer that can fall
+out of step. Two details make that work: the mesh material carries a
+`polygonOffset`, because the lines sit exactly on the triangle edges they
+trace and would otherwise z-fight into a stipple; and the lines are excluded
+from frustum culling, since the shared attribute is rewritten constantly while
+that geometry never recomputes its own bounds.
+
+Line count rises with the square of the resolution while the viewport does
+not, so the opacity is faded in proportion (`14 / resolution`, clamped). A
+fixed value that reads as a lattice at 32² buries the terrain colour at 128²
+— the lines should annotate the surface, not become it.
 
 #### Why the planet samples the volume
 
@@ -56,14 +113,59 @@ so there is no seam and no poles, and detail stays even everywhere.
 It also gives the volumetric field a second job — the same buffer the point
 cloud draws is what the planet is carved from.
 
-### Colour
+### Colour ramps
 
-A single **Colour** picker tints both the sidebar map and the 3D geometry — they
-show the same field, so a second colour would only let them disagree. The cell
-value scales the chosen colour, so 1 is the colour itself and 0 is black; the
-greyscale ramp is just what white gives you. It defaults to `#6ea8fe`, the same
-blue Week 1's material starts on, shared as `ACCENT_BLUE` in `theme.ts` rather
-than written out twice.
+The field is a scalar in `[0, 1]` and the ramp is how it becomes visible. One
+**Palette** drives both the sidebar map and the 3D geometry, because they show
+the same field and a second control would only let them disagree.
+
+Scaling a single colour by the value — what this page did first — is a
+*luminance* ramp, and the eye resolves luminance far worse than hue. Measured as
+path length through OKLab, where Euclidean distance is built to be perceptually
+uniform, each ramp spends a different amount of colour on the same data:
+
+| Palette | distinguishable steps | notes |
+| --- | --- | --- |
+| **Terrain** | **165** | Hypsometric tints, the cartographic convention. Widest range. |
+| Magma | 114 | Dark to bright with rising hue. |
+| Greyscale | 100 | Pure luminance — the baseline worth measuring against. |
+| Single hue | 86 | Black to the picked colour. Shows the **Colour** picker. |
+| Viridis | 83 | Perceptually uniform: equal value steps *look* equal. |
+
+Viridis scoring lowest is not a defect. It deliberately trades total range for
+even steps, which makes it the honest ramp rather than the punchy one — the
+others crowd detail into whichever part of the range happens to have more
+contrast.
+
+#### Fitting the ramp is what makes the palette pay
+
+A palette only helps if the data reaches its ends, and this field does not. The
+default six-octave stack spans 0.334 to 0.773, so against a fixed `[0, 1]` ramp
+it touches 113 of 256 entries:
+
+| Palette | reachable unfitted | fitted |
+| --- | --- | --- |
+| Terrain | **63 steps** | **165** |
+| Magma | 44 | 114 |
+| Greyscale | 44 | 100 |
+| Single hue | 36 | 86 |
+| Viridis | 35 | 83 |
+
+Unfitted, the terrain palette resolves *less* than the 74 steps the old
+single-colour ramp managed — the upgrade would have been a downgrade. **Fit ramp
+to range** stretches the ramp across the field's actual min and max, and the
+readout names the span it is using so the stretch is never silent. Geometry
+keeps using the raw value, so fitting changes the colouring and never the shape.
+
+The span is live: erode the terrain and it follows, drifting from 0.33–0.77 to
+0.47–0.77 as the low ground fills in.
+
+#### Bands
+
+**Bands** quantises the ramp into 2–48 steps, turning a smooth field into
+contour-like regions — the colour equivalent of the Terrace shaping operation.
+It quantises the *ramp*, not the field, so a banded map still sits on a smooth
+surface instead of turning the terrain into terraces.
 
 ### Inspecting
 
@@ -150,6 +252,38 @@ The stack starts from 0 and the bottom layer blends against it like any other,
 rather than being special-cased. That keeps the model predictable, but it does
 mean a bottom layer set to Multiply yields nothing — exactly as it would in an
 image editor.
+
+### Warp
+
+Domain warping looks the field up at coordinates pushed around by *another*
+noise field. Noise is stationary — every neighbourhood is statistically like
+every other — which is exactly why an unwarped field reads as texture rather
+than geology. Displacing the lookup breaks that: strata fold, ridges curve and
+run, and features stretch in one place while bunching in another, none of which
+a sum of octaves can produce on its own.
+
+| Control | Effect |
+| --- | --- |
+| Warp amount | Maximum displacement in cells. 0 is off, and returns the field untouched |
+| Warp scale | Lattice frequency of the offset fields — low bends whole regions, high jitters edges |
+| New warp | A different offset field at the same settings |
+
+**It is a character control, not a realism one**, and only free while it stays
+small. On the default stack:
+
+| warp amount | H | straightness R² |
+| --- | --- | --- |
+| 0 | 0.75 | 0.990 |
+| 10 | 0.75 | 0.989 |
+| 20 | 0.72 | 0.985 |
+| 40 | 0.65 | 0.971 |
+
+Below about 20 cells it moves where features are without changing how rough they
+are — the picture changes completely while the measurement does not. Past that,
+displacing features far enough starts shearing the fine octaves apart.
+
+It warps in 3D as well, so the volume and the planet fold too, and costs about
+0.4 ms at 128².
 
 ### Automata
 
@@ -247,6 +381,9 @@ carve the dendritic valley networks that noise alone never produces.
 | Colour by cut / fill | Tints the surface warm where material was removed, cool where it was added |
 | Rain / Step / Reset | Run continuously, add one tick, or return to the uneroded terrain |
 | New rainfall | A different set of droplets, from the uneroded terrain |
+| Talus passes | Thermal slippage passes run after the droplets each tick. 0 is off |
+| Angle of repose | Slope a cell can hold before it slumps |
+| Slump strength | How much of the excess moves per pass |
 
 **More erosion is not better.** Channel concentration — the share of all erosion
 landing in the busiest 10% of cells, against 0.10 for perfectly even wear —
@@ -263,6 +400,28 @@ preset is deliberately restrained and the readout reports the **relief left**
 rather than only the droplet count. Once that figure has fallen far, the run is
 lowering the whole field rather than carving it. The rain is capped at 12
 droplets per cell for the same reason.
+
+#### Thermal erosion
+
+Talus slippage is the companion process, and it works the other way round.
+Where the droplets *transport* — they pick material up, carry it, and put it
+somewhere else — this is purely local: a cell gives its excess to whichever
+neighbours sit below its angle of repose. Nothing is carried anywhere.
+
+That is what puts scree at the foot of a cliff and stops slopes getting
+arbitrarily steep, neither of which hydraulic erosion does on its own. Measured
+after eight Gorges ticks at 128², three talus passes per tick cut the share of
+over-steep adjacent pairs from **2.64% to 1.76%** — a third fewer — while
+leaving relief untouched at 74%. It moves material sideways rather than removing
+it: mass drift over five passes is 0.000%.
+
+It runs after the droplets rather than interleaved with them: the water cuts the
+slope, then the slope settles to something it can hold. Each pass costs about
+6 ms at 128², so three passes roughly doubles the cost of a tick.
+
+Neighbour drops are divided by their distance, which matters more than it looks:
+without it a diagonal neighbour counts the same as an orthogonal one despite
+being further away, and the result grows eight-armed stars.
 
 #### Presets
 
@@ -326,8 +485,17 @@ into stepped mesas, Threshold into flat plateaus:
 | Power | Exponent | `x^k` — above 1 darkens, below 1 brightens |
 | Gain | Strength | S-curve about 0.5; above 1 adds contrast |
 | Smoothstep | Edge 0, Edge 1 | Hermite ramp between the edges, flat outside |
+| Ridge | Sharpness | `(1 − \|2x − 1\|)^k` — folds the field about its middle, so smooth peaks become creases |
+| Billow | Sharpness | The inverse fold: creases become rounded lobes, reading as dunes rather than peaks |
 | Terrace | Steps | Quantises into bands |
 | Threshold | Cutoff | Binary cut |
+
+**Ridge is what turns a heightfield into mountains.** A sum of octaves has
+smooth maxima because it is differentiable everywhere; folding it about its
+midpoint makes the turning points non-differentiable, and a non-differentiable
+maximum is a crease. Raising the fold to a power then narrows the crease without
+moving it. On the default stack it takes relief from 0.44 to 0.79 and H from
+0.75 to 0.67 — the creases are genuine fine structure, not just contrast.
 
 ### Reading the volumetric mode
 
@@ -342,6 +510,11 @@ black, because that is the only way to see into the volume at all.
 
 Resolution is capped at 128 for a height field and 32 for a volume, since a
 volume costs the cube of the value; switching modes clamps it on the way in.
+
+## Week 3 — Voxels
+
+Empty for now. The page, its nav entry, and its styling are in place so the
+week has a home to grow into; the only thing left to add is the work itself.
 
 ## Getting started
 
@@ -364,16 +537,19 @@ Then open the URL Vite prints (default `http://localhost:5173`).
 ```
 src/
 ├── main.tsx                  Entry point
-├── App.tsx                   Week nav shell and page switching
+├── App.tsx                   Week nav shell, page switching, focus mode
 ├── Slider.tsx                Labelled range input, shared by both pages
+├── InfoTip.tsx               Hover explanation, portalled out of the scrolling panel
 ├── LayerPanel.tsx            Layer stack editor (Week 2)
 ├── pages/
 │   ├── ObjectViewerPage.tsx  Week 1 — viewer and its control panel
-│   └── NoisePage.tsx         Week 2 — viewport, sidebar, and noise state
+│   ├── NoisePage.tsx         Week 2 — viewport, sidebar, and noise state
+│   └── VoxelPage.tsx         Week 3 — placeholder, no content yet
 ├── SceneCanvas.tsx           Week 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
 ├── theme.ts                  Shared accent colour and hex parsing
+├── palette.ts                Colour ramps, OKLab interpolation, ramp fitting
 ├── NoiseMapPreview.tsx       Sidebar source map, click to inspect a cell
 ├── NoiseViewport.tsx         3D scene — height field, point cloud, or planet
 ├── noise.ts                  PRNG, sampling, shaping ops, blend modes, compositing
@@ -384,7 +560,7 @@ src/
 ```
 
 Adding a week is one page component plus one entry in the `PAGES` array in
-`App.tsx`; the shell opens on the last entry.
+`App.tsx`, which carries its own `render` — the shell opens on the last entry.
 
 ## Architecture notes
 
@@ -448,10 +624,42 @@ reaching −15 and +17 before being clamped back to a terrain that looked merely
 odd. Over 40 seeds at radius 1 the degenerate brush blew up 8 times and the
 corrected one never, at the same cost and with channel concentration unchanged.
 
+**The colour ramp is a 256-entry table, built once per palette.** Converting
+through OKLab per cell costs 21 ms for a 128² field against 0.21 ms for a table
+lookup — 99× — and the ramp only changes when the palette, colour or band count
+does. Caching is also what makes the accuracy free: interpolating in OKLab
+rather than sRGB is paid for at build time, so it costs nothing per frame.
+
+That accuracy turned out to matter less than expected. Interpolating between
+*adjacent* palette stops differs by 0–1% between the two spaces; it is only
+between opposite hues that sRGB loses chroma, up to 61%. A palette with enough
+stops would have been fine either way — but since the table makes OKLab free,
+there is no reason to take the risk on a sparse one.
+
+**The ramp is stored in both sRGB and linear light, because its two consumers
+disagree.** Canvas `ImageData` bytes are sRGB; three.js reads a vertex-colour
+attribute as linear. Feeding the same numbers to both — which is what scaling a
+hex colour by the cell value did — rendered the same field lighter in 3D than on
+the map. Deriving both encodings from one ramp is what actually keeps the map
+and the geometry agreeing, which the single colour picker only claimed to do.
+
+**Hover explanations are portalled to `<body>`, not rendered in place.** The
+sidebar is `overflow-y: auto`, which clips any absolutely positioned child, so
+a tooltip rendered next to its trigger would be cut off by the very panel it
+belongs to. It is positioned `fixed` from the trigger's bounding rect instead,
+placed to the left because the sidebar is only 296px wide and hard against the
+right edge of the window. A layout effect measures the box and nudges it up if
+it would run off the bottom — its own height being the only way to know.
+
 **Compositing is done once, in the page.** The map preview and the 3D viewport
 both receive a finished `Float32Array` and only draw it, so neither holds
 sampling logic and they cannot drift apart. A volume slice is a `subarray`, not
 a copy — index `z·R² + (y·R + x)` makes each slice contiguous.
+
+**There is no floor grid.** An earlier version drew a `GridHelper` under the
+field as a ground reference. It earned nothing: the height field already reads
+as a plane, and the grid mostly competed with it. The wireframe replaced it —
+a reference drawn *on* the data rather than beside it.
 
 **The surface grid is built per resolution, then written into.** X and Z are
 fixed by the lattice; only Y and vertex colour change with the field, so a

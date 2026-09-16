@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { hexToRgb } from './theme'
+import { rampIndex, type Ramp } from './palette'
 
 export type Cell = { x: number; y: number }
 
@@ -10,8 +10,8 @@ type NoiseMapPreviewProps = {
   selected: Cell | null
   /** `null` clears the selection. */
   onSelect: (cell: Cell | null) => void
-  /** `#rrggbb`. Cell value scales it, so 1 is the colour itself and 0 is black. */
-  tint: string
+  /** Colour ramp the cell value indexes into. */
+  ramp: Ramp
 }
 
 const MIN_CELL_PX = 5 // below this, grid lines swamp the cells they divide
@@ -21,7 +21,7 @@ export function NoiseMapPreview({
   field,
   selected,
   onSelect,
-  tint,
+  ramp,
 }: NoiseMapPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -48,14 +48,15 @@ export function NoiseMapPreview({
     const tileCtx = tile.getContext('2d')
     if (!tileCtx) return
 
-    const [tr, tg, tb] = hexToRgb(tint)
+    // ImageData is sRGB, so it takes the ramp's sRGB side directly.
     const image = tileCtx.createImageData(resolution, resolution)
     for (let i = 0; i < field.length; i++) {
       const value = field[i]
       const o = i * 4
-      image.data[o] = Math.round(value * tr * 255)
-      image.data[o + 1] = Math.round(value * tg * 255)
-      image.data[o + 2] = Math.round(value * tb * 255)
+      const c = rampIndex(ramp, value) * 3
+      image.data[o] = ramp.srgb[c]
+      image.data[o + 1] = ramp.srgb[c + 1]
+      image.data[o + 2] = ramp.srgb[c + 2]
       image.data[o + 3] = 255
     }
     tileCtx.putImageData(image, 0, 0)
@@ -94,7 +95,7 @@ export function NoiseMapPreview({
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
     ctx.lineWidth = 1
     ctx.strokeRect(0.5, 0.5, size - 1, size - 1)
-  }, [resolution, field, selected, tint])
+  }, [resolution, field, selected, ramp])
 
   // Set on pointerdown and cleared on release. A click that deselects leaves it
   // false, so the pointermove that follows cannot immediately reselect the cell

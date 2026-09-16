@@ -51,9 +51,19 @@ export function createNoiseField(
   return field
 }
 
-export type ShapingName = 'none' | 'power' | 'gain' | 'smoothstep' | 'terrace' | 'threshold'
+export type ShapingName =
+  | 'none'
+  | 'power'
+  | 'gain'
+  | 'smoothstep'
+  | 'ridge'
+  | 'billow'
+  | 'terrace'
+  | 'threshold'
 
 export type ShapingParam = {
+  /** Hover explanation for the control. */
+  info?: string
   key: string
   label: string
   min: number
@@ -85,7 +95,7 @@ export const SHAPING_OPS: ShapingOp[] = [
     label: 'Power',
     hint: 'x^k. Above 1 darkens, below 1 brightens.',
     params: [
-      { key: 'exponent', label: 'Exponent', min: 0.1, max: 5, step: 0.05, defaultValue: 1 },
+      { key: 'exponent', label: 'Exponent', info: "The power the value is raised to. Above 1 pushes everything toward the low end, so peaks become rarer and the ground flattens; below 1 does the reverse.", min: 0.1, max: 5, step: 0.05, defaultValue: 1 },
     ],
     apply: (x, p) => Math.pow(x, p.exponent),
   },
@@ -93,7 +103,7 @@ export const SHAPING_OPS: ShapingOp[] = [
     value: 'gain',
     label: 'Gain',
     hint: 'S-curve about 0.5. Above 1 adds contrast, below 1 flattens.',
-    params: [{ key: 'k', label: 'Strength', min: 0.2, max: 5, step: 0.05, defaultValue: 1 }],
+    params: [{ key: 'k', label: 'Strength', info: "How hard the S-curve bends about the midpoint. Above 1 pushes values away from the middle toward both ends, adding contrast; below 1 pulls them together.", min: 0.2, max: 5, step: 0.05, defaultValue: 1 }],
     apply: (x, p) =>
       x < 0.5 ? 0.5 * Math.pow(2 * x, p.k) : 1 - 0.5 * Math.pow(2 * (1 - x), p.k),
   },
@@ -102,8 +112,8 @@ export const SHAPING_OPS: ShapingOp[] = [
     label: 'Smoothstep',
     hint: 'Hermite ramp between the two edges; flat outside them.',
     params: [
-      { key: 'edge0', label: 'Edge 0', min: 0, max: 1, step: 0.01, defaultValue: 0.35 },
-      { key: 'edge1', label: 'Edge 1', min: 0, max: 1, step: 0.01, defaultValue: 0.65 },
+      { key: 'edge0', label: 'Edge 0', info: "Values at or below this become 0. Everything between the two edges is ramped smoothly.", min: 0, max: 1, step: 0.01, defaultValue: 0.35 },
+      { key: 'edge1', label: 'Edge 1', info: "Values at or above this become 1. Setting it below Edge 0 collapses the ramp to a hard step.", min: 0, max: 1, step: 0.01, defaultValue: 0.65 },
     ],
     apply: (x, p) => {
       // A zero or inverted span would divide by zero or flip the ramp, so it
@@ -113,6 +123,27 @@ export const SHAPING_OPS: ShapingOp[] = [
       const t = clamp01((x - p.edge0) / span)
       return t * t * (3 - 2 * t)
     },
+  },
+  {
+    value: 'ridge',
+    label: 'Ridge',
+    hint: 'Folds the field about its middle, so what were smooth peaks become sharp creases. Sharpness above 1 narrows them.',
+    params: [
+      { key: 'sharpness', label: 'Sharpness', info: "How narrow the fold is. At 1 the crease is a plain V; higher values pinch it, which reads as sharper ridgelines.", min: 1, max: 4, step: 0.05, defaultValue: 2 },
+    ],
+    // The fold is what makes mountains: a smooth maximum turns into a crease
+    // because the function is not differentiable where it turns around. Raising
+    // the result to a power then narrows the ridge without moving it.
+    apply: (x, p) => Math.pow(1 - Math.abs(2 * x - 1), p.sharpness),
+  },
+  {
+    value: 'billow',
+    label: 'Billow',
+    hint: 'The inverse fold: creases become rounded lobes. Reads as dunes or clouds rather than peaks.',
+    params: [
+      { key: 'sharpness', label: 'Sharpness', info: "How narrow the fold is. At 1 the crease is a plain V; higher values pinch it, which reads as sharper ridgelines.", min: 1, max: 4, step: 0.05, defaultValue: 2 },
+    ],
+    apply: (x, p) => Math.pow(Math.abs(2 * x - 1), p.sharpness),
   },
   {
     value: 'terrace',
@@ -140,7 +171,7 @@ export const SHAPING_OPS: ShapingOp[] = [
     value: 'threshold',
     label: 'Threshold',
     hint: 'Binary cut - everything at or above the cutoff becomes 1.',
-    params: [{ key: 'cutoff', label: 'Cutoff', min: 0, max: 1, step: 0.01, defaultValue: 0.5 }],
+    params: [{ key: 'cutoff', label: 'Cutoff', info: "Values at or above this become 1 and everything else becomes 0. The result is binary, so in a volume it is what opens the interior up to view.", min: 0, max: 1, step: 0.01, defaultValue: 0.5 }],
     apply: (x, p) => (x >= p.cutoff ? 1 : 0),
   },
 ]
@@ -343,6 +374,111 @@ export type Octave = { frequency: number; opacity: number }
  * four octaves apart leave a hole in the middle of that plot, and the eye reads
  * the hole as randomness.
  */
+/* ---------------------------------------------------------------------------
+ * Domain warping
+ * ------------------------------------------------------------------------- */
+
+export type WarpSettings = {
+  /** Maximum displacement in cells. 0 disables warping entirely. */
+  amount: number
+  /** Lattice frequency of the offset fields — how large the folds are. */
+  frequency: number
+  seed: number
+}
+
+/** Enough spread to displace properly without piling offsets onto the clamps. */
+const WARP_SPREAD = 0.2
+
+function offsetField(resolution: number, dimensions: 2 | 3, frequency: number, seed: number) {
+  const layer: NoiseLayer = {
+    id: 'warp', name: 'warp', enabled: true,
+    frequency, spread: WARP_SPREAD, seed,
+    shapingName: 'none', shapingParams: {}, blendName: 'normal', opacity: 1,
+  }
+  return dimensions === 2 ? sampleLayer2D(resolution, layer) : sampleLayer3D(resolution, layer)
+}
+
+/** Wrapping bilinear read, so a warped lookup tiles like everything else. */
+function readBilinear(field: Float32Array, r: number, x: number, y: number): number {
+  const x0 = Math.floor(x)
+  const y0 = Math.floor(y)
+  const fx = x - x0
+  const fy = y - y0
+  const xa = ((x0 % r) + r) % r
+  const ya = ((y0 % r) + r) % r
+  const xb = (xa + 1) % r
+  const yb = (ya + 1) % r
+  const top = field[ya * r + xa] + (field[ya * r + xb] - field[ya * r + xa]) * fx
+  const bottom = field[yb * r + xa] + (field[yb * r + xb] - field[yb * r + xa]) * fx
+  return top + (bottom - top) * fy
+}
+
+function readTrilinear(field: Float32Array, r: number, x: number, y: number, z: number): number {
+  const z0 = Math.floor(z)
+  const fz = z - z0
+  const za = ((z0 % r) + r) % r
+  const zb = (za + 1) % r
+  const plane = (zi: number) => readBilinear(field.subarray(zi * r * r, (zi + 1) * r * r), r, x, y)
+  const near = plane(za)
+  return near + (plane(zb) - near) * fz
+}
+
+/**
+ * Looks the field up at coordinates pushed around by other noise fields.
+ *
+ * Noise is stationary — every neighbourhood is statistically like every other —
+ * which is exactly why an unwarped field reads as texture rather than as
+ * geology. Displacing the lookup breaks that: strata fold, ridges curve and run,
+ * and features stretch in one place while bunching in another, none of which a
+ * sum of octaves can produce on its own.
+ *
+ * Up to moderate amounts it barely shows up in the structure function: at 10
+ * cells on the default stack the Hurst exponent holds at 0.75 and straightness
+ * at 0.989, so the picture changes completely while the roughness does not. Past
+ * about 20 cells that stops being true — 40 drags H down to 0.65 and R² to
+ * 0.971, because displacing features that far starts shearing the fine octaves
+ * apart. It is a character control, and only a free one while it stays small.
+ */
+export function warpField(
+  field: Float32Array,
+  resolution: number,
+  dimensions: 2 | 3,
+  { amount, frequency, seed }: WarpSettings,
+): Float32Array {
+  // Identity when off, so the memo downstream keeps the same array.
+  if (amount <= 0) return field
+
+  const f = Math.max(1, Math.min(Math.round(frequency), resolution))
+  const dx = offsetField(resolution, dimensions, f, seed)
+  const dy = offsetField(resolution, dimensions, f, seed + 101)
+  const out = new Float32Array(field.length)
+  const push = (v: number) => (v - DISTRIBUTION_MEAN) * 2 * amount
+
+  if (dimensions === 2) {
+    for (let y = 0; y < resolution; y++) {
+      for (let x = 0; x < resolution; x++) {
+        const i = y * resolution + x
+        out[i] = readBilinear(field, resolution, x + push(dx[i]), y + push(dy[i]))
+      }
+    }
+    return out
+  }
+
+  const dz = offsetField(resolution, dimensions, f, seed + 202)
+  for (let z = 0; z < resolution; z++) {
+    for (let y = 0; y < resolution; y++) {
+      for (let x = 0; x < resolution; x++) {
+        const i = (z * resolution + y) * resolution + x
+        out[i] = readTrilinear(
+          field, resolution,
+          x + push(dx[i]), y + push(dy[i]), z + push(dz[i]),
+        )
+      }
+    }
+  }
+  return out
+}
+
 export function fbmOctaves(
   octaves: number,
   baseFrequency: number,
