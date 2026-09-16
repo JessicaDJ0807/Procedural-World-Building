@@ -4,13 +4,37 @@ Coursework for a weekly design course, built with React, TypeScript, and
 Three.js. Each week's work lives on its own page behind a nav shell, so the app
 accumulates as the course goes rather than replacing what came before.
 
-| | Week | Page |
-| --- | --- | --- |
-| 1 | 3D Objects | A real-time WebGL object viewer with material and orientation controls |
-| 2 | Noise | A layered noise stack, smoothed by a cellular automaton, carved by hydraulic erosion, and graphed as 3D geometry |
-| 3 | Voxels | Placeholder — the page, nav entry, and styling exist; the work has yet to land |
+Each week has its own write-up in [`docs/`](docs/); this page is the map.
 
-### Keyboard
+## Weeks
+
+### [Week 1 — 3D Objects](docs/week-1-objects.md)
+
+A real-time WebGL object viewer. Five primitives swapped in place, a draggable
+XYZ gizmo storing orientation as a quaternion so the object never gimbal-locks,
+and material controls lit by a generated `RoomEnvironment` cubemap.
+
+### [Week 2 — Noise](docs/week-2-noise.md)
+
+A field of values in `[0, 1]`, built and then progressively shaped:
+
+- **Layers** — a stack of value-noise fields, composited bottom-up with nine
+  blend modes. Opens on a six-octave fBm stack, which measures at a Hurst
+  exponent of 0.75 with R² 0.990 — inside the band real topography occupies.
+- **Warp** — looks the field up at coordinates displaced by another noise
+  field, so strata fold and ridges curve.
+- **Automata** — a 3×3(×3) neighbour rule run to its fixed point, turning
+  speckled noise into connected landmasses and caves.
+- **Erosion** — droplet hydraulic erosion plus thermal slippage, which is what
+  cuts dendritic valley networks that noise alone never produces.
+- **Output** — eight per-cell shaping ops, five colour ramps interpolated in
+  OKLab, and three geometry modes: height field, point cloud, or planet.
+
+### [Week 3 — Voxels](docs/week-3-voxels.md)
+
+Placeholder — the page, nav entry, and styling exist; the work has yet to land.
+
+## Keyboard
 
 | Key | Effect |
 | --- | --- |
@@ -18,505 +42,11 @@ accumulates as the course goes rather than replacing what came before.
 | `Esc` | Always restores the panels, never hides them |
 
 Focus mode works on every week — it hides the week nav, Week 2's sidebar and
-Week 1's floating control widget. Panels are hidden with `display: none` rather
-than made transparent, so their controls also leave the tab order; tabbing while
-hidden cannot land inside a panel you cannot see. Both canvases already watch
-their container with a `ResizeObserver`, so the view reflows to the full width
-rather than stretching.
-
-`Esc` only ever restores, which is what makes hiding the UI safe to try, and a
-small reminder stays in the corner — bright for a few seconds, then faint enough
-to ignore, and clickable if the key slips your mind. The shortcut is ignored
-while a select or text field has focus, since a letter key means something there,
-but it still works from a slider or checkbox, which is where focus usually sits
-after changing a value.
-
-## Week 1 — 3D Objects
-
-- **Shape switching** — cube, sphere, torus, icosahedron, and torus knot,
-  swapped in place without rebuilding the scene.
-- **Orientation gizmo** — a draggable mini-cube with labelled X/Y/Z axes.
-  Orientation is stored as a quaternion so the object tumbles freely without
-  gimbal lock.
-- **Material controls** — colour, metalness, roughness, and wireframe, lit by a
-  `RoomEnvironment` image-based light so metallic surfaces have something real
-  to reflect.
-- **Transform** — auto-spin (degrees/second) layered on top of the gizmo
-  orientation, plus uniform scale.
-- **Orbit camera** — click and drag the main canvas to orbit the view.
-
-## Week 2 — Noise
-
-Every cell holds a value in `[0, 1]`, built from a stack of noise layers. The
-composited map drives geometry in the centre viewport; the map itself sits in
-the sidebar as the source you inspect and tune.
-
-Drag to orbit, scroll to zoom, right-drag to pan, and a **Spin** slider turns
-the object about its vertical axis in degrees per second. Spin is a reading
-tool as much as a flourish: relief that is ambiguous in a still frame usually
-resolves as soon as the shading moves across it.
-
-**Every term in the panel explains itself on hover.** Control labels carry a
-dotted underline; hovering or tabbing to one opens a box with what the setting
-does and, where it matters, what it costs. The explanations live next to the
-values they describe — parameter definitions carry their own text in
-`erosion.ts` and `noise.ts` — so a control and its description cannot drift
-apart.
-
-It opens on a six-octave fBm stack at 128², height 1.4, the Terrain palette
-fitted to the field's range, the automaton off, and the erosion preset on
-Gorges — the configuration that measures closest to real topography (see
-[Building an fBm stack](#building-an-fbm-stack)). Press **Rain** to erode it.
-
-### Geometry modes
-
-| Mode | What it draws |
-| --- | --- |
-| **Height field** | The map as a graph — one vertex per cell, raised to its value and welded into a continuous surface. A **Height** slider scales the relief, and a **Wireframe** checkbox draws the sampling lattice over it. |
-| **Volumetric cloud** | True 3D noise, one point per cell. The sidebar map shows a single z-slice, moved with the **Slice** slider. |
-| **Planet** | A sphere whose every vertex is displaced by the 3D field sampled at its own position. A **Relief** slider scales the displacement. |
-
-#### The wireframe draws the lattice, not the triangulation
-
-`material.wireframe` is the one-line way to get a mesh outline, and it draws
-the wrong thing. Every quad in the surface is split into two triangles, so the
-built-in wireframe adds a diagonal across each cell — a line that records how
-the index buffer was written, not anything the field did. The lattice here is
-a separate `LineSegments` indexed as rows and columns only — 2·R·(R−1)
-segments, where the triangulation's distinct edges come to that plus one
-diagonal per quad, (R−1)² more. Every line it draws is a real edge of the
-sampling grid.
-
-It shares the surface's `position` attribute *instance* rather than copying
-it, so the lines follow every height `writeSurface` writes — an erosion tick,
-a Height drag, an automaton generation — with no second buffer that can fall
-out of step. Two details make that work: the mesh material carries a
-`polygonOffset`, because the lines sit exactly on the triangle edges they
-trace and would otherwise z-fight into a stipple; and the lines are excluded
-from frustum culling, since the shared attribute is rewritten constantly while
-that geometry never recomputes its own bounds.
-
-Line count rises with the square of the resolution while the viewport does
-not, so the opacity is faded in proportion (`14 / resolution`, clamped). A
-fixed value that reads as a lattice at 32² buries the terrain colour at 128²
-— the lines should annotate the surface, not become it.
-
-#### Why the planet samples the volume
-
-The obvious way to put noise on a sphere is to wrap the 2D map around it as a
-texture. That gives a visible seam where the map wraps and pinching at both
-poles, because an equirectangular grid crowds without limit as it approaches
-them. Sampling the **volumetric** field at each vertex's own position in space
-avoids the problem rather than working around it: there is no parameterisation,
-so there is no seam and no poles, and detail stays even everywhere.
-
-It also gives the volumetric field a second job — the same buffer the point
-cloud draws is what the planet is carved from.
-
-### Colour ramps
-
-The field is a scalar in `[0, 1]` and the ramp is how it becomes visible. One
-**Palette** drives both the sidebar map and the 3D geometry, because they show
-the same field and a second control would only let them disagree.
-
-Scaling a single colour by the value — what this page did first — is a
-*luminance* ramp, and the eye resolves luminance far worse than hue. Measured as
-path length through OKLab, where Euclidean distance is built to be perceptually
-uniform, each ramp spends a different amount of colour on the same data:
-
-| Palette | distinguishable steps | notes |
-| --- | --- | --- |
-| **Terrain** | **165** | Hypsometric tints, the cartographic convention. Widest range. |
-| Magma | 114 | Dark to bright with rising hue. |
-| Greyscale | 100 | Pure luminance — the baseline worth measuring against. |
-| Single hue | 86 | Black to the picked colour. Shows the **Colour** picker. |
-| Viridis | 83 | Perceptually uniform: equal value steps *look* equal. |
-
-Viridis scoring lowest is not a defect. It deliberately trades total range for
-even steps, which makes it the honest ramp rather than the punchy one — the
-others crowd detail into whichever part of the range happens to have more
-contrast.
-
-#### Fitting the ramp is what makes the palette pay
-
-A palette only helps if the data reaches its ends, and this field does not. The
-default six-octave stack spans 0.334 to 0.773, so against a fixed `[0, 1]` ramp
-it touches 113 of 256 entries:
-
-| Palette | reachable unfitted | fitted |
-| --- | --- | --- |
-| Terrain | **63 steps** | **165** |
-| Magma | 44 | 114 |
-| Greyscale | 44 | 100 |
-| Single hue | 36 | 86 |
-| Viridis | 35 | 83 |
-
-Unfitted, the terrain palette resolves *less* than the 74 steps the old
-single-colour ramp managed — the upgrade would have been a downgrade. **Fit ramp
-to range** stretches the ramp across the field's actual min and max, and the
-readout names the span it is using so the stretch is never silent. Geometry
-keeps using the raw value, so fitting changes the colouring and never the shape.
-
-The span is live: erode the terrain and it follows, drifting from 0.33–0.77 to
-0.47–0.77 as the low ground fills in.
-
-#### Bands
-
-**Bands** quantises the ramp into 2–48 steps, turning a smooth field into
-contour-like regions — the colour equivalent of the Terrace shaping operation.
-It quantises the *ramp*, not the field, so a banded map still sits on a smooth
-surface instead of turning the terrain into terraces.
-
-### Inspecting
-
-Click or drag on the sidebar map to select a cell. Its exact value is reported
-below the map, the cell is outlined there, and a marker appears at the matching
-point on the 3D geometry — on the surface at that vertex's height, or at the
-cell's centre in the volume.
-
-Clicking the selected cell again clears the selection. A click that deselects
-also suppresses the drag that would otherwise follow, so the pointer sitting on
-the cleared cell cannot immediately reselect it.
-
-### Layers
-
-Each layer samples its own field and composites onto the running result,
-bottom-up. A layer carries:
-
-| Control | Effect |
-| --- | --- |
-| Frequency | Lattice cells per side, interpolated up to the display resolution |
-| Spread (σ) | Standard deviation of that layer's distribution (mean is 0.5) |
-| Blend | How it combines with the layers beneath it |
-| Opacity | How much of the blend result is kept |
-| Shaping | A remap applied to this layer before blending |
-
-Blend modes: Normal, Add, Subtract, Multiply, Screen, Overlay, Difference,
-Lighten, Darken. Layers can be reordered, disabled, reseeded, and removed;
-order matters for every mode except the commutative ones.
-
-#### Building an fBm stack
-
-The page opens on six octaves — frequency doubling from f2 to f64, amplitude
-halving — rather than the two layers it started with, and **Octaves**,
-**Persistence** and **Rebuild as fBm stack** regenerate that stack from scratch.
-
-Why it matters is measurable. A surface reads as terrain when its structure
-function `S(d) = mean (h(x+d) − h(x))²` is a straight line on a log-log plot:
-the same roughness at every scale. The slope gives the Hurst exponent H, and
-real topography sits at H ≈ 0.5–0.8 with R² above 0.99.
-
-| stack | H | straightness R² |
-| --- | --- | --- |
-| two layers, f4 + f16 | 0.67 | 0.960 |
-| **six octaves, f2–f64** | 0.75 | **0.990** |
-| six octaves + Gorges erosion | 0.73 | **0.996** |
-
-The old pair was never too rough — H was already in range. It had content at f4
-and f16 and a hole between them, and the eye reads that hole as randomness.
-
-**Persistence is the roughness dial**, and the only one worth tuning by eye:
-
-| persistence | H | R² | reads as |
-| --- | --- | --- | --- |
-| 0.30 | 0.93 | 0.998 | smooth, rolling |
-| 0.50 | 0.75 | 0.990 | balanced (default) |
-| 0.65 | 0.57 | 0.975 | craggy |
-| 0.80 | 0.43 | 0.941 | out of the realistic band |
-
-The opacities the builder writes — 1, 0.33, 0.14, 0.07, 0.03, 0.02 — look
-arbitrary but are forced. Normal blend is a **lerp, not a sum**, so a layer's
-weight in the finished field is its own opacity times ∏(1 − opacity) over every
-layer above it; hitting halving weights means inverting that chain from the top
-down. With the bottom layer opaque the weights telescope to exactly 1, which is
-what keeps the composite's mean at 0.5 instead of drifting toward black.
-
-Octave seeds are the octave index rather than a running counter, so rebuilding
-at a different persistence redraws the *same* terrain at a different roughness
-instead of an unrelated one — which is the only way the dial is readable.
-
-One cost worth knowing: averaging six octaves shrinks the variance, so the
-stack's relief is about 0.44 against the old pair's 0.71. Raising spread has
-diminishing returns (0.3 → 0.31, 0.6 → 0.44, 0.8 → 0.49, no clipping at any of
-them), so the default compensates with the **Height** slider instead — display
-scaling costs nothing and never pushes values into a clamp.
-
-**Frequency is what makes a stack worth having.** Blending independent fields
-at the same frequency is a dead end — a sum of Gaussians is just another
-Gaussian, so the stack would look like one noisier layer. A coarse lattice
-interpolated up, sitting under a fine one, is the octave stacking that fractal
-noise is built from. At frequency 4 the field is smooth blobs; at frequency
-equal to the resolution it degenerates back to per-cell white noise.
-
-The stack starts from 0 and the bottom layer blends against it like any other,
-rather than being special-cased. That keeps the model predictable, but it does
-mean a bottom layer set to Multiply yields nothing — exactly as it would in an
-image editor.
-
-### Warp
-
-Domain warping looks the field up at coordinates pushed around by *another*
-noise field. Noise is stationary — every neighbourhood is statistically like
-every other — which is exactly why an unwarped field reads as texture rather
-than geology. Displacing the lookup breaks that: strata fold, ridges curve and
-run, and features stretch in one place while bunching in another, none of which
-a sum of octaves can produce on its own.
-
-| Control | Effect |
-| --- | --- |
-| Warp amount | Maximum displacement in cells. 0 is off, and returns the field untouched |
-| Warp scale | Lattice frequency of the offset fields — low bends whole regions, high jitters edges |
-| New warp | A different offset field at the same settings |
-
-**It is a character control, not a realism one**, and only free while it stays
-small. On the default stack:
-
-| warp amount | H | straightness R² |
-| --- | --- | --- |
-| 0 | 0.75 | 0.990 |
-| 10 | 0.75 | 0.989 |
-| 20 | 0.72 | 0.985 |
-| 40 | 0.65 | 0.971 |
-
-Below about 20 cells it moves where features are without changing how rough they
-are — the picture changes completely while the measurement does not. Past that,
-displacing features far enough starts shearing the fine octaves apart.
-
-It warps in 3D as well, so the volume and the planet fold too, and costs about
-0.4 ms at 128².
-
-### Automata
-
-A cellular automaton runs between the layer stack and the output shaping. Where
-the shaping operations are per-cell — `f(x)` — this is `f(x, neighbours)`
-applied repeatedly, and it is what turns speckled noise into connected
-landmasses and caves.
-
-Each pass thresholds the field to a live/dead mask, then sets a cell live when
-at least **Survive at** of the cells in its block are live. The block is the
-whole 3×3 (or 3×3×3) neighbourhood, **the centre included** — counting only the
-8 surrounding cells looks like the same rule but is not: with no vote of its
-own a cell cannot hold its state, and the field erodes away instead of settling.
-
-| Control | Effect |
-| --- | --- |
-| Alive above | Value at or above which a cell starts live |
-| Survive at | Live cells needed in the block, out of 9 in 2D or 27 in 3D |
-| Play / Step / Reset | Advance one generation at a time, or watch it run |
-
-Generation 0 leaves the field untouched, so the automaton is genuinely off until
-stepped. Live cells keep their original value and dead cells go to 0, so land
-holds its noise detail while the sea goes flat — islands with terrain, rather
-than a binary plateau. On a planet, that reads as continents against ocean.
-
-#### The run stops when it is actually finished
-
-Each pass counts the cells it flipped, and a pass that flips none is a fixed
-point: every later pass is identical to it. Play stops there and the readout
-names the generation it reached. Running past that point would tick a counter
-against a frozen picture, which reads as the controls being broken.
-
-How long that takes depends entirely on the dimensionality. On the default
-stack, 2D settles at generation 4 at 64² and 8 at 128², while 3D at 32³ needs
-**42** — a 27-cell block has far more ways to stay balanced, so the boundary
-keeps rearranging long after it looks finished. A rougher stack takes longer
-still: the earlier two-layer default needed 82 passes in 3D, which is what the
-cap of 96 was sized for. If a rule does reach the cap the readout says so and
-reports how many cells were still flipping, rather than claiming the field had
-settled.
-
-#### Dead-end rules say so
-
-Large parts of the parameter space are silent no-ops that the picture cannot
-show, so the readout reports them directly:
-
-| Setting | What happens | Readout |
-| --- | --- | --- |
-| Alive above under the field's minimum, or Survive at 1 | Every cell is alive, so no cell can flip | *no cells changed* |
-| Alive above over the field's maximum | Everything dies and the geometry vanishes | *every cell died* |
-
-Where those boundaries fall depends on the field rather than being fixed
-numbers. The default stack spans 0.33–0.77, so Alive above is inert below ~0.33
-and wipes out over ~0.78; a stack whose values reach the ends of `[0, 1]` leaves
-almost no inert region at all. Survive at behaves the same way — on a smooth
-stack even 9 of 9 leaves plenty alive, because a cell surrounded by nine live
-neighbours is common.
-
-Without this, pressing Play in either region does nothing visible and looks like
-a broken button rather than a rule with no work to do.
-
-Each generation is recomputed from the composite rather than mutated in place,
-so the generation count is just a number: editing a layer mid-run stays
-consistent instead of leaving a stale automaton behind. The cost is that a run
-is O(generations) per render — twelve passes take about 1 ms at 128² and 25 ms
-at 32³, and the full 42-pass 3D run about 90 ms, so the tail of a 3D playback is
-visibly slower than its start.
-
-On the default stack at 64² the coastline perimeter falls about 11% and then
-stops changing. The effect is milder than it looks on paper because an fBm stack
-thresholds into a single connected landmass to begin with; on a speckled
-two-layer stack the same rule merged four separate fragments into one and cut
-the perimeter by 21%. Smoothing has more to do when there is more to smooth.
-
-### Erosion
-
-Droplet-based hydraulic erosion, run over the height field between the automaton
-and the output shaping. Each droplet lands at random, follows the downhill
-gradient, and trades material with the terrain: it cuts where it runs fast down
-a steep slope and drops its load where it slows or climbs. Thousands of them
-carve the dendritic valley networks that noise alone never produces.
-
-| Control | Effect |
-| --- | --- |
-| Preset | A measured starting point; nudging any slider below switches it to Custom |
-| Rain per tick | Droplets **per cell**, with the resulting count shown beside it |
-| Erosion rate | Fraction of the shortfall a droplet cuts per step |
-| Carry capacity | Sediment a droplet can hold per unit of slope and speed |
-| Deposition | Fraction of the excess it drops once over capacity |
-| Inertia | How much of its previous direction it keeps; 0 is pure gradient descent |
-| Gravity | Converts drop in height into speed |
-| Evaporation | Water lost per step, so a droplet carries less as it dries |
-| Droplet life | Steps before it expires and drops what it still holds |
-| Erosion radius | Cells the cut is spread over |
-| Colour by cut / fill | Tints the surface warm where material was removed, cool where it was added |
-| Rain / Step / Reset | Run continuously, add one tick, or return to the uneroded terrain |
-| New rainfall | A different set of droplets, from the uneroded terrain |
-| Talus passes | Thermal slippage passes run after the droplets each tick. 0 is off |
-| Angle of repose | Slope a cell can hold before it slumps |
-| Slump strength | How much of the excess moves per pass |
-
-**More erosion is not better.** Channel concentration — the share of all erosion
-landing in the busiest 10% of cells, against 0.10 for perfectly even wear —
-peaks early and decays as the rain keeps falling:
-
-| rain (droplets/cell, 128²) | relief kept | channel concentration |
-| --- | --- | --- |
-| 0.3 | 94% | **0.485** |
-| 3 | 81% | 0.355 |
-| 24 | 57% | 0.262 |
-
-The structure is cut in the first few ticks and worn away afterwards, so every
-preset is deliberately restrained and the readout reports the **relief left**
-rather than only the droplet count. Once that figure has fallen far, the run is
-lowering the whole field rather than carving it. The rain is capped at 12
-droplets per cell for the same reason.
-
-#### Thermal erosion
-
-Talus slippage is the companion process, and it works the other way round.
-Where the droplets *transport* — they pick material up, carry it, and put it
-somewhere else — this is purely local: a cell gives its excess to whichever
-neighbours sit below its angle of repose. Nothing is carried anywhere.
-
-That is what puts scree at the foot of a cliff and stops slopes getting
-arbitrarily steep, neither of which hydraulic erosion does on its own. Measured
-after eight Gorges ticks at 128², three talus passes per tick cut the share of
-over-steep adjacent pairs from **2.64% to 1.76%** — a third fewer — while
-leaving relief untouched at 74%. It moves material sideways rather than removing
-it: mass drift over five passes is 0.000%.
-
-It runs after the droplets rather than interleaved with them: the water cuts the
-slope, then the slope settles to something it can hold. Each pass costs about
-6 ms at 128², so three passes roughly doubles the cost of a tick.
-
-Neighbour drops are divided by their distance, which matters more than it looks:
-without it a diagonal neighbour counts the same as an orthogonal one despite
-being further away, and the result grows eight-armed stars.
-
-#### Presets
-
-All four measured at the same 1.2 droplets/cell, so only the parameters differ:
-
-| Preset | relief kept | channel conc. | volume moved | what it is for |
-| --- | --- | --- | --- | --- |
-| **River valleys** | 83% | **0.435** | 61 | The default. Broad, shallow wear — the best structure per unit of terrain spent. |
-| **Gorges** | 79% | 0.373 | 121 | Cuts *fewer* cells than River valleys but each 2.3× deeper: a tight radius and a long droplet life. |
-| **Badlands** | 58% | 0.281 | **301** | Deliberately destructive. Moves five times the material and is the *least* selective — a teaching demo for erosion going too far. |
-| **Floodplain** | 92% | 0.404 | 26 | The gentlest. Droplets drop their whole load at once, so deposits are thicker than cuts are deep. |
-
-Every preset cuts over a wide area and deposits into a narrow one, which is how
-valleys form — broad hillslope wear feeding concentrated valley-floor fill.
-Badlands flattening toward an even ratio is the numeric signature of mush: when
-material comes off everywhere and goes back everywhere, the run is lowering the
-field rather than sculpting it.
-
-#### Rain is measured per cell, never as a droplet count
-
-A flat count means something entirely different at each resolution — 5,000
-droplets is 0.3 per cell at 128² but 1.2 at 64². Held at a fixed count, the same
-setting that carves valleys on one grid strips the relief off another; measured
-as density, it behaves:
-
-| resolution | relief kept, fixed 5,000 | relief kept, 0.3 /cell |
-| --- | --- | --- |
-| 32² | 40% | 83% |
-| 64² | 69% | 83% |
-| 128² | 87% | 88% |
-
-A 47-point spread becomes 5. The residual is real rather than a leftover bug:
-per-cell gradients genuinely get shallower as the grid gets finer, so a droplet
-does less work per step on a larger grid.
-
-#### Limits worth knowing
-
-- **Height field only.** A volume has no "down", and the planet is displaced
-  from the 3D field precisely so that it needs no surface grid — there is no
-  lattice to run droplets on. Eroding the planet would mean running the
-  simulation over the icosphere's vertex adjacency instead, which is a separate
-  and much larger job. The panel says so rather than greying out silently.
-- **The automaton's sea is perfectly flat.** Dead cells are exactly 0, so the
-  gradient there is exactly 0 and a droplet landing on it has nowhere to go. It
-  drops what it carries and stops.
-- **Channels need scales to bite into.** Erosion cuts hardest where the terrain
-  already has structure across a range of sizes, which is why the default stack
-  is six octaves rather than two — on the old pair the result was closer to
-  uniform wear. Raising persistence gives it more to work with; flattening the
-  stack gives it less.
-
-### Shaping operations
-
-Applied per layer, and again to the finished composite under **Output**.
-In height-field mode these reshape the terrain directly — Terrace turns it
-into stepped mesas, Threshold into flat plateaus:
-
-| Operation | Parameters | Effect |
-| --- | --- | --- |
-| None | — | Raw samples |
-| Power | Exponent | `x^k` — above 1 darkens, below 1 brightens |
-| Gain | Strength | S-curve about 0.5; above 1 adds contrast |
-| Smoothstep | Edge 0, Edge 1 | Hermite ramp between the edges, flat outside |
-| Ridge | Sharpness | `(1 − \|2x − 1\|)^k` — folds the field about its middle, so smooth peaks become creases |
-| Billow | Sharpness | The inverse fold: creases become rounded lobes, reading as dunes rather than peaks |
-| Terrace | Steps | Quantises into bands |
-| Threshold | Cutoff | Binary cut |
-
-**Ridge is what turns a heightfield into mountains.** A sum of octaves has
-smooth maxima because it is differentiable everywhere; folding it about its
-midpoint makes the turning points non-differentiable, and a non-differentiable
-maximum is a crease. Raising the fold to a power then narrows the crease without
-moving it. On the default stack it takes relief from 0.44 to 0.79 and H from
-0.75 to 0.67 — the creases are genuine fine structure, not just contrast.
-
-### Reading the volumetric mode
-
-A dense field is opaque — from outside you see a noisy shell, which is what a
-uniform-density volume genuinely looks like. Shaping is what opens it up:
-**Threshold** around 0.75 leaves only the brightest cells and the interior
-structure becomes visible. Lightening blends such as Screen push the other way
-and fill the volume in.
-
-Cells below a visibility floor are omitted from the geometry rather than drawn
-black, because that is the only way to see into the volume at all.
-
-Resolution is capped at 128 for a height field and 32 for a volume, since a
-volume costs the cube of the value; switching modes clamps it on the way in.
-
-## Week 3 — Voxels
-
-Empty for now. The page, its nav entry, and its styling are in place so the
-week has a home to grow into; the only thing left to add is the work itself.
-
-## Getting started
+Week 1's floating control widget. `Esc` only ever restores, which is what makes
+hiding the UI safe to try, and a small clickable reminder stays in the corner.
+The shortcut is ignored while a select or text field has focus, since a letter
+key means something there, but it still works from a slider or checkbox, which
+is where focus usually sits after changing a value.
 
 ```bash
 npm install
@@ -531,8 +61,6 @@ Then open the URL Vite prints (default `http://localhost:5173`).
 | `npm run build` | Typecheck and produce a production build in `dist/` |
 | `npm run lint` | Run ESLint |
 | `npm run preview` | Serve the production build locally |
-
-## Project structure
 
 ```
 src/
@@ -557,12 +85,23 @@ src/
 ├── erosion.ts                Droplet hydraulic erosion over the height field
 ├── App.css                   Shell, panel, and canvas styling
 └── index.css                 Global reset
+
+docs/
+├── week-1-objects.md         Week 1 write-up
+├── week-2-noise.md           Week 2 write-up — the long one
+└── week-3-voxels.md          Week 3 write-up
 ```
 
 Adding a week is one page component plus one entry in the `PAGES` array in
 `App.tsx`, which carries its own `render` — the shell opens on the last entry.
 
-## Architecture notes
+Adding a week is one page component, one entry in the `PAGES` array in
+`App.tsx`, and one file in `docs/`.
+
+## Conventions
+
+Decisions specific to a week live in that week's write-up. These hold
+everywhere.
 
 **Scenes are built once and mutated in place.** Geometry swaps replace
 `mesh.geometry` rather than the mesh itself, so the render loop never loses the
@@ -574,111 +113,17 @@ scale) reach the render loop through refs, keeping pointer-rate updates out of
 React. Discrete ones (material properties) are applied in effects, since
 writing them every frame would be wasted work.
 
-**Noise sampling is deterministic.** A seeded PRNG (mulberry32) feeds a
-Box–Muller transform. `Math.random()` would resample on every re-render, so
-dragging a slider would look like static rather than a parameter change — the
-seed is what draws a new field.
+**Panels are hidden with `display: none`, not made transparent.** Their
+controls leave the tab order with them, so tabbing while the UI is hidden
+cannot land inside a panel you cannot see. Both canvases watch their container
+with a `ResizeObserver`, so the view reflows to the full width rather than
+stretching.
 
-**The composite and the output shaping are memoised separately**, so dragging
-an Output slider reshapes the existing composite rather than resampling. Any
-change *within* a layer does resample the whole stack; at these sizes (197k
-samples for the six-octave default at 32³) that is about 5 ms, and not worth a
-per-layer cache.
-
-**Out-of-range samples are clamped, not rescaled.** Raising the spread piles
-mass onto pure black and white rather than quietly renormalising the field —
-at σ = 0.5 roughly a third of cells land on an end. Rescaling would look
-smoother but would misrepresent the distribution.
-
-**Layer lattices wrap, and so do the automaton and the droplets.** Interpolated indices wrap
-rather than clamping, so a low-frequency layer tiles instead of flattening
-against the edges of the field. The automaton wraps for a sharper reason: with
-clamped borders the edge cells would be permanently short of neighbours, so the
-field would erode inward from its edges whatever rule was set. Droplets wrap for
-the same reason: clamped, they would pool against the borders and wear a rim
-into the field.
-
-**Erosion is the one stage that is not a pure function of its controls.**
-Sampling, shaping and the automaton all recompute from scratch, so their state
-is just the controls. Erosion accumulates — "0.6 droplets per cell" means a
-second tick landing on the terrain the first one carved — so it is carried as an
-`ErosionRun` in state instead. Validity is checked by comparing the run's stored
-source against the current automaton output during render: a layer edit changes
-that identity and the run is dropped. Resetting from an effect instead would
-cost an extra render every time a slider moved.
-
-**Each erosion tick allocates a new height buffer rather than mutating one.**
-`applyShaping` returns its input unchanged when shaping is None, so an in-place
-buffer would keep the same identity the whole way to the viewport and the
-geometry effect — which compares `field` by reference — would never re-run. A
-128² copy is 65 KB against roughly 15 ms of droplet work, so the safety costs
-nothing measurable.
-
-**The erosion brush divides its falloff by `radius + 1`.** With the textbook
-`1 - distance / radius`, a cell exactly `radius` away weighs zero and drops out,
-so radius 1 collapses to the centre cell alone and the brush stops spreading
-anything. That is the single-cell cutting the brush exists to prevent: it carves
-pinpoint pits, a pit steepens its own walls, steeper walls raise the droplet's
-carrying capacity, and the field runs away until it hits the clamp — internally
-reaching −15 and +17 before being clamped back to a terrain that looked merely
-odd. Over 40 seeds at radius 1 the degenerate brush blew up 8 times and the
-corrected one never, at the same cost and with channel concentration unchanged.
-
-**The colour ramp is a 256-entry table, built once per palette.** Converting
-through OKLab per cell costs 21 ms for a 128² field against 0.21 ms for a table
-lookup — 99× — and the ramp only changes when the palette, colour or band count
-does. Caching is also what makes the accuracy free: interpolating in OKLab
-rather than sRGB is paid for at build time, so it costs nothing per frame.
-
-That accuracy turned out to matter less than expected. Interpolating between
-*adjacent* palette stops differs by 0–1% between the two spaces; it is only
-between opposite hues that sRGB loses chroma, up to 61%. A palette with enough
-stops would have been fine either way — but since the table makes OKLab free,
-there is no reason to take the risk on a sparse one.
-
-**The ramp is stored in both sRGB and linear light, because its two consumers
-disagree.** Canvas `ImageData` bytes are sRGB; three.js reads a vertex-colour
-attribute as linear. Feeding the same numbers to both — which is what scaling a
-hex colour by the cell value did — rendered the same field lighter in 3D than on
-the map. Deriving both encodings from one ramp is what actually keeps the map
-and the geometry agreeing, which the single colour picker only claimed to do.
-
-**Hover explanations are portalled to `<body>`, not rendered in place.** The
-sidebar is `overflow-y: auto`, which clips any absolutely positioned child, so
-a tooltip rendered next to its trigger would be cut off by the very panel it
-belongs to. It is positioned `fixed` from the trigger's bounding rect instead,
-placed to the left because the sidebar is only 296px wide and hard against the
-right edge of the window. A layout effect measures the box and nudges it up if
-it would run off the bottom — its own height being the only way to know.
-
-**Compositing is done once, in the page.** The map preview and the 3D viewport
-both receive a finished `Float32Array` and only draw it, so neither holds
-sampling logic and they cannot drift apart. A volume slice is a `subarray`, not
-a copy — index `z·R² + (y·R + x)` makes each slice contiguous.
-
-**There is no floor grid.** An earlier version drew a `GridHelper` under the
-field as a ground reference. It earned nothing: the height field already reads
-as a plane, and the grid mostly competed with it. The wireframe replaced it —
-a reference drawn *on* the data rather than beside it.
-
-**The surface grid is built per resolution, then written into.** X and Z are
-fixed by the lattice; only Y and vertex colour change with the field, so a
-slider drag rewrites two attributes and recomputes normals rather than
-rebuilding 32k triangles. The planet works the same way: its unit-sphere
-directions are cached once and an update only rewrites radii, about 7 ms for
-10,242 vertices.
-
-**The icosphere is welded before use.** `IcosahedronGeometry` returns
-non-indexed geometry — every triangle owns its three vertices — so the same
-point would be displaced repeatedly and `computeVertexNormals` could only
-produce flat facets. `mergeVertices` cuts 61k vertices to 10k and makes the
-normals continuous. Note also that `PolyhedronGeometry` splits each edge into
-`detail + 1` segments, so detail 31 means 20·32² = 20,480 faces, not 4³¹.
-
-**The map is painted at one device pixel per cell** on an offscreen canvas and
-scaled up with smoothing off. Filling cell rectangles directly would mean a
-`fillStyle` change per cell, which is far slower at the top of the resolution
-range.
+**Work for a week happens on its own branch** — `week-3-voxels` and so on —
+and lands on `main` collapsed into one to three commits. A merge would replay
+every branch commit onto main and only `git log --first-parent` would hide
+them; compressing first means the log is short however it is read, and the
+reasoning survives in the commit messages rather than being discarded.
 
 ## Built with
 
