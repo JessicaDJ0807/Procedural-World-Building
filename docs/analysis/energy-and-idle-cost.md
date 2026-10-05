@@ -60,7 +60,7 @@ Draw calls per second with nothing happening on screen:
 | View | Before | After |
 | --- | --- | --- |
 | Topic 1 — Objects, at rest | 295 | **0** |
-| Topic 4 — shading study, turntable off | 42 | **0** |
+| Topic 4 — shading study, spin off | 42 | **0** |
 | Topic 4 — simulation paused | 59 | **0** |
 | Topic 3 — voxels, camera still | 39 | **0** |
 | Topic 2 — noise, after a parameter change | 30 | **0** |
@@ -70,7 +70,7 @@ orientation gizmo — each drawing several objects per frame at the display's
 full rate, for a picture that had not changed since the last pointer movement.
 
 The zero is a real zero, confirmed against an independent frame counter: with
-the shading study's turntable off, the probe's own `requestAnimationFrame`
+the shading study's spin off, the probe's own `requestAnimationFrame`
 chain ticked at **60.0 per second** while the app issued **0** draw calls. The
 loop is asleep, not merely quiet.
 
@@ -130,8 +130,8 @@ pixel ratio of 2, so **3.54 M pixels** per display pass:
 
 | View | Frames/s | Sim grid | Sim passes/s | Sim Mfrag/s | Display passes/s | Display Mfrag/s |
 | --- | ---: | :---: | ---: | ---: | ---: | ---: |
-| Shading study, turntable 5°/s | 13.8 | — | 0 | 0 | 27.7 | ≤ 98.0 |
-| Shading study, turntable off | — | — | 0 | **0** | **0** | **0** |
+| Shading study, spin 5°/s | 13.8 | — | 0 | 0 | 27.7 | ≤ 98.0 |
+| Shading study, spin off | — | — | 0 | **0** | **0** | **0** |
 | Water ripples | 24.2 | 512² | 24.2 | 6.3 | 24.2 | 85.6 |
 | Reaction–diffusion, 14 steps | 20.2 | 512² | 282.2 | 74.0 | 20.2 | 71.4 |
 | Hydraulic erosion, 3 steps | 18.0 | 256² | 270.0 | 17.7 | 18.0 | 63.8 |
@@ -216,7 +216,9 @@ times the chemistry. The dial trades frame rate for simulation speed far more
 than it trades energy for either.
 
 The honest summary for anyone running this on a battery: **pause it, or turn
-the turntable off.** Those take the page to zero. Everything else is a trade
+spin off.** Those take the page to zero. Spin now defaults to 0, so the shading
+study arrives in the cheaper of the two states measured above rather than the
+13.8 fps one. Everything else is a trade
 between two kinds of work, not a reduction in work.
 
 ## What was rejected

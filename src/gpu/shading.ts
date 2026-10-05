@@ -291,12 +291,16 @@ const PARAMS: ParamSpec[] = [
   {
     key: 'spin',
     view: true,
-    label: 'Turntable',
-    info: 'Degrees per second the surface turns. A still matte render is ambiguous about which way a slope faces; movement resolves it immediately. Drag to orbit manually at any time.',
+    // "Spin", matching the other three topics, and off by default for the same
+    // reason they are: the page should open on a still frame you chose to move,
+    // not one already moving. Worth turning on, though — a still matte render
+    // is ambiguous about which way a slope faces, and movement resolves it.
+    label: 'Spin',
+    info: 'Degrees per second the surface turns. Off by default; worth turning on, because a still matte render is ambiguous about which way a slope faces and movement resolves it immediately. Drag to orbit manually at any time.',
     min: 0,
     max: 30,
     step: 0.5,
-    value: 5,
+    value: 0,
     format: (v) => (v === 0 ? 'off' : `${v.toFixed(1)}°/s`),
   },
 ]

@@ -139,7 +139,7 @@ closed.
 The test is whether changing a control leaves the generated world identical.
 That is why Topic 4 moves almost nothing: relief, lighting, the height ramp,
 Fresnel and haze all change appearance, but on a page about shading the
-appearance *is* the subject. Only Turntable moves, flagged with `view: true` on
+appearance *is* the subject. Only Spin moves, flagged with `view: true` on
 its `ParamSpec`. By the same reasoning Topic 2 keeps Slice (z), which chooses a
 plane of the volume, and Colour by cut/fill, which is how an erosion result is
 read.
