@@ -1,5 +1,6 @@
 import { CSG_OPS, SCENES, SHAPES, getShape, type CsgNode, type CsgOpName, type ShapeName } from '../density'
 import { PALETTES, type PaletteName } from '../palette'
+import { bool, isRecord, num, params as parseParams, pick, type ConfigSpec } from './spec'
 
 /**
  * Which mesher the page is using. It lives here rather than in VoxelPage
@@ -108,24 +109,6 @@ export function toSettings(state: {
   }
 }
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v)
-
-function num(value: unknown, min: number, max: number, fallback: number): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
-  return Math.min(max, Math.max(min, value))
-}
-
-function pick<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
-  return typeof value === 'string' && (allowed as readonly string[]).includes(value)
-    ? (value as T)
-    : fallback
-}
-
-function bool(value: unknown, fallback: boolean): boolean {
-  return typeof value === 'boolean' ? value : fallback
-}
-
 function parseNode(raw: unknown, repairs: string[], index: number): StoredNode | null {
   if (!isRecord(raw)) {
     repairs.push(`shape ${index + 1} was not an object and was dropped`)
@@ -136,11 +119,7 @@ function parseNode(raw: unknown, repairs: string[], index: number): StoredNode |
 
   // Parameters are per-shape, so an unrecognised key is meaningless to this
   // shape — rebuild from its own definition rather than carrying it across.
-  const rawParams = isRecord(raw.params) ? raw.params : {}
-  const params: Record<string, number> = {}
-  for (const param of getShape(shape).params) {
-    params[param.key] = num(rawParams[param.key], param.min, param.max, param.defaultValue)
-  }
+  const params = parseParams(raw.params, getShape(shape).params)
 
   const offset = isRecord(raw.offset) ? raw.offset : {}
   return {
@@ -224,11 +203,10 @@ export function newNodeId(): string {
   return crypto.randomUUID()
 }
 
-/** The exact bytes uploaded to Storage, and the same ones a download produces. */
-export function configToJson(name: string, settings: VoxelSettings): string {
-  return JSON.stringify(
-    { name, topic: 'voxels', schemaVersion: CONFIG_SCHEMA_VERSION, settings },
-    null,
-    2,
-  )
+export const voxelSpec: ConfigSpec<VoxelSettings> = {
+  topic: 'voxels',
+  schemaVersion: CONFIG_SCHEMA_VERSION,
+  defaults: defaultSettings,
+  parse: parseSettings,
+  summary: (s) => `${s.nodes.length} shapes · ${s.resolution}³`,
 }

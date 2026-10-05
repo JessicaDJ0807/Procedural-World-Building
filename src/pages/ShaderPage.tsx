@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
+import { ConfigPanel } from '../ConfigPanel'
 import { InfoTip } from '../InfoTip'
 import { ShaderViewport } from '../ShaderViewport'
 import { Slider } from '../Slider'
+import { Workspace } from '../Workspace'
+import { shaderSpec, type ShaderSettings } from '../config/shaderConfig'
 import { GROUPS, SIMULATIONS, getSimulation } from '../gpu'
 import { defaults, type ParamSpec, type Stat } from '../gpu/simulation'
 
@@ -52,6 +55,22 @@ export function ShaderPage() {
     }))
   }
 
+  const settings = useMemo<ShaderSettings>(
+    () => ({ simulationId, allParams, presetName, running }),
+    [simulationId, allParams, presetName, running],
+  )
+
+  // resetToken and stepToken are not stored: they are nudges to the viewport,
+  // not state a world has. Loading one starts the simulation from its own
+  // initial condition, which is what the parameters describe.
+  const applySettings = (next: ShaderSettings) => {
+    setSimulationId(next.simulationId)
+    setAllParams(next.allParams)
+    setPresetName(next.presetName)
+    setRunning(next.running)
+    setResetToken((n) => n + 1)
+  }
+
   const renderControl = (spec: ParamSpec) => {
     if (spec.options) {
       return (
@@ -88,17 +107,11 @@ export function ShaderPage() {
   }
 
   return (
-    <div className="shader-page">
-      <ShaderViewport
-        simulationId={simulationId}
-        params={params}
-        running={running}
-        resetToken={resetToken}
-        stepToken={stepToken}
-        onReport={setReport}
-      />
-
-      <aside className="control-sidebar" aria-label="Shader controls">
+    <Workspace
+      topic="shaders"
+      library={<ConfigPanel spec={shaderSpec} settings={settings} onLoad={applySettings} />}
+      inspector={
+        <aside className="control-sidebar" aria-label="Shader controls">
         <h3 className="control-group">
           <InfoTip text="Four simulations that run entirely on the GPU. Each keeps its state in a floating-point texture, and one step is a full-screen pass that reads the old state and writes the new one. Swapping here tears the running one down and builds the next.">
             Strategy
@@ -194,7 +207,17 @@ export function ShaderPage() {
         </h3>
 
         {meta.params.map(renderControl)}
-      </aside>
-    </div>
+        </aside>
+      }
+    >
+      <ShaderViewport
+        simulationId={simulationId}
+        params={params}
+        running={running}
+        resetToken={resetToken}
+        stepToken={stepToken}
+        onReport={setReport}
+      />
+    </Workspace>
   )
 }

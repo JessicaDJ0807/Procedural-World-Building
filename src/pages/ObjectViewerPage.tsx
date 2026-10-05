@@ -1,37 +1,49 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { ConfigPanel } from '../ConfigPanel'
 import { RotationGizmo } from '../RotationGizmo'
 import { SceneCanvas } from '../SceneCanvas'
 import { Slider } from '../Slider'
-import { ACCENT_BLUE } from '../theme'
+import { Workspace } from '../Workspace'
+import { defaultObjectSettings, objectSpec, type ObjectSettings } from '../config/objectConfig'
 import { SHAPES, type ShapeName } from '../shapes'
 
+const INITIAL = defaultObjectSettings()
+
 export function ObjectViewerPage() {
-  const [shape, setShape] = useState<ShapeName>('box')
-  const [spinSpeed, setSpinSpeed] = useState(0)
-  const [scale, setScale] = useState(1)
-  const [color, setColor] = useState(ACCENT_BLUE)
-  const [metalness, setMetalness] = useState(0.2)
-  const [roughness, setRoughness] = useState(0.35)
-  const [wireframe, setWireframe] = useState(false)
+  const [shape, setShape] = useState<ShapeName>(INITIAL.shape)
+  const [spinSpeed, setSpinSpeed] = useState(INITIAL.spinSpeed)
+  const [scale, setScale] = useState(INITIAL.scale)
+  const [color, setColor] = useState(INITIAL.color)
+  const [metalness, setMetalness] = useState(INITIAL.metalness)
+  const [roughness, setRoughness] = useState(INITIAL.roughness)
+  const [wireframe, setWireframe] = useState(INITIAL.wireframe)
 
   // Held in a ref, not state: the gizmo mutates it every pointermove and both
   // render loops read it per frame, which is far too hot for a React round trip.
   const rotationRef = useRef(new THREE.Quaternion())
 
+  const settings = useMemo<ObjectSettings>(
+    () => ({ shape, spinSpeed, scale, color, metalness, roughness, wireframe }),
+    [shape, spinSpeed, scale, color, metalness, roughness, wireframe],
+  )
+
+  const applySettings = (next: ObjectSettings) => {
+    setShape(next.shape)
+    setSpinSpeed(next.spinSpeed)
+    setScale(next.scale)
+    setColor(next.color)
+    setMetalness(next.metalness)
+    setRoughness(next.roughness)
+    setWireframe(next.wireframe)
+  }
+
   return (
-    <div className="viewer-page">
-      <SceneCanvas
-        shape={shape}
-        rotationRef={rotationRef}
-        spinSpeed={spinSpeed}
-        scale={scale}
-        color={color}
-        metalness={metalness}
-        roughness={roughness}
-        wireframe={wireframe}
-      />
-      <aside className="control-widget" aria-label="Scene controls">
+    <Workspace
+      topic="objects"
+      library={<ConfigPanel spec={objectSpec} settings={settings} onLoad={applySettings} />}
+      inspector={
+        <aside className="control-sidebar" aria-label="Scene controls">
         <h2>Scene</h2>
 
         <label className="control">
@@ -118,7 +130,19 @@ export function ObjectViewerPage() {
         </label>
 
         <p className="hint">Drag the canvas to orbit the view.</p>
-      </aside>
-    </div>
+        </aside>
+      }
+    >
+      <SceneCanvas
+        shape={shape}
+        rotationRef={rotationRef}
+        spinSpeed={spinSpeed}
+        scale={scale}
+        color={color}
+        metalness={metalness}
+        roughness={roughness}
+        wireframe={wireframe}
+      />
+    </Workspace>
   )
 }

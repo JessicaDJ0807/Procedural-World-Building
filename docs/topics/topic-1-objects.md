@@ -1,4 +1,4 @@
-# Topic 1 — 3D Objects
+# Topic 1 — Objects
 
 A real-time WebGL object viewer: pick a primitive, orient it, and light it.
 The topic's purpose was the render loop and the material model rather than any

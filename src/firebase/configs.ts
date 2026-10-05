@@ -2,7 +2,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
   orderBy,
   query,
@@ -12,12 +11,22 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { requireFirebase } from './config'
-import {
-  CONFIG_SCHEMA_VERSION,
-  parseSettings,
-  type VoxelConfig,
-  type VoxelSettings,
-} from '../config/voxelConfig'
+import type { ConfigSpec, TopicId } from '../config/spec'
+
+/** A stored document, parsed by the topic's own spec. */
+export type SavedConfig<S> = {
+  id: string
+  name: string
+  topic: TopicId
+  schemaVersion: number
+  ownerUid: string
+  createdAt: Date | null
+  updatedAt: Date | null
+  storagePath?: string
+  settings: S
+  /** What the spec had to substitute. Empty for a document this build wrote. */
+  repairs: string[]
+}
 
 /**
  * users/{uid}/configs/{configId}
@@ -33,12 +42,16 @@ function toDate(value: unknown): Date | null {
   return value instanceof Timestamp ? value.toDate() : null
 }
 
-function toConfig(id: string, data: Record<string, unknown>): VoxelConfig {
-  const { settings, repairs } = parseSettings(data.settings)
+function toConfig<S>(
+  id: string,
+  data: Record<string, unknown>,
+  spec: ConfigSpec<S>,
+): SavedConfig<S> {
+  const { settings, repairs } = spec.parse(data.settings)
   return {
     id,
     name: typeof data.name === 'string' && data.name.trim() ? data.name : '(untitled)',
-    topic: 'voxels',
+    topic: spec.topic,
     schemaVersion: typeof data.schemaVersion === 'number' ? data.schemaVersion : 0,
     ownerUid: typeof data.ownerUid === 'string' ? data.ownerUid : '',
     createdAt: toDate(data.createdAt),
@@ -53,10 +66,11 @@ function toConfig(id: string, data: Record<string, unknown>): VoxelConfig {
  * Create or overwrite one configuration. Returns the id, which the caller needs
  * in order to name the Storage object after it.
  */
-export async function saveConfiguration(
+export async function saveConfiguration<S>(
   uid: string,
+  spec: ConfigSpec<S>,
   name: string,
-  settings: VoxelSettings,
+  settings: S,
   existingId?: string,
 ): Promise<string> {
   const { db } = requireFirebase()
@@ -66,8 +80,8 @@ export async function saveConfiguration(
 
   const base = {
     name,
-    topic: 'voxels' as const,
-    schemaVersion: CONFIG_SCHEMA_VERSION,
+    topic: spec.topic,
+    schemaVersion: spec.schemaVersion,
     ownerUid: uid,
     updatedAt: serverTimestamp(),
     settings,
@@ -96,21 +110,33 @@ export async function attachStoragePath(
   await updateDoc(doc(db, configsPath(uid), configId), { storagePath })
 }
 
-export async function listConfigurations(uid: string): Promise<VoxelConfig[]> {
+/** Rename only. The settings are untouched, so this cannot be a full save. */
+export async function renameConfiguration(
+  uid: string,
+  configId: string,
+  name: string,
+): Promise<void> {
+  const { db } = requireFirebase()
+  await updateDoc(doc(db, configsPath(uid), configId), { name, updatedAt: serverTimestamp() })
+}
+
+export async function listConfigurations<S>(
+  uid: string,
+  spec: ConfigSpec<S>,
+): Promise<SavedConfig<S>[]> {
   const { db } = requireFirebase()
   // Newest first. A document saved this moment has a null updatedAt until the
   // server timestamp resolves, and Firestore sorts those last on a descending
   // order, which is why the list is re-fetched after a save rather than
   // optimistically prepended.
   const snap = await getDocs(query(collection(db, configsPath(uid)), orderBy('updatedAt', 'desc')))
-  return snap.docs.map((d) => toConfig(d.id, d.data()))
-}
-
-export async function loadConfiguration(uid: string, configId: string): Promise<VoxelConfig> {
-  const { db } = requireFirebase()
-  const snap = await getDoc(doc(db, configsPath(uid), configId))
-  if (!snap.exists()) throw new Error('That configuration no longer exists.')
-  return toConfig(snap.id, snap.data())
+  // Filtered here rather than with where('topic','==',...): combining an
+  // equality filter with an orderBy on a different field needs a composite
+  // index, which is a console step this project does not otherwise require.
+  // One user's worlds are a handful of documents, so the cost is nothing.
+  return snap.docs
+    .filter((d) => d.data().topic === spec.topic)
+    .map((d) => toConfig(d.id, d.data(), spec))
 }
 
 export async function deleteConfiguration(uid: string, configId: string): Promise<void> {

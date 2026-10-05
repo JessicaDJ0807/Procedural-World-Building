@@ -4,7 +4,7 @@ Jessica Hsiao · Assignment 2
 
 [← back to the README](../../README.md) · [study notebook index](../README.md)
 
-Sign-in, saved configurations and hosting for the voxel page (Topic 3). This
+Sign-in, saved worlds and hosting. Every topic saves its own worlds. This
 file tracks the integration as it is built; the survey that preceded it is
 [`firebase-integration-report.md`](firebase-integration-report.md).
 
@@ -26,6 +26,11 @@ from listed under **Authentication → Settings → Authorized domains**
 (`localhost` is there by default).
 
 ### Deploying the rules
+
+The rules name the topics a document may claim, so **they must be re-published
+when a topic is added**. A save from a topic the deployed rules do not list
+fails with `permission-denied`, which reads exactly like the locked-mode error
+below.
 
 A new Firestore database starts in **locked mode** — every read and write is
 denied until rules are published. The symptom in the app is "Firestore rules
@@ -67,15 +72,17 @@ specific billable project, not because they are confidential.
 | `src/firebase/AuthProvider.tsx` | Subscribes to `onAuthStateChanged` |
 | `src/firebase/auth.ts` | `signInWithGoogle()`, `signOutUser()`, error translation |
 | `src/AuthBar.tsx` | Header UI — sign in, signed-in identity, sign out |
-| `src/config/voxelConfig.ts` | The saved-document schema: what is stored, and validation on load |
 | `src/firebase/configs.ts` | Firestore CRUD over `users/{uid}/configs` |
 | `src/firebase/storage.ts` | JSON upload, plus the local download that works without Storage |
-| `src/ConfigPanel.tsx` | Sidebar UI — name, save, list, load, delete |
+| `src/ConfigPanel.tsx` | The worlds library — the left column, on every topic |
+| `src/Workspace.tsx` | The three resizable columns |
+| `src/config/spec.ts` | The per-topic contract, and the validators all four share |
+| `src/config/*Config.ts` | One schema per topic: defaults, validation, summary line |
 | `firestore.rules`, `storage.rules` | Owner-scoped access rules, kept in the repo so they are reviewable |
 
 ## What is saved
 
-`users/{uid}/configs/{configId}`, one document per saved stack:
+`users/{uid}/configs/{configId}`, one document per saved world, from any topic:
 
 | Field | Why |
 | --- | --- |
@@ -84,23 +91,89 @@ specific billable project, not because they are confidential.
 | `ownerUid` | Redundant with the path on purpose — it makes an exported document self-describing, and the rules require the two to agree |
 | `createdAt`, `updatedAt` | `serverTimestamp()`, so the ordering does not depend on a client clock |
 | `storagePath` | Only when a JSON copy was uploaded |
-| `settings` | `sceneName`, `nodes`, `mode`, `greedy`, `resolution`, `iso`, `spin`, `showBounds`, `palette` |
+| `settings` | Whatever that topic's schema defines |
+
+Each topic supplies a `ConfigSpec`: its defaults, how to validate a document,
+and the one line shown under a name in the library. Everything else — the
+Firestore reads and writes, the panel, the export — is written once and shared.
+
+| Topic | Stores | Default document |
+| --- | --- | --- |
+| Objects | Shape, transform, material | 234 bytes |
+| Noise | Layers, warp, erosion, automata, palette | 2,504 bytes |
+| Voxels | Scene, shape stack, mesher, resolution | 1,192 bytes |
+| Shaders | Simulation, every simulation's tuning, presets | 1,528 bytes |
+
+One collection holds all four, filtered by `topic` **in the client** rather
+than with `where('topic','==',…)`: combining an equality filter with an
+`orderBy` on a different field needs a composite index, which is a console step
+this project does not otherwise require. One account's worlds are a handful of
+documents.
 
 **Parameters, never geometry.** The field, the mesh, the normals and the colour
 ramp are all absent, because every one of them is reproducible from `settings`
 — the generator is deterministic end to end. This is not only tidiness: a 96³
 field is 3.4 MB of `Float32Array` and the Firestore document limit is 1 MB, so
-storing the sampled world would not fit. A measured document for the default
-scene is **1,192 bytes**.
+storing the sampled world would not fit. The largest default document, Topic 2's, is
+**2,504 bytes**.
+
+## Layout
+
+Every topic is three columns: **library, canvas, inspector** — 220px,
+flexible, 320px by default, all of it underneath the topic nav so the hierarchy
+reads app → topic → world → parameter.
+
+**Both boundaries drag.** Widths are clamped so neither panel can squeeze the
+canvas below 300px, double-clicking a divider resets it, and the arrow keys
+move it 16px at a time (1px with Shift). Widths are remembered **per topic** in
+`localStorage` — Topic 2 has far more controls than Topic 1, so one shared
+width would be wrong for both. Every `localStorage` access is wrapped: it
+throws in a private window and comes back empty after cleared site data, and a
+width that does not survive a reload is a much smaller problem than a page that
+will not load.
+
+The divider is a 7px hit area with a 1px rule drawn inside it, negatively
+margined so it costs no layout. A 1px line would be a 1px target.
+
+Topic 1's controls were a floating widget over the canvas and Topics 2 and 4
+had a sidebar but no library. Topic 3's right sidebar had been doing two jobs,
+editing the current world and managing saved ones. Separating them gives each column one question: *what am
+I working on*, *what does it look like*, *how do I change it*.
+
+Behaviour that followed from the split:
+
+- **The whole row opens a world.** A one-line Load button was a small target
+  for the action taken most often.
+- **Rename and delete sit behind `•••`.** A delete button on every row is
+  noise for something done rarely and never by accident.
+- **An unsaved marker.** The settings as stored are kept alongside the active
+  world and compared against the live state, so editing a loaded world shows
+  "• Unsaved" and the button becomes *Save changes*. With no edits it reads
+  *Saved* and is disabled.
+- **Export is not a save.** Download JSON is styled as a quiet link rather
+  than a second button, so the two do not read as alternatives.
+- **The Upload JSON copy checkbox is gone**, rather than offered and broken —
+  Storage is off. `storage.ts` keeps the upload for when it is enabled.
+
+**Opening a world does not re-read it.** `listConfigurations` already returns
+whole documents, parsed by the same code a per-document `get` would use, so
+the second read bought nothing and put a round trip in front of every click.
+`loadConfiguration` was deleted rather than left as a function nothing calls —
+a deviation from the original plan, which named it.
 
 ## Not yet verified
 
 Everything below the sign-in button is **unexercised against a real account**.
-A Google popup cannot be driven in headless Chrome, so the save, list, load and
-delete paths have been checked only as far as the Firestore rules: an
-unauthenticated client is rejected with `permission-denied`, which the panel
-shows translated. That the database exists and is in locked mode is the one
-thing that round trip does confirm.
+A Google popup cannot be driven in headless Chrome, so the save, rename and
+delete paths have never run against a real account.
+
+The row-click, selection, unsaved marker and `•••` menu *were* exercised, under
+a temporary harness that stubbed the signed-in user and supplied three
+fabricated rows. That harness was reverted and is not in the source. It earned
+its keep: it caught the redundant per-document read, a long name that hard-cut
+with no ellipsis because `text-overflow` has no effect on a flex container's
+own text node, and an inspector measuring 353px rather than 320 because
+`width` and padding add up without `box-sizing`.
 
 What *has* been verified is the part that does not need an account: the
 serialization round trip for all five stock scenes, 15 malformed documents, and
@@ -109,9 +182,9 @@ is no figure of the signed-in panel for the same reason; a stubbed screenshot
 would be a mock-up rather than a capture, and this notebook's figures come from
 the running app.
 
-**To finish the check:** sign in, save a stack, reload the page, load it back,
-and confirm the shape list and every slider match. Then delete it and confirm
-it leaves the list.
+**To finish the check:** sign in, save a world, reload the page, click it in
+the library, and confirm the shape list and every slider match. Then edit a
+slider and watch for "• Unsaved", save again, rename it, and delete it.
 
 ## Storage is off
 

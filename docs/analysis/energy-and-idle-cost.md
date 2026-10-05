@@ -59,7 +59,7 @@ Draw calls per second with nothing happening on screen:
 
 | View | Before | After |
 | --- | --- | --- |
-| Topic 1 — 3D objects, at rest | 295 | **0** |
+| Topic 1 — Objects, at rest | 295 | **0** |
 | Topic 4 — shading study, turntable off | 42 | **0** |
 | Topic 4 — simulation paused | 59 | **0** |
 | Topic 3 — voxels, camera still | 39 | **0** |

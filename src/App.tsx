@@ -6,7 +6,7 @@ import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
 import './App.css'
 
-type PageId = 'objects' | 'noise' | 'voxels' | 'shaders'
+type PageId = 'objects' | 'maps' | 'voxels' | 'shaders'
 
 // One entry per topic, newest last.
 //
@@ -15,8 +15,8 @@ type PageId = 'objects' | 'noise' | 'voxels' | 'shaders'
 // further from the calendar with every gap, and numbering it honestly would
 // mean leaving holes. A topic is the unit of work, and it never has gaps.
 const PAGES: { id: PageId; topic: string; title: string; render: () => ReactElement }[] = [
-  { id: 'objects', topic: 'Topic 1', title: '3D Objects', render: () => <ObjectViewerPage /> },
-  { id: 'noise', topic: 'Topic 2', title: 'Noise', render: () => <NoisePage /> },
+  { id: 'objects', topic: 'Topic 1', title: 'Objects', render: () => <ObjectViewerPage /> },
+  { id: 'maps', topic: 'Topic 2', title: 'Maps', render: () => <NoisePage /> },
   { id: 'voxels', topic: 'Topic 3', title: 'Voxels', render: () => <VoxelPage /> },
   { id: 'shaders', topic: 'Topic 4', title: 'Shaders', render: () => <ShaderPage /> },
 ]

@@ -15,8 +15,8 @@ Topic 3 is the third body of work, not the third week.
 ## Contents
 
 - [Topics](#topics)
-  - [Topic 1 — 3D Objects](#topic-1--3d-objects)
-  - [Topic 2 — Noise](#topic-2--noise)
+  - [Topic 1 — Objects](#topic-1--objects)
+  - [Topic 2 — Maps](#topic-2--maps)
   - [Topic 3 — Voxels](#topic-3--voxels)
   - [Topic 4 — Shaders](#topic-4--shaders)
 - [Study notebook](#study-notebook) — the full documentation index
@@ -28,7 +28,7 @@ Topic 3 is the third body of work, not the third week.
 
 ## Topics
 
-### [Topic 1 — 3D Objects](docs/topics/topic-1-objects.md)
+### [Topic 1 — Objects](docs/topics/topic-1-objects.md)
 
 A real-time WebGL object viewer. Five primitives swapped in place, a draggable
 XYZ gizmo storing orientation as a quaternion so the object never gimbal-locks,
@@ -36,7 +36,7 @@ and material controls lit by a generated `RoomEnvironment` cubemap.
 
 ![Topic 1 — a torus knot rendered at high metalness, with the scene control widget on the right](docs/images/readme-topic-1-objects.png)
 
-### [Topic 2 — Noise](docs/topics/topic-2-noise.md)
+### [Topic 2 — Maps](docs/topics/topic-2-maps.md)
 
 A field of values in `[0, 1]`, built and then progressively shaped:
 
@@ -157,8 +157,8 @@ Then open the URL Vite prints (default `http://localhost:5173`).
 | `npm run preview` | Serve the production build locally |
 
 Firebase is optional. With no `.env` the header says so and every topic runs
-exactly as before. With one, you can sign in and save a Topic 3 shape stack to
-your account — parameters only, never geometry, because the world is
+exactly as before. With one, you can sign in and save a world from any topic
+to your account — parameters only, never geometry, because the generator is
 deterministic. See [`docs/project/firebase-setup.md`](docs/project/firebase-setup.md).
 
 ## Project structure
@@ -199,9 +199,14 @@ src/
 │   ├── boids.ts              Fish schooling
 │   └── index.ts              The strategy registry
 ├── AuthBar.tsx               Header sign-in / sign-out
-├── ConfigPanel.tsx           Save, list, load and delete saved configurations
+├── Workspace.tsx             Three resizable columns: library, canvas, inspector
+├── ConfigPanel.tsx           The worlds library — the left column on every topic
 ├── config/
-│   └── voxelConfig.ts        What a saved configuration is, and validation on load
+│   ├── spec.ts               The per-topic contract and shared validators
+│   ├── objectConfig.ts       Topic 1's saved shape
+│   ├── noiseConfig.ts        Topic 2's saved shape
+│   ├── voxelConfig.ts        Topic 3's saved shape
+│   └── shaderConfig.ts       Topic 4's saved shape
 ├── firebase/                 App init, auth context and provider, Firestore, Storage
 ├── App.css                   Shell, panel, and canvas styling
 └── index.css                 Global reset
@@ -210,7 +215,7 @@ docs/
 ├── README.md                 Study notebook index — start here
 ├── topics/                   One chapter per topic
 │   ├── topic-1-objects.md
-│   ├── topic-2-noise.md
+│   ├── topic-2-maps.md
 │   ├── topic-3-voxels.md
 │   └── topic-4-shaders.md
 ├── analysis/                 Measurement and comparison reports

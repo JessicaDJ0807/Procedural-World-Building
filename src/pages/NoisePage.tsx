@@ -1,9 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ConfigPanel } from '../ConfigPanel'
 import { LayerPanel } from '../LayerPanel'
 import { NoiseMapPreview, type Cell } from '../NoiseMapPreview'
 import { NoiseViewport, type GeometryMode } from '../NoiseViewport'
 import { InfoTip } from '../InfoTip'
 import { Slider } from '../Slider'
+import { Workspace } from '../Workspace'
+import {
+  DEFAULT_OCTAVES,
+  DEFAULT_PERSISTENCE,
+  FBM_BASE_FREQUENCY,
+  defaultNoiseSettings,
+  fbmStack,
+  noiseSpec,
+  type NoiseSettings,
+  type StoredLayer,
+} from '../config/noiseConfig'
 import { ACCENT_BLUE } from '../theme'
 import {
   CONTINUOUS,
@@ -37,7 +49,6 @@ import {
   applyShaping,
   compositeLayers,
   defaultParamsFor,
-  fbmOctaves,
   warpField,
   getShapingOp,
   type NoiseLayer,
@@ -70,7 +81,10 @@ let layerCounter = 0
 function createLayer(overrides: Partial<NoiseLayer> = {}): NoiseLayer {
   layerCounter += 1
   return {
-    id: `layer-${layerCounter}`,
+    // A UUID, not the counter: the counter restarts at zero on reload, so a
+    // loaded world's layer ids would collide with the next layer added. The
+    // counter still numbers the visible name, where repeating is harmless.
+    id: crypto.randomUUID(),
     name: `Layer ${layerCounter}`,
     enabled: true,
     frequency: 8,
@@ -84,41 +98,19 @@ function createLayer(overrides: Partial<NoiseLayer> = {}): NoiseLayer {
   }
 }
 
-const FBM_BASE_FREQUENCY = 2
-const FBM_SPREAD = 0.6
-const DEFAULT_OCTAVES = 6
-const DEFAULT_PERSISTENCE = 0.5
-const DEFAULT_RESOLUTION = 128
+/** Fresh ids for stored layers, which carry none. */
+const withLayerIds = (layers: StoredLayer[]): NoiseLayer[] =>
+  layers.map((layer) => ({ ...layer, id: crypto.randomUUID() }))
 
-/**
- * Seeds are the octave index rather than a running counter, so rebuilding at a
- * different persistence redraws the same terrain at a different roughness
- * instead of an unrelated one — which is the only way the dial is readable.
- */
-function createFbmStack(octaves: number, persistence: number, maxFrequency: number): NoiseLayer[] {
-  return fbmOctaves(octaves, FBM_BASE_FREQUENCY, persistence, maxFrequency).map((octave, index) =>
-    createLayer({
-      name: `Octave ${index + 1}`,
-      frequency: octave.frequency,
-      opacity: octave.opacity,
-      spread: FBM_SPREAD,
-      seed: index + 1,
-    }),
-  )
-}
+const createFbmStack = (octaves: number, persistence: number, maxFrequency: number) =>
+  withLayerIds(fbmStack(octaves, persistence, maxFrequency))
 
-// Six octaves rather than the two this started with: measured against a
-// structure function, two layers four octaves apart score 0.960 for
-// straightness where real topography is above 0.99, and six score 0.990.
-const INITIAL_LAYERS: NoiseLayer[] = createFbmStack(
-  DEFAULT_OCTAVES,
-  DEFAULT_PERSISTENCE,
-  DEFAULT_RESOLUTION,
-)
+const INITIAL = defaultNoiseSettings()
+const INITIAL_LAYERS: NoiseLayer[] = withLayerIds(INITIAL.layers)
 
 export function NoisePage() {
   const [mode, setMode] = useState<GeometryMode>('surface')
-  const [resolution, setResolution] = useState(DEFAULT_RESOLUTION)
+  const [resolution, setResolution] = useState(INITIAL.resolution)
   // Averaging six octaves shrinks the variance, so the stack's relief is about
   // 0.40 against the old pair's 0.71. Display scaling costs nothing, so the
   // height makes it back up rather than the spread pushing values into a clamp.
@@ -340,21 +332,74 @@ export function NoisePage() {
   const inRange = selected && selected.x < resolution && selected.y < resolution ? selected : null
   const selectedValue = inRange ? mapField[inRange.y * resolution + inRange.x] : null
 
-  return (
-    <div className="noise-page">
-      <NoiseViewport
-        mode={mode}
-        resolution={resolution}
-        field={field}
-        heightScale={mode === 'planet' ? relief : heightScale}
-        selected={inRange ? { ...inRange, z: sliceZ } : null}
-        ramp={ramp}
-        overlay={overlay}
-        spin={spin}
-        wireframe={wireframe}
-      />
+  const settings = useMemo<NoiseSettings>(
+    () => ({
+      mode, resolution, heightScale, relief, slice, spin, wireframe, tint, paletteName, bands,
+      fitRamp, presetName, erosionParams, density, erosionSeed, showCutFill, caThreshold, survive,
+      warpAmount, warpFrequency, warpSeed, talus, talusStrength, thermalPasses, octaves,
+      persistence, outputShapingName, outputParams,
+      // Stripped of their ids, which are React keys rather than part of a layer.
+      layers: layers.map((layer) => {
+        const { id, ...rest } = layer
+        void id
+        return { ...rest, shapingParams: { ...rest.shapingParams } }
+      }),
+    }),
+    [mode, resolution, heightScale, relief, slice, spin, wireframe, tint, paletteName, bands,
+     fitRamp, presetName, erosionParams, density, erosionSeed, showCutFill, caThreshold, survive,
+     warpAmount, warpFrequency, warpSeed, talus, talusStrength, thermalPasses, octaves,
+     persistence, layers, outputShapingName, outputParams],
+  )
 
-      <aside className="control-sidebar" aria-label="Noise controls">
+  /**
+   * Replaces the whole page. The erosion run, the CA generation count and the
+   * selected cell are reset rather than restored: they are accumulated or
+   * transient, and the parameters that produce them are what was stored.
+   */
+  const applySettings = (next: NoiseSettings) => {
+    setMode(next.mode)
+    setResolution(next.resolution)
+    setHeightScale(next.heightScale)
+    setRelief(next.relief)
+    setSlice(next.slice)
+    setSpin(next.spin)
+    setWireframe(next.wireframe)
+    setTint(next.tint)
+    setPaletteName(next.paletteName)
+    setBands(next.bands)
+    setFitRamp(next.fitRamp)
+    setPresetName(next.presetName)
+    setErosionParams(next.erosionParams)
+    setDensity(next.density)
+    setErosionSeed(next.erosionSeed)
+    setShowCutFill(next.showCutFill)
+    setCaThreshold(next.caThreshold)
+    setSurvive(next.survive)
+    setWarpAmount(next.warpAmount)
+    setWarpFrequency(next.warpFrequency)
+    setWarpSeed(next.warpSeed)
+    setTalus(next.talus)
+    setTalusStrength(next.talusStrength)
+    setThermalPasses(next.thermalPasses)
+    setOctaves(next.octaves)
+    setPersistence(next.persistence)
+    setOutputShapingName(next.outputShapingName)
+    setOutputParams(next.outputParams)
+    const restored = withLayerIds(next.layers)
+    setLayers(restored)
+    setExpandedId(restored[0]?.id ?? null)
+    setErosion(null)
+    setGeneration(0)
+    setPlaying(false)
+    setSelected(null)
+  }
+
+  return (
+    <Workspace
+      topic="maps"
+      library={<ConfigPanel spec={noiseSpec} settings={settings} onLoad={applySettings} />}
+      inspector={
+        <aside className="control-sidebar" aria-label="Noise controls">
         <h2>Source map</h2>
         <NoiseMapPreview
           resolution={resolution}
@@ -897,7 +942,20 @@ export function NoisePage() {
         })}
 
         <p className="hint">Drag to orbit, scroll to zoom, right-drag to pan.</p>
-      </aside>
-    </div>
+        </aside>
+      }
+    >
+      <NoiseViewport
+        mode={mode}
+        resolution={resolution}
+        field={field}
+        heightScale={mode === 'planet' ? relief : heightScale}
+        selected={inRange ? { ...inRange, z: sliceZ } : null}
+        ramp={ramp}
+        overlay={overlay}
+        spin={spin}
+        wireframe={wireframe}
+      />
+    </Workspace>
   )
 }
