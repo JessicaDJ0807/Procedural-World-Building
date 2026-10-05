@@ -8,18 +8,16 @@ import {
   saveConfiguration,
 } from './firebase/configs'
 import { deleteConfigurationJson, downloadJson } from './firebase/storage'
-import {
-  configToJson,
-  defaultSettings,
-  type VoxelConfig,
-  type VoxelSettings,
-} from './config/voxelConfig'
+import { configToJson, type ConfigSpec } from './config/spec'
+import type { SavedConfig } from './firebase/configs'
 import { firebaseReady } from './firebase/config'
 
-type ConfigPanelProps = {
+type ConfigPanelProps<S> = {
+  /** The topic's saved-document contract: defaults, validation, summary line. */
+  spec: ConfigSpec<S>
   /** The current page state, already stripped to what is stored. */
-  settings: VoxelSettings
-  onLoad: (settings: VoxelSettings, repairs: string[]) => void
+  settings: S
+  onLoad: (settings: S, repairs: string[]) => void
 }
 
 const slug = (name: string) =>
@@ -36,17 +34,16 @@ function savedAgo(date: Date | null): string {
   return date.toLocaleDateString()
 }
 
-const sameSettings = (a: VoxelSettings, b: VoxelSettings) =>
-  JSON.stringify(a) === JSON.stringify(b)
+const sameSettings = <S,>(a: S, b: S) => JSON.stringify(a) === JSON.stringify(b)
 
-export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
+export function ConfigPanel<S>({ spec, settings, onLoad }: ConfigPanelProps<S>) {
   const { user, loading: authLoading } = useAuth()
 
   // The list and the active marker belong to one account, so they are stored
   // with the uid that produced them and read back only while it still matches.
   // Clearing them from an effect on sign-out is the same thing a render later,
   // and a cascading render at that.
-  const [owned, setOwned] = useState<{ owner: string | null; configs: VoxelConfig[] }>({
+  const [owned, setOwned] = useState<{ owner: string | null; configs: SavedConfig<S>[] }>({
     owner: null,
     configs: [],
   })
@@ -54,7 +51,7 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
     owner: string | null
     id: string | null
     /** The settings as stored, to compare against for the unsaved marker. */
-    snapshot: VoxelSettings | null
+    snapshot: S | null
   }>({ owner: null, id: null, snapshot: null })
 
   const [reloadToken, setReloadToken] = useState(0)
@@ -81,7 +78,7 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
   useEffect(() => {
     if (!uid) return
     let cancelled = false
-    listConfigurations(uid)
+    listConfigurations(uid, spec)
       .then((fetched) => {
         if (!cancelled) setOwned({ owner: uid, configs: fetched })
       })
@@ -95,7 +92,7 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
     return () => {
       cancelled = true
     }
-  }, [uid, reloadToken])
+  }, [uid, spec, reloadToken])
 
   useEffect(() => {
     if (!menuId) return
@@ -143,7 +140,7 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
   }
 
   const refresh = () => setReloadToken((n) => n + 1)
-  const setActiveFrom = (config: VoxelConfig | null) =>
+  const setActiveFrom = (config: SavedConfig<S> | null) =>
     setActive({ owner: uid, id: config?.id ?? null, snapshot: config?.settings ?? null })
 
   const startNew = () => {
@@ -151,14 +148,14 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
     setMenuId(null)
     setActiveFrom(null)
     setDraftName('')
-    onLoad(defaultSettings(), [])
+    onLoad(spec.defaults(), [])
   }
 
   // Straight from the list, with no second read. listConfigurations already
   // returns whole documents parsed by the same code path a per-document get
   // would use, so re-fetching bought nothing and put a network round trip in
   // front of every click on a row.
-  const open = (config: VoxelConfig) => {
+  const open = (config: SavedConfig<S>) => {
     if (config.id === activeId) return
     setError(null)
     setMenuId(null)
@@ -177,7 +174,7 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
     setSaving(true)
     setError(null)
     try {
-      const id = await saveConfiguration(uid, name, settings, activeId ?? undefined)
+      const id = await saveConfiguration(uid, spec, name, settings, activeId ?? undefined)
       // Snapshot what was just written, so the unsaved marker clears without
       // waiting for the list to come back.
       setActive({ owner: uid, id, snapshot: settings })
@@ -208,7 +205,7 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
     }
   }
 
-  const remove = async (config: VoxelConfig) => {
+  const remove = async (config: SavedConfig<S>) => {
     setBusyId(config.id)
     setError(null)
     setMenuId(null)
@@ -290,8 +287,7 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
                           {isActive && dirty && <span className="world-dirty">• Unsaved</span>}
                         </span>
                         <span className="world-sub">
-                          {config.settings.nodes.length} shapes · {config.settings.resolution}³ ·{' '}
-                          {savedAgo(config.updatedAt)}
+                          {spec.summary(config.settings)} · {savedAgo(config.updatedAt)}
                         </span>
                       </button>
                       <div className="world-menu-wrap" ref={menuId === config.id ? menuRef : null}>
@@ -364,7 +360,7 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
         <button
           type="button"
           className="library-export"
-          onClick={() => downloadJson(`${slug(exportName)}.json`, configToJson(exportName, settings))}
+          onClick={() => downloadJson(`${slug(exportName)}.json`, configToJson(spec, exportName, settings))}
         >
           Export JSON
         </button>

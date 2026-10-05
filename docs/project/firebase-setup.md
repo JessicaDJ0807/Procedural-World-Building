@@ -4,7 +4,7 @@ Jessica Hsiao · Assignment 2
 
 [← back to the README](../../README.md) · [study notebook index](../README.md)
 
-Sign-in, saved configurations and hosting for the voxel page (Topic 3). This
+Sign-in, saved worlds and hosting. Every topic saves its own worlds. This
 file tracks the integration as it is built; the survey that preceded it is
 [`firebase-integration-report.md`](firebase-integration-report.md).
 
@@ -26,6 +26,11 @@ from listed under **Authentication → Settings → Authorized domains**
 (`localhost` is there by default).
 
 ### Deploying the rules
+
+The rules name the topics a document may claim, so **they must be re-published
+when a topic is added**. A save from a topic the deployed rules do not list
+fails with `permission-denied`, which reads exactly like the locked-mode error
+below.
 
 A new Firestore database starts in **locked mode** — every read and write is
 denied until rules are published. The symptom in the app is "Firestore rules
@@ -67,15 +72,17 @@ specific billable project, not because they are confidential.
 | `src/firebase/AuthProvider.tsx` | Subscribes to `onAuthStateChanged` |
 | `src/firebase/auth.ts` | `signInWithGoogle()`, `signOutUser()`, error translation |
 | `src/AuthBar.tsx` | Header UI — sign in, signed-in identity, sign out |
-| `src/config/voxelConfig.ts` | The saved-document schema: what is stored, and validation on load |
 | `src/firebase/configs.ts` | Firestore CRUD over `users/{uid}/configs` |
 | `src/firebase/storage.ts` | JSON upload, plus the local download that works without Storage |
-| `src/ConfigPanel.tsx` | The worlds library — the left column of Topic 3 |
+| `src/ConfigPanel.tsx` | The worlds library — the left column, on every topic |
+| `src/Workspace.tsx` | The three resizable columns |
+| `src/config/spec.ts` | The per-topic contract, and the validators all four share |
+| `src/config/*Config.ts` | One schema per topic: defaults, validation, summary line |
 | `firestore.rules`, `storage.rules` | Owner-scoped access rules, kept in the repo so they are reviewable |
 
 ## What is saved
 
-`users/{uid}/configs/{configId}`, one document per saved stack:
+`users/{uid}/configs/{configId}`, one document per saved world, from any topic:
 
 | Field | Why |
 | --- | --- |
@@ -84,23 +91,53 @@ specific billable project, not because they are confidential.
 | `ownerUid` | Redundant with the path on purpose — it makes an exported document self-describing, and the rules require the two to agree |
 | `createdAt`, `updatedAt` | `serverTimestamp()`, so the ordering does not depend on a client clock |
 | `storagePath` | Only when a JSON copy was uploaded |
-| `settings` | `sceneName`, `nodes`, `mode`, `greedy`, `resolution`, `iso`, `spin`, `showBounds`, `palette` |
+| `settings` | Whatever that topic's schema defines |
+
+Each topic supplies a `ConfigSpec`: its defaults, how to validate a document,
+and the one line shown under a name in the library. Everything else — the
+Firestore reads and writes, the panel, the export — is written once and shared.
+
+| Topic | Stores | Default document |
+| --- | --- | --- |
+| Objects | Shape, transform, material | 234 bytes |
+| Noise | Layers, warp, erosion, automata, palette | 2,504 bytes |
+| Voxels | Scene, shape stack, mesher, resolution | 1,192 bytes |
+| Shaders | Simulation, every simulation's tuning, presets | 1,528 bytes |
+
+One collection holds all four, filtered by `topic` **in the client** rather
+than with `where('topic','==',…)`: combining an equality filter with an
+`orderBy` on a different field needs a composite index, which is a console step
+this project does not otherwise require. One account's worlds are a handful of
+documents.
 
 **Parameters, never geometry.** The field, the mesh, the normals and the colour
 ramp are all absent, because every one of them is reproducible from `settings`
 — the generator is deterministic end to end. This is not only tidiness: a 96³
 field is 3.4 MB of `Float32Array` and the Firestore document limit is 1 MB, so
-storing the sampled world would not fit. A measured document for the default
-scene is **1,192 bytes**.
+storing the sampled world would not fit. The largest default document, Topic 2's, is
+**2,504 bytes**.
 
 ## Layout
 
-Topic 3 is three columns: **library, canvas, inspector** — 220px, flexible,
-320px, all of it underneath the existing topic nav so the hierarchy reads
-app → topic → world → parameter.
+Every topic is three columns: **library, canvas, inspector** — 220px,
+flexible, 320px by default, all of it underneath the topic nav so the hierarchy
+reads app → topic → world → parameter.
 
-The right sidebar had been doing two jobs, editing the current world and
-managing saved ones. Separating them gives each column one question: *what am
+**Both boundaries drag.** Widths are clamped so neither panel can squeeze the
+canvas below 300px, double-clicking a divider resets it, and the arrow keys
+move it 16px at a time (1px with Shift). Widths are remembered **per topic** in
+`localStorage` — Topic 2 has far more controls than Topic 1, so one shared
+width would be wrong for both. Every `localStorage` access is wrapped: it
+throws in a private window and comes back empty after cleared site data, and a
+width that does not survive a reload is a much smaller problem than a page that
+will not load.
+
+The divider is a 7px hit area with a 1px rule drawn inside it, negatively
+margined so it costs no layout. A 1px line would be a 1px target.
+
+Topic 1's controls were a floating widget over the canvas and Topics 2 and 4
+had a sidebar but no library. Topic 3's right sidebar had been doing two jobs,
+editing the current world and managing saved ones. Separating them gives each column one question: *what am
 I working on*, *what does it look like*, *how do I change it*.
 
 Behaviour that followed from the split:

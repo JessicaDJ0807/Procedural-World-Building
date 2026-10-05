@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ConfigPanel } from '../ConfigPanel'
+import { Workspace } from '../Workspace'
 import { CsgPanel } from '../CsgPanel'
 import { InfoTip } from '../InfoTip'
 import { Slider } from '../Slider'
@@ -32,6 +33,7 @@ import {
   toSettings,
   withIds,
   type RenderMode,
+  voxelSpec,
   type VoxelSettings,
 } from '../config/voxelConfig'
 import { CONTINUOUS, PALETTES, buildLut, type PaletteName } from '../palette'
@@ -190,15 +192,11 @@ export function VoxelPage() {
   const anyInexact = [...shapesInUse].some((name) => !getShape(name).exact)
 
   return (
-    <div className="voxel-page">
-      {/* Library, canvas, inspector. The left column answers "what am I working
-          on", the right one "how do I change it" — they were one panel doing
-          both jobs. */}
-      <ConfigPanel settings={settings} onLoad={applySettings} />
-
-      <VoxelViewport mesh={mesh} ramp={ramp} spin={spin} showBounds={showBounds} />
-
-      <aside className="control-sidebar" aria-label="Voxel controls">
+    <Workspace
+      topic="voxels"
+      library={<ConfigPanel spec={voxelSpec} settings={settings} onLoad={applySettings} />}
+      inspector={
+        <aside className="control-sidebar" aria-label="Voxel controls">
         <h3 className="control-group">
           <InfoTip text="Everything on this page is one scalar function of position, sampled onto a grid. These controls decide how finely it is sampled and how the samples are turned back into a surface.">
             Field
@@ -396,7 +394,10 @@ export function VoxelPage() {
         )}
 
         <p className="hint">Drag to orbit, scroll to zoom, right-drag to pan.</p>
-      </aside>
-    </div>
+        </aside>
+      }
+    >
+      <VoxelViewport mesh={mesh} ramp={ramp} spin={spin} showBounds={showBounds} />
+    </Workspace>
   )
 }

@@ -157,8 +157,8 @@ Then open the URL Vite prints (default `http://localhost:5173`).
 | `npm run preview` | Serve the production build locally |
 
 Firebase is optional. With no `.env` the header says so and every topic runs
-exactly as before. With one, you can sign in and save a Topic 3 shape stack to
-your account — parameters only, never geometry, because the world is
+exactly as before. With one, you can sign in and save a world from any topic
+to your account — parameters only, never geometry, because the generator is
 deterministic. See [`docs/project/firebase-setup.md`](docs/project/firebase-setup.md).
 
 ## Project structure
@@ -199,9 +199,14 @@ src/
 │   ├── boids.ts              Fish schooling
 │   └── index.ts              The strategy registry
 ├── AuthBar.tsx               Header sign-in / sign-out
-├── ConfigPanel.tsx           The worlds library — Topic 3's left column
+├── Workspace.tsx             Three resizable columns: library, canvas, inspector
+├── ConfigPanel.tsx           The worlds library — the left column on every topic
 ├── config/
-│   └── voxelConfig.ts        What a saved configuration is, and validation on load
+│   ├── spec.ts               The per-topic contract and shared validators
+│   ├── objectConfig.ts       Topic 1's saved shape
+│   ├── noiseConfig.ts        Topic 2's saved shape
+│   ├── voxelConfig.ts        Topic 3's saved shape
+│   └── shaderConfig.ts       Topic 4's saved shape
 ├── firebase/                 App init, auth context and provider, Firestore, Storage
 ├── App.css                   Shell, panel, and canvas styling
 └── index.css                 Global reset
