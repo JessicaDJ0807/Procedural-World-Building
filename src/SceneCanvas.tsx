@@ -3,6 +3,8 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { createGeometry, type ShapeName } from './shapes'
+import { createCameraGate, startRenderLoop, wakeOnInput, type RenderLoop } from './renderLoop'
+import { VIEWPORT_BACKGROUND } from './theme'
 
 type SceneCanvasProps = {
   shape: ShapeName
@@ -25,6 +27,7 @@ export function SceneCanvas(props: SceneCanvasProps) {
   const { shape, color, metalness, roughness, wireframe } = props
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const loopRef = useRef<RenderLoop | null>(null)
 
   // The render loop reads continuous values (rotation, spin, scale) from this ref
   // so changing them never tears the scene down.
@@ -43,7 +46,7 @@ export function SceneCanvas(props: SceneCanvasProps) {
     if (!container) return
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x111218)
+    scene.background = new THREE.Color(VIEWPORT_BACKGROUND)
 
     const camera = new THREE.PerspectiveCamera(
       50,
@@ -114,12 +117,13 @@ export function SceneCanvas(props: SceneCanvasProps) {
     const spinQuaternion = new THREE.Quaternion()
     const spinAxis = new THREE.Vector3(0, 1, 0)
     let spinOffset = 0
-    let frameId = 0
-    let lastTime = performance.now()
-    const animate = (time: number) => {
-      // Clamped so a backgrounded tab doesn't resume with one enormous jump.
-      const delta = Math.min((time - lastTime) / 1000, 0.1)
-      lastTime = time
+    // The orientation last drawn. The gizmo mutates the shared quaternion
+    // directly rather than through React, so comparing against it is the only
+    // way this loop can tell a drag happened.
+    const drawn = new THREE.Quaternion()
+
+    const cameraGate = createCameraGate()
+    const loop = startRenderLoop((delta) => {
       const current = propsRef.current
 
       // Auto-spin is layered on top of the gizmo orientation in world space, so
@@ -130,13 +134,20 @@ export function SceneCanvas(props: SceneCanvasProps) {
       mesh.scale.setScalar(current.scale)
 
       controls.update()
+      const moved = cameraGate(camera.position, controls.target)
       renderer.render(scene, camera)
-      frameId = requestAnimationFrame(animate)
-    }
-    animate(lastTime)
+
+      const turned = !drawn.equals(current.rotationRef.current)
+      drawn.copy(current.rotationRef.current)
+      return current.spinSpeed !== 0 || moved || turned
+    })
+    loopRef.current = loop
+    const stopWaking = wakeOnInput(loop)
 
     return () => {
-      cancelAnimationFrame(frameId)
+      stopWaking()
+      loop.dispose()
+      loopRef.current = null
       observer.disconnect()
       controls.dispose()
       objectsRef.current = null
@@ -151,6 +162,13 @@ export function SceneCanvas(props: SceneCanvasProps) {
       renderer.domElement.remove()
     }
   }, [])
+
+  // Any prop change — shape, colour, scale, wireframe — leaves the drawn frame
+  // out of date. No dependency array: this runs after every render, and waking
+  // a running loop is a no-op.
+  useEffect(() => {
+    loopRef.current?.wake()
+  })
 
   // Swapping geometry in place keeps the mesh identity the render loop closed over.
   useEffect(() => {

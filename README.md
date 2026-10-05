@@ -18,6 +18,7 @@ Topic 3 is the third body of work, not the third week.
   - [Topic 1 — 3D Objects](#topic-1--3d-objects)
   - [Topic 2 — Noise](#topic-2--noise)
   - [Topic 3 — Voxels](#topic-3--voxels)
+  - [Topic 4 — Shaders](#topic-4--shaders)
 - [Study notebook](#study-notebook) — the full documentation index
 - [Keyboard](#keyboard)
 - [Getting started](#getting-started)
@@ -79,6 +80,39 @@ sampled at 40³. Only dual contouring reconstructs the box's edges:
 | ![Blocks](docs/images/topic-3-mesher-blocks.png) | ![Marching cubes](docs/images/topic-3-mesher-marching.png) | ![Surface nets](docs/images/topic-3-mesher-surface.png) | ![Dual contouring](docs/images/topic-3-mesher-dual.png) |
 | 1,536 tris · 3,072 verts | 4,288 tris · 12,864 verts | 4,272 tris · 2,128 verts | 4,272 tris · 2,128 verts |
 
+### [Topic 4 — Shaders](docs/topics/topic-4-shaders.md)
+
+A shading study and four GPU simulations. Topics 1–3 computed on the CPU and
+handed finished geometry to the graphics card; this topic moves the work itself
+into a shader — first to decide what colour a surface is, then to decide what
+the surface *does*.
+
+- **Surface shading** — one eroded terrain, six fragment shaders. The geometry,
+  the light and the camera never change, so the only thing that differs between
+  them is the answer to "what colour is this pixel?": matte diffuse, a
+  height palette, a slope-driven material, procedural noise, Fresnel and
+  atmosphere, and all five layered. The terrain is carved by Topic 2's own
+  droplet erosion, so the two topics share a landscape.
+- **Water ripples** — the wave equation on a 512² grid. Its stability limit is
+  measured rather than quoted: C = 0.500 stays bounded, C = 0.510 reaches a peak
+  amplitude of 4.4 × 10³⁰ within about 300 steps, bracketing the theoretical
+  CFL bound of exactly 1/2.
+- **Reaction–diffusion** — Gray–Scott. Two chemicals and four constants,
+  producing the coral and fish-skin patterns Turing described in 1952.
+- **Hydraulic erosion** — the virtual-pipe model, five passes per step. Not a
+  port of Topic 2's erosion but a different algorithm, because droplets are
+  serial by nature and a GPU cannot run them. Ground and sediment are a closed
+  system, held to 0.001% drift over 5,900 steps.
+- **Fish schooling** — Reynolds' three rules, one fish per texel. Every fish
+  reads every other, so 1,024 fish is 1,048,576 neighbour tests per step and
+  the O(N²) wall is a dial you can turn.
+
+The page uses two visual registers, both matte and both on a dark ground:
+**dusk after dark** for anything lit in 3D, and **slate and chalk** for the flat
+field views, which are maps rather than photographs.
+
+![The Topic 4 page: a matte eroded terrain on a dark ground, with the strategy selector and parameters in the sidebar](docs/images/readme-topic-4-shaders.png)
+
 ## Study notebook
 
 The write-ups are the coursework, not a side effect of it. The full index —
@@ -137,7 +171,8 @@ src/
 ├── pages/
 │   ├── ObjectViewerPage.tsx  Topic 1 — viewer and its control panel
 │   ├── NoisePage.tsx         Topic 2 — viewport, sidebar, and noise state
-│   └── VoxelPage.tsx         Topic 3 — viewport, sidebar, and CSG state
+│   ├── VoxelPage.tsx         Topic 3 — viewport, sidebar, and CSG state
+│   └── ShaderPage.tsx        Topic 4 — strategy selector and parameters
 ├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
@@ -152,6 +187,15 @@ src/
 ├── mesher.ts                 Blocks, greedy, marching cubes, surface nets, dual contouring
 ├── VoxelViewport.tsx         3D scene for the meshed solid
 ├── CsgPanel.tsx              Shape stack editor (Topic 3)
+├── ShaderViewport.tsx        Topic 4 WebGL context, render loop, pointer input
+├── gpu/                      GPU simulations (Topic 4)
+│   ├── core.ts               Ping-pong render targets, passes, ramp textures
+│   ├── simulation.ts         The contract every strategy implements
+│   ├── ripples.ts            Wave equation
+│   ├── reactionDiffusion.ts  Gray–Scott
+│   ├── erosion.ts            Virtual-pipe hydraulic erosion
+│   ├── boids.ts              Fish schooling
+│   └── index.ts              The strategy registry
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── firebase/                 Firebase config, auth context and provider
 ├── App.css                   Shell, panel, and canvas styling
@@ -162,8 +206,10 @@ docs/
 ├── topics/                   One chapter per topic
 │   ├── topic-1-objects.md
 │   ├── topic-2-noise.md
-│   └── topic-3-voxels.md
+│   ├── topic-3-voxels.md
+│   └── topic-4-shaders.md
 ├── analysis/                 Measurement and comparison reports
+│   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
 ├── project/                  Infrastructure and setup
 │   ├── firebase-setup.md
@@ -197,6 +243,23 @@ controls leave the tab order with them, so tabbing while the UI is hidden
 cannot land inside a panel you cannot see. Both canvases watch their container
 with a `ResizeObserver`, so the view reflows to the full width rather than
 stretching.
+
+**Viewports stop drawing when nothing is moving.** Every topic runs on
+`startRenderLoop` in `renderLoop.ts`, which caps the frame rate at 60 and stops
+scheduling frames entirely once the frame function reports the view is static.
+Measured before it existed: an idle Topic 1 issued 295 draw calls a second and
+a paused simulation 59, all of them redrawing an image identical to the one
+already on screen. Idle is now 0 on every topic. Waking is deliberately
+over-eager — any pointer movement anywhere wakes every loop — because a frame
+that finds nothing to do is far cheaper than a viewport that never wakes.
+
+**Every viewport sits on one shared ground.** `VIEWPORT_BACKGROUND` in
+`theme.ts` is the single source; Topics 1–3 previously hardcoded `#111218`
+in three separate files and matched only by accident. It is deliberately not
+near-black: against near-black a muted surface glows by contrast, which is most
+of what reads as "sci-fi" in a stylised render. Topic 4's map views keep a
+lighter slate board of their own, so chalk contour lines have something to read
+against.
 
 **Claims in the docs are measured, not estimated.** Every number in this
 repository — Hurst exponents, millisecond costs, triangle counts, percentage

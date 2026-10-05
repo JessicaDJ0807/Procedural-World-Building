@@ -72,6 +72,10 @@ docs/
 - **Figures are captured from the running app**, never mocked up, so a figure
   and the numbers beside it describe the same run. Drive the app in headless
   Chrome, clip to the element, and check the image before shipping it.
+- **PNG for anything with UI text, JPEG for continuous tone.** A render with
+  film grain or a soft gradient is the wrong content for PNG: the Topic 4
+  figures were 17 MB as PNG and 6.7 MB as JPEG at quality 88, with no visible
+  difference. Keep `docs/images/` in single-digit megabytes.
 - When you change a default or a behaviour, grep the docs for claims about the
   old one. Stale numbers are the usual failure here.
 

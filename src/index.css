@@ -5,5 +5,7 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #111218;
+  /* Matches VIEWPORT_BACKGROUND in theme.ts — this is what shows before a
+     canvas has drawn, and any seam between the two is very visible. */
+  background: #201d1a;
 }

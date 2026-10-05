@@ -25,6 +25,7 @@ the decisions — including the ones that turned out to be wrong.
 | [Topic 1 — 3D Objects](topics/topic-1-objects.md) | The render loop and the material model. Five primitives swapped in place, orientation stored as a quaternion so the gizmo never gimbal-locks, and image-based lighting from a `RoomEnvironment` cubemap generated at runtime rather than loaded from an HDR file. |
 | [Topic 2 — Noise](topics/topic-2-noise.md) | The longest chapter. A value-noise field composited from layers, then warped, run through a cellular automaton, and carved by droplet hydraulic erosion — plus colour ramps interpolated in OKLab and three ways to turn a field into geometry. Includes the structure-function measurements that set the default six-octave stack. |
 | [Topic 3 — Voxels](topics/topic-3-voxels.md) | Solids as signed-distance functions instead of stored grids, combined with CSG, and turned back into triangles four different ways. Covers which primitives return true Euclidean distance and why that matters for blending. |
+| [Topic 4 — Shaders](topics/topic-4-shaders.md) | A surface-shading study — one eroded terrain drawn by six fragment shaders, holding geometry, light and camera fixed so the strategies can be compared — plus four interactive GPU simulations: ripples, reaction–diffusion, hydraulic erosion and fish schooling. Covers the page's two visual registers — both matte, both dark — what actually made the first attempt read as wet plastic, and the two extra rules a dark ground imposes on a lighting model, a measured stability threshold, a measured mass-conservation result, and the bugs that cost the most to find. |
 
 ## Analysis
 
@@ -33,6 +34,7 @@ produced by running the project's own code over its own scenes.
 
 | Report | What it covers |
 | --- | --- |
+| [Energy and idle cost](analysis/energy-and-idle-cost.md) | Where the app's power actually goes. How idle cost was found and removed, what the browser already handles, and the measurement showing the display pass — not the simulation — is the expensive part for three of the four GPU studies. Includes two findings that reversed an assumption: lowering the pixel ratio buys frame rate rather than energy, and fragment area is the wrong proxy for an O(N²) simulation. Belongs to [Topic 4](topics/topic-4-shaders.md). |
 | [Meshing, size, and chunking](analysis/topic-3-meshing-and-chunking.md) | A comparison of the five meshing techniques on one axis — where a vertex is allowed to be — followed by where the approach stops scaling and why chunking is the answer. Belongs to [Topic 3](topics/topic-3-voxels.md). |
 
 ## Project

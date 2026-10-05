@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { DOMAIN } from './density'
 import type { Mesh as VoxelMesh } from './mesher'
 import { rampIndex, type Ramp } from './palette'
+import { createCameraGate, startRenderLoop, wakeOnInput, type RenderLoop } from './renderLoop'
+import { VIEWPORT_BACKGROUND } from './theme'
 
 type VoxelViewportProps = {
   mesh: VoxelMesh
@@ -39,6 +41,7 @@ function writeColours(geometry: THREE.BufferGeometry, positions: Float32Array, r
 
 export function VoxelViewport({ mesh, ramp, spin, showBounds }: VoxelViewportProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const loopRef = useRef<RenderLoop | null>(null)
   const sceneRef = useRef<{
     scene: THREE.Scene
     camera: THREE.PerspectiveCamera
@@ -60,7 +63,7 @@ export function VoxelViewport({ mesh, ramp, spin, showBounds }: VoxelViewportPro
     if (!container) return
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x111218)
+    scene.background = new THREE.Color(VIEWPORT_BACKGROUND)
 
     const camera = new THREE.PerspectiveCamera(
       50,
@@ -134,21 +137,23 @@ export function VoxelViewport({ mesh, ramp, spin, showBounds }: VoxelViewportPro
     const observer = new ResizeObserver(resize)
     observer.observe(container)
 
-    let frameId = 0
-    let lastTime = performance.now()
-    const animate = (time: number) => {
-      // Clamped so a backgrounded tab does not resume with one enormous jump.
-      const delta = Math.min((time - lastTime) / 1000, 0.1)
-      lastTime = time
+    const cameraGate = createCameraGate()
+    const loop = startRenderLoop((delta) => {
       spinner.rotation.y += THREE.MathUtils.degToRad(spinRef.current) * delta
       controls.update()
+      const moved = cameraGate(camera.position, controls.target)
       renderer.render(scene, camera)
-      frameId = requestAnimationFrame(animate)
-    }
-    frameId = requestAnimationFrame(animate)
+      // Still turning, or the camera still settling under damping. Otherwise
+      // this frame was the last one until something wakes the loop.
+      return spinRef.current !== 0 || moved
+    })
+    loopRef.current = loop
+    const stopWaking = wakeOnInput(loop)
 
     return () => {
-      cancelAnimationFrame(frameId)
+      stopWaking()
+      loop.dispose()
+      loopRef.current = null
       observer.disconnect()
       controls.dispose()
       sceneRef.current = null
@@ -160,6 +165,13 @@ export function VoxelViewport({ mesh, ramp, spin, showBounds }: VoxelViewportPro
       renderer.domElement.remove()
     }
   }, [])
+
+  // Any prop change means the view is out of date — a new mesh, a new ramp, a
+  // changed spin. No dependency array on purpose: this runs after every
+  // render, and waking an already-running loop is a no-op.
+  useEffect(() => {
+    loopRef.current?.wake()
+  })
 
   useEffect(() => {
     const objects = sceneRef.current

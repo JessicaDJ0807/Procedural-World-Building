@@ -2,10 +2,11 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { AuthBar } from './AuthBar'
 import { NoisePage } from './pages/NoisePage'
 import { ObjectViewerPage } from './pages/ObjectViewerPage'
+import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
 import './App.css'
 
-type PageId = 'objects' | 'noise' | 'voxels'
+type PageId = 'objects' | 'noise' | 'voxels' | 'shaders'
 
 // One entry per topic, newest last.
 //
@@ -17,6 +18,7 @@ const PAGES: { id: PageId; topic: string; title: string; render: () => ReactElem
   { id: 'objects', topic: 'Topic 1', title: '3D Objects', render: () => <ObjectViewerPage /> },
   { id: 'noise', topic: 'Topic 2', title: 'Noise', render: () => <NoisePage /> },
   { id: 'voxels', topic: 'Topic 3', title: 'Voxels', render: () => <VoxelPage /> },
+  { id: 'shaders', topic: 'Topic 4', title: 'Shaders', render: () => <ShaderPage /> },
 ]
 
 /**

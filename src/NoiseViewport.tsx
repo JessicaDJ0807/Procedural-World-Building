@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 import type { Cell } from './NoiseMapPreview'
 import { rampIndex, type Ramp } from './palette'
+import { createCameraGate, startRenderLoop, wakeOnInput, type RenderLoop } from './renderLoop'
+import { VIEWPORT_BACKGROUND } from './theme'
 
 export type GeometryMode = 'surface' | 'volume' | 'planet'
 
@@ -345,6 +347,7 @@ export function NoiseViewport({
   wireframe,
 }: NoiseViewportProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const loopRef = useRef<RenderLoop | null>(null)
   const sceneRef = useRef<Scene | null>(null)
   // Read by the render loop rather than passed into it, so changing the speed
   // never tears the scene down — the same routing Topic 1 uses for its spin.
@@ -358,7 +361,7 @@ export function NoiseViewport({
     if (!container) return
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x111218)
+    scene.background = new THREE.Color(VIEWPORT_BACKGROUND)
 
     const camera = new THREE.PerspectiveCamera(
       50,
@@ -465,21 +468,21 @@ export function NoiseViewport({
     const observer = new ResizeObserver(resize)
     observer.observe(container)
 
-    let frameId = 0
-    let lastTime = performance.now()
-    const animate = (time: number) => {
-      // Clamped so a backgrounded tab does not resume with one enormous jump.
-      const delta = Math.min((time - lastTime) / 1000, 0.1)
-      lastTime = time
+    const cameraGate = createCameraGate()
+    const loop = startRenderLoop((delta) => {
       spinner.rotation.y += THREE.MathUtils.degToRad(spinRef.current) * delta
       controls.update()
+      const moved = cameraGate(camera.position, controls.target)
       renderer.render(scene, camera)
-      frameId = requestAnimationFrame(animate)
-    }
-    frameId = requestAnimationFrame(animate)
+      return spinRef.current !== 0 || moved
+    })
+    loopRef.current = loop
+    const stopWaking = wakeOnInput(loop)
 
     return () => {
-      cancelAnimationFrame(frameId)
+      stopWaking()
+      loop.dispose()
+      loopRef.current = null
       observer.disconnect()
       controls.dispose()
       sceneRef.current = null
@@ -497,6 +500,13 @@ export function NoiseViewport({
       renderer.domElement.remove()
     }
   }, [])
+
+  // Any prop change means the view is out of date — a new mesh, a new ramp, a
+  // changed spin. No dependency array on purpose: this runs after every
+  // render, and waking an already-running loop is a no-op.
+  useEffect(() => {
+    loopRef.current?.wake()
+  })
 
   // Reframing belongs with the mode, not the data: doing it in the geometry
   // effect below would yank the camera back on every slider drag.

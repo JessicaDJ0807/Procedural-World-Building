@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import * as THREE from 'three'
+import { startRenderLoop, wakeOnInput } from './renderLoop'
 
 const DRAG_SPEED = 0.008 // radians per pixel of pointer travel
 
@@ -148,16 +149,22 @@ export function RotationGizmo({ rotationRef, size = 140 }: RotationGizmoProps) {
     canvas.addEventListener('pointerup', endDrag)
     canvas.addEventListener('pointercancel', endDrag)
 
-    let frameId = 0
-    const animate = () => {
+    // The gizmo only ever changes when the quaternion it mirrors does, so it
+    // redraws when that differs from what is on screen and then stops.
+    const drawn = new THREE.Quaternion()
+
+    const loop = startRenderLoop(() => {
       group.quaternion.copy(rotationRef.current)
       renderer.render(scene, camera)
-      frameId = requestAnimationFrame(animate)
-    }
-    animate()
+      const turned = !drawn.equals(rotationRef.current)
+      drawn.copy(rotationRef.current)
+      return turned
+    })
+    const stopWaking = wakeOnInput(loop)
 
     return () => {
-      cancelAnimationFrame(frameId)
+      stopWaking()
+      loop.dispose()
       canvas.removeEventListener('pointerdown', onPointerDown)
       canvas.removeEventListener('pointermove', onPointerMove)
       canvas.removeEventListener('pointerup', endDrag)

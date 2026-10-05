@@ -13,7 +13,7 @@
   padding: 0 20px;
   height: 52px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: #171922;
+  background: #1b1815;
   color: #e8ecf4;
   font: 14px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
 }
@@ -176,7 +176,7 @@
   overflow-y: auto;
   padding: 18px 18px 14px;
   border-radius: 12px;
-  background: rgba(20, 22, 30, 0.88);
+  background: rgba(28, 25, 21, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
   color: #e8ecf4;
@@ -242,7 +242,7 @@
 }
 
 .control select option {
-  background: #171922;
+  background: #1b1815;
   color: #e8ecf4;
 }
 
@@ -347,7 +347,7 @@
   padding: 18px 16px 20px;
   overflow-y: auto;
   border-left: 1px solid rgba(255, 255, 255, 0.09);
-  background: #171922;
+  background: #1b1815;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
@@ -523,7 +523,7 @@
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(24, 26, 35, 0.97);
+  background: rgba(32, 29, 25, 0.97);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   color: #c5ccd8;
   font: 12px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -556,7 +556,7 @@
   padding: 6px 11px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
-  background: rgba(20, 22, 30, 0.8);
+  background: rgba(28, 25, 21, 0.8);
   color: #8b93a3;
   font: 12px/1 system-ui, 'Segoe UI', Roboto, sans-serif;
   cursor: pointer;
@@ -617,3 +617,30 @@
   height: 100%;
 }
 
+
+/* Topic 4. Same two-column shape as Topic 3, and the same sidebar: the panel
+   should read as one control surface across the whole app, so it reuses
+   .control-sidebar rather than restating it. The viewport owns a single WebGL
+   context that outlives every simulation swap. */
+.shader-page {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  color: #e8ecf4;
+  font: 14px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.shader-viewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* The pointer is an input to the simulation, so a drag must not start a text
+     selection or a touch scroll. */
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
+.shader-viewport canvas {
+  display: block;
+}
