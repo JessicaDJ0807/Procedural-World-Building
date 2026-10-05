@@ -34,7 +34,33 @@ function savedAgo(date: Date | null): string {
   return date.toLocaleDateString()
 }
 
-const sameSettings = <S,>(a: S, b: S) => JSON.stringify(a) === JSON.stringify(b)
+/**
+ * JSON with object keys in a stable order. Arrays keep theirs, because a layer
+ * stack's order is part of what it means.
+ */
+function stableJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null'
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
+  const record = value as Record<string, unknown>
+  const keys = Object.keys(record).sort()
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableJson(record[k])}`).join(',')}}`
+}
+
+/**
+ * Whether the page still holds what was loaded.
+ *
+ * Compared by value rather than by serialisation, because `JSON.stringify`
+ * compares key order too. Topic 2 put `layers` at index 26 coming out of its
+ * parser and last when the page rebuilt its settings — identical values in a
+ * different order — so every world opened from the library was reported as
+ * having unsaved changes the instant it loaded.
+ *
+ * Aligning the two object literals would have fixed that one case and left the
+ * trap armed: nothing stops the next edit to either file from reordering a key
+ * again, and the symptom appears nowhere near the change. Sorting keys before
+ * comparing removes the whole class, for all four topics.
+ */
+const sameSettings = <S,>(a: S, b: S) => stableJson(a) === stableJson(b)
 
 export function ConfigPanel<S>({ spec, settings, onLoad }: ConfigPanelProps<S>) {
   const { user, loading: authLoading } = useAuth()

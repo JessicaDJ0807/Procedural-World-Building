@@ -104,7 +104,15 @@ export type ShapeParam = {
   format?: (value: number) => string
 }
 
-export type ShapeName = 'sphere' | 'box' | 'torus' | 'cylinder' | 'plane' | 'gyroid' | 'terrain'
+export type ShapeName =
+  | 'sphere'
+  | 'box'
+  | 'torus'
+  | 'cylinder'
+  | 'cone'
+  | 'plane'
+  | 'gyroid'
+  | 'terrain'
 
 export type Shape = {
   value: ShapeName
@@ -200,6 +208,54 @@ export const SHAPES: Shape[] = [
         const ox = Math.max(dx, 0)
         const oy = Math.max(dy, 0)
         return Math.min(Math.max(dx, dy), 0) + Math.sqrt(ox * ox + oy * oy)
+      }
+    },
+  },
+  {
+    value: 'cone',
+    label: 'Cone',
+    hint: 'A cone truncated at both ends, so the top radius is a control rather than always zero. Set it above the base radius and the cone opens upward instead — which is what makes a crater out of a subtraction.',
+    exact: true,
+    params: [
+      { key: 'radius', label: 'Base radius', info: 'Radius at the bottom cap.', min: 0.02, max: 1.2, step: 0.01, defaultValue: 0.7 },
+      { key: 'top', label: 'Top radius', info: 'Radius at the top cap. At 0 the cone comes to a point; above the base radius it widens upward, which is the orientation a crater wants.', min: 0, max: 1.2, step: 0.01, defaultValue: 0.15 },
+      { key: 'height', label: 'Half-height', info: 'Distance from the centre to each flat cap.', min: 0.05, max: 1.2, step: 0.01, defaultValue: 0.55 },
+    ],
+    /**
+     * Exact, and not by the obvious route.
+     *
+     * The tempting construction is an infinite cone intersected with a slab,
+     * the way `cylinder` is built. That gets the surface right and the distance
+     * wrong: `max()` of two exact fields is only exact outside both, and near
+     * the rim where the slanted side meets the cap it reports the larger of two
+     * perpendicular distances rather than the distance to the edge itself.
+     *
+     * So this measures to the two features directly. `ca` is the distance to
+     * the cap discs, `cb` the distance to the slanted side as a segment with
+     * the parameter clamped to its ends, and the result is the nearer of the
+     * two — which is the shortest distance to the boundary by construction,
+     * including at the rims. Verified at 1.000 mean gradient magnitude; see
+     * the table in docs/topics/topic-3-voxels.md.
+     */
+    build: (p) => {
+      const r1 = value(p, 'radius', 0.7)
+      const r2 = value(p, 'top', 0.15)
+      const h = value(p, 'height', 0.55)
+      const k1x = r2
+      const k1y = h
+      const k2x = r2 - r1
+      const k2y = 2 * h
+      const k2dot = k2x * k2x + k2y * k2y || 1
+      return (x, y, z) => {
+        const qx = Math.sqrt(x * x + z * z)
+        const qy = y
+        const cax = qx - Math.min(qx, qy < 0 ? r1 : r2)
+        const cay = Math.abs(qy) - h
+        const t = Math.min(1, Math.max(0, ((k1x - qx) * k2x + (k1y - qy) * k2y) / k2dot))
+        const cbx = qx - k1x + k2x * t
+        const cby = qy - k1y + k2y * t
+        const inside = cbx < 0 && cay < 0 ? -1 : 1
+        return inside * Math.sqrt(Math.min(cax * cax + cay * cay, cbx * cbx + cby * cby))
       }
     },
   },
@@ -500,6 +556,54 @@ export const SCENES: Scene[] = [
       shapeNode('terrain', { params: { amplitude: 0.5, level: -0.1, frequency: 2.4, octaves: 4 } }),
       shapeNode('sphere', { op: 'subtract', params: { radius: 0.42 }, offset: at(-0.25, -0.3, 0.1) }),
       shapeNode('sphere', { op: 'subtract', params: { radius: 0.3 }, offset: at(0.45, -0.45, -0.3), blend: 0.12 }),
+    ],
+  },
+  {
+    value: 'volcano',
+    label: 'Volcano',
+    hint: "A truncated cone with a second cone subtracted from its top. The crater cone is inverted — its top radius is wider than its base — so subtracting it cuts a funnel rather than a pit with straight walls. The vent carries on down as a cylinder, and the skirt is terrain blended into the base so the cone does not sit on nothing.",
+    nodes: [
+      shapeNode('cone', { params: { radius: 0.92, top: 0.3, height: 0.5 }, offset: at(0, -0.22, 0) }),
+      // Unioned with a wide blend rather than butted against it: a hard min()
+      // would leave a visible crease all the way round the base, which is the
+      // one place a volcano should read as continuous with the ground.
+      shapeNode('terrain', {
+        params: { amplitude: 0.26, level: -0.62, frequency: 3.4, octaves: 4 },
+        blend: 0.22,
+      }),
+      shapeNode('cone', {
+        op: 'subtract',
+        params: { radius: 0.07, top: 0.34, height: 0.24 },
+        offset: at(0, 0.3, 0),
+        blend: 0.04,
+      }),
+      shapeNode('cylinder', {
+        op: 'subtract',
+        params: { radius: 0.08, height: 0.55 },
+        offset: at(0, -0.1, 0),
+      }),
+    ],
+  },
+  {
+    value: 'cavern',
+    label: 'Cavern system',
+    hint: 'A gyroid subtracted from solid ground, which is a different kind of cave from the two spheres in the first scene: the gyroid is connected everywhere, so the voids form one network rather than separate pockets. Where the ground is thin the tunnels break the surface on their own.',
+    nodes: [
+      shapeNode('terrain', { params: { amplitude: 0.45, level: 0.3, frequency: 2, octaves: 5 } }),
+      // Thickness, not scale, is what decides how much rock survives: a thicker
+      // gyroid wall is more material subtracted. At 0.58 the block came out at
+      // 22% solid and read as a sponge rather than as ground with tunnels in
+      // it. A low scale makes the few remaining voids large enough to walk
+      // through rather than numerous and narrow.
+      shapeNode('gyroid', { op: 'subtract', params: { scale: 4.5, thickness: 0.32 } }),
+      // One chamber large enough to read as a space rather than a tunnel, cut
+      // where it meets the network instead of somewhere isolated.
+      shapeNode('sphere', {
+        op: 'subtract',
+        params: { radius: 0.4 },
+        offset: at(-0.3, -0.3, 0.2),
+        blend: 0.1,
+      }),
     ],
   },
   {

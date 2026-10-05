@@ -100,9 +100,9 @@ A field of values in `[0, 1]`, built and then progressively shaped:
 Solids defined as one scalar function of position, rather than as a grid of
 samples, and combined with constructive solid geometry:
 
-- **Density fields** — seven primitives (sphere, box, torus, cylinder,
+- **Density fields** — eight primitives (sphere, box, torus, cylinder, cone,
   half-space, gyroid, and terrain as a solid rather than a height map, so it
-  can have caves cut into it). Five of the seven return true Euclidean
+  can have caves cut into it). Six of the eight return true Euclidean
   distance, measured; the panel says which.
 - **CSG** — union, intersection and difference are `min`, `max` and
   `max(a, −b)`. No polygon clipping and no intersection curves to solve. A
@@ -164,7 +164,7 @@ with a description of what each document covers — is in
 | --- | --- |
 | [`docs/topics/`](docs/topics/) | One chapter per topic: what it does, how it works, and the decisions behind it |
 | [`docs/analysis/`](docs/analysis/) | Measurement and comparison reports that outgrew their chapter |
-| [`docs/project/`](docs/project/) | Infrastructure — the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
+| [`docs/project/`](docs/project/) | Infrastructure — the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
 | [`docs/images/`](docs/images/) | Screenshots, all captured from the running app |
 
 ## Keyboard
@@ -247,6 +247,10 @@ src/
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
 ├── ControlSection.tsx        Collapsible sidebar group
 ├── ConfigPanel.tsx           The worlds library — the left column on every topic
+├── showcase/                 Five demonstration worlds, four documents each
+│   ├── worlds.ts             The presets, built from each topic's own defaults
+│   ├── validate.ts           Whether a preset is storable and renderable
+│   └── seed.ts               Wrote them into the account; now unmounted
 ├── config/
 │   ├── spec.ts               The per-topic contract and shared validators
 │   ├── objectConfig.ts       Topic 1's saved shape
@@ -276,6 +280,8 @@ docs/
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
 ├── project/                  Infrastructure and setup
+│   ├── showcase-worlds.md
+│   ├── visual-system.md
 │   ├── app-structure.md
 │   ├── firebase-setup.md
 │   └── firebase-integration-report.md

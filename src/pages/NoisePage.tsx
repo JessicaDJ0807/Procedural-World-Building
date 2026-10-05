@@ -111,7 +111,7 @@ const INITIAL = defaultNoiseSettings()
 const INITIAL_LAYERS: NoiseLayer[] = withLayerIds(INITIAL.layers)
 
 export function NoisePage() {
-  const [mode, setMode] = useState<GeometryMode>('surface')
+  const [mode, setMode] = useState<GeometryMode>(INITIAL.mode)
   const [resolution, setResolution] = useState(INITIAL.resolution)
   // Averaging six octaves shrinks the variance, so the stack's relief is about
   // 0.40 against the old pair's 0.71. Display scaling costs nothing, so the
@@ -125,7 +125,7 @@ export function NoisePage() {
   const [spin, setSpin] = useState(0)
   const [wireframe, setWireframe] = useState(false)
   const [tint, setTint] = useState(VIZ_ACCENT)
-  const [paletteName, setPaletteName] = useState<PaletteName>('terrain')
+  const [paletteName, setPaletteName] = useState<PaletteName>(INITIAL.paletteName)
   const [bands, setBands] = useState(CONTINUOUS)
   const [fitRamp, setFitRamp] = useState(true)
   // Built once per palette, then indexed per cell: converting live would be

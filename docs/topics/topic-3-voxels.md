@@ -11,7 +11,7 @@ triangles four different ways.
 ## Contents
 
 - [The field](#the-field) — a shape as a function, not a grid
-- [Shapes](#shapes) — the seven primitives, and which return true distance
+- [Shapes](#shapes) — the eight primitives, and which return true distance
 - [Boolean operations](#boolean-operations) — `min`, `max`, and smooth blends
 - [Sampling](#sampling) — sealing the volume, and what the isolevel means
 - [Four meshers](#four-meshers) — blocks, greedy, marching cubes, surface nets, dual contouring
@@ -55,6 +55,7 @@ sphere** is simply wherever `max(a, −b)` changes sign; nothing computes it.
 | **Box** | A rounded box. The rounding is free — see below. |
 | **Torus** | Distance to a circle, less the tube radius. Genus 1, with no special-casing. |
 | **Cylinder** | A tube intersected with a slab — the same `max` the Intersect operation uses, inlined. |
+| **Cone** | Truncated at both ends, so the top radius is a parameter rather than always zero. Above the base radius it opens upward, which is what makes a subtraction cut a crater. |
 | **Half-space** | Everything below a height. Useless alone; intersecting with it is how anything gets a flat face. |
 | **Gyroid** | A triply periodic minimal surface from one trigonometric expression. Used in 3D printing as infill that is stiff in every direction. |
 | **Terrain** | An fBm height field turned solid: density is your height above the ground. |
@@ -71,9 +72,34 @@ a density field it is `y − height(x, z)`, which is a solid, and a solid can
 have things subtracted from it. That is the whole of the **Caves in terrain**
 scene.
 
+**Cavern system** is the same idea with a different cutter. Caves in terrain
+subtracts two spheres, which gives two pockets; this subtracts a gyroid, which
+is connected everywhere, so the voids form one network rather than separate
+rooms. Where the ground is thin the tunnels break the surface without anything
+being done to make them — the ceiling simply runs out.
+
+![The Cavern system scene: a slab of terrain with a gyroid network subtracted from it, tunnels breaking the surface where the ground is thin](../images/topic-3-cavern.jpg)
+
+How much rock survives is set by the gyroid's *thickness*, not its scale,
+because thickness is how much material is being subtracted. At 0.58 the block
+came out 22% solid and read as a sponge; at 0.32 it is 34.5% and reads as
+ground with tunnels in it. Scale moves the other way from the intuition — a low
+scale means fewer, larger cells, so the voids get big enough to walk through
+instead of numerous and narrow.
+
+**Volcano** is what the cone is for. A truncated cone is the mountain; a second
+cone subtracted from its top is the crater, inverted so its top radius is wider
+than its base, which cuts a funnel rather than a pit with straight walls; a
+cylinder carries the vent down through it. The skirt is terrain unioned with a
+wide blend rather than butted against the cone — a hard `min()` would leave a
+visible crease all the way round the base, which is the one place a volcano has
+to read as continuous with the ground.
+
+![The Volcano scene: a truncated cone with a crater funnel subtracted from its top, blended into a rough terrain skirt](../images/topic-3-volcano.jpg)
+
 ### Exact and inexact fields
 
-Five of the seven return true Euclidean distance. Two do not, and it is worth
+Six of the eight return true Euclidean distance. Two do not, and it is worth
 knowing which, because it changes what **Blend** does. Measured as the
 gradient magnitude at 4,000 points near each surface — a true distance field
 has `|∇f| = 1` everywhere, since moving one unit toward the surface reduces
@@ -81,9 +107,17 @@ the distance by exactly one:
 
 | Shape | mean \|∇f\| | max |
 | --- | --- | --- |
-| Sphere, Box, Torus, Cylinder, Half-space | **1.000** | 1.00 |
+| Sphere, Box, Torus, Cylinder, Cone, Half-space | **1.000** | 1.00 |
 | Gyroid | 1.481 | 1.72 |
 | Terrain | **1.701** | 4.47 |
+
+The cone is exact, and not by the obvious route. The tempting construction is
+an infinite cone intersected with a slab, the way **Cylinder** is built — but
+`max()` of two exact fields is only exact *outside both*, and near the rim
+where the slanted side meets a cap it returns the larger of two perpendicular
+distances rather than the distance to the edge itself. Measuring to the two
+features directly — the cap discs, and the slanted side as a clamped segment —
+and taking the nearer is exact everywhere, rims included.
 
 An inexact field still has the right *sign* everywhere, so the shape it carves
 is correct and the surface is in the right place. What breaks is anything that
