@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { ConfigPanel } from '../ConfigPanel'
+import { InfoTip } from '../InfoTip'
 import { RotationGizmo } from '../RotationGizmo'
 import { SceneCanvas } from '../SceneCanvas'
 import { Slider } from '../Slider'
+import { ViewControls } from '../ViewControls'
 import { Workspace } from '../Workspace'
 import { defaultObjectSettings, objectSpec, type ObjectSettings } from '../config/objectConfig'
 import { SHAPES, type ShapeName } from '../shapes'
@@ -42,6 +44,33 @@ export function ObjectViewerPage() {
     <Workspace
       topic="objects"
       library={<ConfigPanel spec={objectSpec} settings={settings} onLoad={applySettings} />}
+      view={
+        <ViewControls>
+          <Slider
+            label="Spin"
+            info="Turns the object about its vertical axis, in degrees per second. A viewing aid: it does not change the object, only how much of it you see without dragging."
+            value={spinSpeed}
+            display={spinSpeed === 0 ? 'off' : `${spinSpeed}°/s`}
+            min={0}
+            max={180}
+            step={1}
+            onChange={setSpinSpeed}
+          />
+
+          <label className="control control-toggle">
+            <span className="control-label">
+              <InfoTip text="Draws the triangles the geometry is actually made of. It is a material flag rather than a viewport setting, but it is here because it answers how you are looking at the shape, not what the shape is.">
+                Wireframe
+              </InfoTip>
+            </span>
+            <input
+              type="checkbox"
+              checked={wireframe}
+              onChange={(event) => setWireframe(event.target.checked)}
+            />
+          </label>
+        </ViewControls>
+      }
       inspector={
         <aside className="control-sidebar" aria-label="Scene controls">
         <h2>Scene</h2>
@@ -70,15 +99,6 @@ export function ObjectViewerPage() {
 
         <h3 className="control-group">Transform</h3>
 
-        <Slider
-          label="Spin"
-          value={spinSpeed}
-          display={spinSpeed === 0 ? 'off' : `${spinSpeed}°/s`}
-          min={0}
-          max={180}
-          step={1}
-          onChange={setSpinSpeed}
-        />
         <Slider
           label="Scale"
           value={scale}
@@ -120,14 +140,6 @@ export function ObjectViewerPage() {
           step={0.01}
           onChange={setRoughness}
         />
-        <label className="control control-toggle">
-          <span className="control-label">Wireframe</span>
-          <input
-            type="checkbox"
-            checked={wireframe}
-            onChange={(event) => setWireframe(event.target.checked)}
-          />
-        </label>
 
         <p className="hint">Drag the canvas to orbit the view.</p>
         </aside>

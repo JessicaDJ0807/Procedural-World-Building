@@ -290,6 +290,7 @@ const PARAMS: ParamSpec[] = [
   },
   {
     key: 'spin',
+    view: true,
     label: 'Turntable',
     info: 'Degrees per second the surface turns. A still matte render is ambiguous about which way a slope faces; movement resolves it immediately. Drag to orbit manually at any time.',
     min: 0,

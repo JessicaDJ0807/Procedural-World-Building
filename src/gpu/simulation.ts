@@ -13,6 +13,13 @@ export type ParamSpec = {
   format?: (value: number) => string
   /** Present when the value is a choice rather than a range. */
   options?: { value: number; label: string }[]
+  /**
+   * Belongs in the viewport's View popover rather than the sidebar: it changes
+   * how the result is looked at, not what the simulation computes. Rare on
+   * purpose — on this topic the shader parameters ARE the subject, so appearance
+   * alone is not the test.
+   */
+  view?: boolean
 }
 
 /** A named point in a simulation's parameter space. */

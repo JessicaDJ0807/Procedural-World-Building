@@ -3,6 +3,7 @@ import { ConfigPanel } from '../ConfigPanel'
 import { InfoTip } from '../InfoTip'
 import { ShaderViewport } from '../ShaderViewport'
 import { Slider } from '../Slider'
+import { ViewControls } from '../ViewControls'
 import { Workspace } from '../Workspace'
 import { shaderSpec, type ShaderSettings } from '../config/shaderConfig'
 import { GROUPS, SIMULATIONS, getSimulation } from '../gpu'
@@ -71,6 +72,12 @@ export function ShaderPage() {
     setResetToken((n) => n + 1)
   }
 
+  // Only a parameter explicitly marked `view` leaves the sidebar. Relief,
+  // lighting, the height ramp, Fresnel and haze all change appearance, but on
+  // this topic appearance is the subject — they are the study, not the viewing.
+  const viewParams = meta.params.filter((spec) => spec.view)
+  const studyParams = meta.params.filter((spec) => !spec.view)
+
   const renderControl = (spec: ParamSpec) => {
     if (spec.options) {
       return (
@@ -110,6 +117,18 @@ export function ShaderPage() {
     <Workspace
       topic="shaders"
       library={<ConfigPanel spec={shaderSpec} settings={settings} onLoad={applySettings} />}
+      view={
+        <ViewControls>
+          {viewParams.length > 0 ? (
+            viewParams.map(renderControl)
+          ) : (
+            <p className="hint">
+              Nothing to adjust here for this study — its controls are all part of the
+              technique, so they stay in the sidebar.
+            </p>
+          )}
+        </ViewControls>
+      }
       inspector={
         <aside className="control-sidebar" aria-label="Shader controls">
         <h3 className="control-group">
@@ -206,7 +225,7 @@ export function ShaderPage() {
           </InfoTip>
         </h3>
 
-        {meta.params.map(renderControl)}
+        {studyParams.map(renderControl)}
         </aside>
       }
     >

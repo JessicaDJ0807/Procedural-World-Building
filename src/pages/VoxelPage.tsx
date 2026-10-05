@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ConfigPanel } from '../ConfigPanel'
+import { ViewControls } from '../ViewControls'
 import { Workspace } from '../Workspace'
 import { CsgPanel } from '../CsgPanel'
 import { InfoTip } from '../InfoTip'
@@ -195,6 +196,51 @@ export function VoxelPage() {
     <Workspace
       topic="voxels"
       library={<ConfigPanel spec={voxelSpec} settings={settings} onLoad={applySettings} />}
+      view={
+        <ViewControls>
+          <label className="control">
+            <span className="control-label">
+              <InfoTip text="Colours the solid by height, since on the finished surface the density is zero everywhere by construction — position is the only signal left in the geometry.">
+                Palette
+              </InfoTip>
+            </span>
+            <select
+              value={palette}
+              onChange={(event) => setPalette(event.target.value as PaletteName)}
+            >
+              {PALETTES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <Slider
+            label="Spin"
+            info="Turns the solid about its vertical axis, in degrees per second. Worth using here: a cavity and a bump can look identical in a still frame and never do once the shading moves."
+            value={spin}
+            display={spin === 0 ? 'off' : `${spin}°/s`}
+            min={0}
+            max={90}
+            step={1}
+            onChange={setSpin}
+          />
+
+          <label className="control control-toggle">
+            <span className="control-label">
+              <InfoTip text="The cube the field is sampled inside. Anything outside it is never evaluated, which is why a shape larger than the box comes out with flat sides where the box clipped it.">
+                Sampling bounds
+              </InfoTip>
+            </span>
+            <input
+              type="checkbox"
+              checked={showBounds}
+              onChange={(event) => setShowBounds(event.target.checked)}
+            />
+          </label>
+        </ViewControls>
+      }
       inspector={
         <aside className="control-sidebar" aria-label="Voxel controls">
         <h3 className="control-group">
@@ -338,54 +384,6 @@ export function VoxelPage() {
             , so Blend will bite less than the number suggests.
           </p>
         )}
-
-        <h3 className="control-group">
-          <InfoTip text="Presentation only. None of this changes the field or the mesh.">
-            Display
-          </InfoTip>
-        </h3>
-
-        <label className="control">
-          <span className="control-label">
-            <InfoTip text="Colours the solid by height, since on the finished surface the density is zero everywhere by construction — position is the only signal left in the geometry.">
-              Palette
-            </InfoTip>
-          </span>
-          <select
-            value={palette}
-            onChange={(event) => setPalette(event.target.value as PaletteName)}
-          >
-            {PALETTES.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <Slider
-          label="Spin"
-          info="Turns the solid about its vertical axis, in degrees per second. Worth using here: a cavity and a bump can look identical in a still frame and never do once the shading moves."
-          value={spin}
-          display={spin === 0 ? 'off' : `${spin}°/s`}
-          min={0}
-          max={90}
-          step={1}
-          onChange={setSpin}
-        />
-
-        <label className="control control-toggle">
-          <span className="control-label">
-            <InfoTip text="The cube the field is sampled inside. Anything outside it is never evaluated, which is why a shape larger than the box comes out with flat sides where the box clipped it.">
-              Sampling bounds
-            </InfoTip>
-          </span>
-          <input
-            type="checkbox"
-            checked={showBounds}
-            onChange={(event) => setShowBounds(event.target.checked)}
-          />
-        </label>
 
         {repairs.length > 0 && (
           <p className="hint">

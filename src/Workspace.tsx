@@ -52,11 +52,13 @@ type WorkspaceProps = {
   topic: string
   library: ReactNode
   inspector: ReactNode
+  /** Display-only controls, floated over the viewport. */
+  view?: ReactNode
   /** The viewport, which takes whatever the two panels leave. */
   children: ReactNode
 }
 
-export function Workspace({ topic, library, inspector, children }: WorkspaceProps) {
+export function Workspace({ topic, library, inspector, view, children }: WorkspaceProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   // Keyed by topic so switching topics re-reads that topic's widths; without
   // the key the component would keep the previous topic's state.
@@ -158,7 +160,12 @@ export function Workspace({ topic, library, inspector, children }: WorkspaceProp
         {library}
       </div>
       {divider('left', 'Resize the worlds panel')}
-      <div className="workspace-canvas">{children}</div>
+      {/* The View button lives inside the canvas column, so it stays anchored
+          to the viewport when a divider is dragged and nothing reflows. */}
+      <div className="workspace-canvas">
+        {children}
+        {view}
+      </div>
       {divider('right', 'Resize the controls panel')}
       <div className="workspace-inspector" style={{ width: widths.right }}>
         {inspector}
