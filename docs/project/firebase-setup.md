@@ -2,6 +2,8 @@
 
 Jessica Hsiao · Assignment 2
 
+[← back to the README](../../README.md) · [study notebook index](../README.md)
+
 Sign-in, saved configurations and hosting for the voxel page (Topic 3). This
 file tracks the integration as it is built; the survey that preceded it is
 [`firebase-integration-report.md`](firebase-integration-report.md).
@@ -52,6 +54,11 @@ initialisation entirely when any is missing, and exports `firebaseReady` plus
 the *names* of what is absent. The header then says "Firebase not configured"
 and everything else runs as before. Verified in the browser with no `.env`
 present: all three topics render, console clean.
+
+![The app header reading "Firebase not configured — copy .env.example to .env", with all three topic tabs still present](../images/project-firebase-not-configured.png)
+
+*What a fresh clone looks like with no `.env`: the header says so in place of
+the sign-in button, and every topic still loads.*
 
 **`initializeApp` is guarded by `getApps()`.** Vite re-executes the module on
 hot reload, and a second `initializeApp` throws `app/duplicate-app`.

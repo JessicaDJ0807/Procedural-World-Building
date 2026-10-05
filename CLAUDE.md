@@ -43,21 +43,43 @@ branch until the user has pushed.
 
 ## Documentation
 
-- **Each topic has its own write-up**: `docs/topic-N-<name>.md`. The root
-  `README.md` is a map — per-topic summaries with links, Keyboard, Getting
-  started, Project structure, Conventions, Built with. Keep it short.
+`docs/` is a study notebook, filed by what a document is:
+
+```
+docs/
+├── README.md     index of everything below — keep it current
+├── topics/       one chapter per topic: topic-N-<name>.md
+├── analysis/     measurement and comparison reports
+├── project/      infrastructure and setup
+└── images/       screenshots, captured from the running app
+```
+
+- **Each topic has its own chapter**: `docs/topics/topic-N-<name>.md`. The root
+  `README.md` is the entry point — a table of contents, per-topic summaries
+  with a screenshot each, Keyboard, Getting started, Project structure,
+  Conventions, Built with. Keep it short; depth belongs in `docs/`.
 - **Docs ship with the change, unprompted.** A feature is not done until the
-  README or its topic's file describes it.
+  README or its topic's chapter describes it.
+- **A new document gets an index entry.** `docs/README.md` lists every file
+  with a one-line description of what it covers; a document missing from it is
+  a document nobody will find.
 - **A decision goes next to the feature it explains** — in that topic's
   `## Notes` section. Only genuinely cross-cutting notes belong in the root
   README's Conventions.
+- **A report that outgrows its chapter moves to `analysis/`** and is linked
+  from both directions. Don't split a chapter into subject folders; the
+  algorithm material is only legible next to what motivates it.
+- **Figures are captured from the running app**, never mocked up, so a figure
+  and the numbers beside it describe the same run. Drive the app in headless
+  Chrome, clip to the element, and check the image before shipping it.
 - When you change a default or a behaviour, grep the docs for claims about the
   old one. Stale numbers are the usual failure here.
 
 ## Adding a topic
 
 One page component in `src/pages/`, one entry in the `PAGES` array in
-`App.tsx` (the shell opens on the last entry), and one `docs/topic-N-*.md`.
+`App.tsx` (the shell opens on the last entry), one `docs/topics/topic-N-*.md`,
+and a row for it in `docs/README.md` and the root `README.md`.
 Don't modify or fold away earlier topics.
 
 ## Before you say it works

@@ -4,7 +4,23 @@ A layered noise stack, smoothed by a cellular automaton, carved by hydraulic
 erosion, and graphed as 3D geometry — a height field, a point cloud, or a
 planet.
 
-[← back to the README](../README.md)
+[← back to the README](../../README.md) · [study notebook index](../README.md)
+
+![The Topic 2 page: an eroded height field in the viewport, with the source map, layer stack and erosion controls in the sidebar](../images/readme-topic-2-noise.png)
+
+## Contents
+
+- [The field](#the-field) — what a cell holds, and how the page is laid out
+- [Geometry modes](#geometry-modes) — height field, volumetric cloud, planet
+- [Colour ramps](#colour-ramps) — OKLab interpolation, ramp fitting, bands
+- [Inspecting](#inspecting) — reading a single cell
+- [Layers](#layers) — the stack, the blend modes, and building an fBm
+- [Warp](#warp) — displacing the lookup coordinates
+- [Automata](#automata) — a neighbour rule run to its fixed point
+- [Erosion](#erosion) — droplet hydraulics and thermal slippage
+- [Shaping operations](#shaping-operations) — the eight per-cell ops
+- [Reading the volumetric mode](#reading-the-volumetric-mode)
+- [Notes](#notes) — the decisions, including the wrong ones
 
 ## The field
 
@@ -63,6 +79,12 @@ fixed value that reads as a lattice at 32² buries the terrain colour at 128²
 — the lines should annotate the surface, not become it.
 
 ### Why the planet samples the volume
+
+![A displaced sphere with no seam and no polar pinching](../images/topic-2-planet.png)
+
+*The planet, sampled from the 3D field at each vertex. There is no seam to hide
+and no pole to pinch, because the field is defined everywhere in space rather
+than on a wrapped 2D image.*
 
 The obvious way to put noise on a sphere is to wrap the 2D map around it as a
 texture. That gives a visible seam where the map wraps and pinching at both
@@ -158,6 +180,11 @@ order matters for every mode except the commutative ones.
 
 ### Building an fBm stack
 
+![A six-octave fBm stack drawn as a height field at 128²](../images/topic-2-fbm-height-field.png)
+
+*The default stack: six octaves from f2 to f64, persistence 0.5, drawn at 128²
+with the Terrain ramp fitted to the field's own range (0.33–0.77).*
+
 The page opens on six octaves — frequency doubling from f2 to f64, amplitude
 halving — rather than the two layers it started with, and **Octaves**,
 **Persistence** and **Rebuild as fBm stack** regenerate that stack from scratch.
@@ -216,6 +243,12 @@ image editor.
 
 ## Warp
 
+![The same stack with the lookup coordinates displaced by 16 cells](../images/topic-2-warp.png)
+
+*The same six octaves as above, with **Warp amount** at 16 cells. Nothing was
+added to the field — only where it is sampled changed — but ridges now curve
+and strata fold back on themselves.*
+
 Domain warping looks the field up at coordinates pushed around by *another*
 noise field. Noise is stationary — every neighbourhood is statistically like
 every other — which is exactly why an unwarped field reads as texture rather
@@ -247,6 +280,12 @@ It warps in 3D as well, so the volume and the planet fold too, and costs about
 0.4 ms at 128².
 
 ## Automata
+
+![The automaton settled after eight generations, shown with its source map](../images/topic-2-automata.png)
+
+*Run to its fixed point from the default stack: it settles at **generation 8**,
+after which no cell can flip again. The sidebar's source map shows the result
+as a field; the viewport shows the same data as relief.*
 
 A cellular automaton runs between the layer stack and the output shaping. Where
 the shaping operations are per-cell — `f(x)` — this is `f(x, neighbours)`
@@ -320,6 +359,13 @@ two-layer stack the same rule merged four separate fragments into one and cut
 the perimeter by 21%. Smoothing has more to do when there is more to smooth.
 
 ## Erosion
+
+![An eroded height field showing dendritic valley networks cut into the terrain](../images/topic-2-erosion.png)
+
+*The Gorges preset run to its cap — **12.00 droplets per cell**, 196,608
+droplets in total, leaving 51% of the original relief. The branching valley
+networks are the point: no amount of octave stacking produces them, because
+noise has no mechanism that carries material downhill.*
 
 Droplet-based hydraulic erosion, run over the height field between the automaton
 and the output shaping. Each droplet lands at random, follows the downhill

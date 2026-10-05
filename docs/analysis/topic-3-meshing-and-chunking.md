@@ -2,6 +2,15 @@
 
 Jessica Hsiao · September 2026
 
+[← back to the README](../../README.md) · [study notebook index](../README.md)
+· [Topic 3 chapter](../topics/topic-3-voxels.md)
+
+## Contents
+
+- [Alternative meshing techniques](#alternative-meshing-techniques)
+- [Limitations of size and performance](#limitations-of-size-and-performance)
+- [Why chunking](#why-chunking)
+
 A voxel model here is not a grid of stored blocks — it is a *function*
 returning signed distance, negative inside a solid. The grid appears only at
 the end, when the function is sampled at `resolution³` points so a **mesher**
@@ -9,7 +18,7 @@ can turn those samples into triangles. This report covers that last step: the
 alternatives, what they cost, and where the approach stops scaling.
 
 Every figure was measured by running the project's meshers over its own
-scenes. Implementation detail is in [topic-3-voxels.md](topic-3-voxels.md).
+scenes. Implementation detail is in [topic-3-voxels.md](../topics/topic-3-voxels.md).
 
 ## Alternative meshing techniques
 
@@ -23,6 +32,19 @@ Every technique consumes the same samples. They differ on one question:
 | Marching cubes | On a grid edge | No | 6× |
 | Surface nets | Anywhere in the cell | No | **1×** |
 | Dual contouring | Anywhere in the cell | **Yes** | **1×** |
+
+The two extremes of that table, over one field — a box with four spheres
+drilled out of it, sampled at 40³:
+
+| Blocks: the vertex is stuck on the cube | Dual contouring: the vertex is solved for |
+| --- | --- |
+| ![Blocks](../images/topic-3-mesher-blocks.png) | ![Dual contouring](../images/topic-3-mesher-dual.png) |
+| 1,536 triangles · 3,072 vertices | 4,272 triangles · 2,128 vertices |
+
+Blocks emits the fewest triangles of any technique here and still carries the
+most vertex data — 2× the vertices for a third of the triangles — because
+nothing is shared. The full four-way comparison is in the
+[Topic 3 chapter](../topics/topic-3-voxels.md#four-meshers).
 
 **Blocks** emits a cube face only where the neighbouring voxel is empty,
 removing 69–96% of them as hidden interior. **Greedy meshing** then merges

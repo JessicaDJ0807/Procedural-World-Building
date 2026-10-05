@@ -1,21 +1,41 @@
 # Procedural World Building
 
 Coursework for a weekly design course, built with React, TypeScript, and
-Three.js. The course meets weekly, but not every week produces work — so the
-pages are numbered by **topic** rather than by week, and the app accumulates as
-the course goes rather than replacing what came before.
+Three.js. Each **topic** is a page in the app and a chapter in the study
+notebook under [`docs/`](docs/). The app accumulates as the course goes rather
+than replacing what came before, so every earlier topic is still reachable and
+still runs.
 
-Each topic has its own write-up in [`docs/`](docs/); this page is the map.
+**Topics are not weeks.** The course meets weekly but not every week produces
+work — some are lectures — so pages, branches and docs are numbered by topic.
+Topic 3 is the third body of work, not the third week.
+
+![Topic 3 — a voxel terrain with caves subtracted from it, meshed with surface nets](docs/images/readme-topic-3-voxels.png)
+
+## Contents
+
+- [Topics](#topics)
+  - [Topic 1 — 3D Objects](#topic-1--3d-objects)
+  - [Topic 2 — Noise](#topic-2--noise)
+  - [Topic 3 — Voxels](#topic-3--voxels)
+- [Study notebook](#study-notebook) — the full documentation index
+- [Keyboard](#keyboard)
+- [Getting started](#getting-started)
+- [Project structure](#project-structure)
+- [Conventions](#conventions)
+- [Built with](#built-with)
 
 ## Topics
 
-### [Topic 1 — 3D Objects](docs/topic-1-objects.md)
+### [Topic 1 — 3D Objects](docs/topics/topic-1-objects.md)
 
 A real-time WebGL object viewer. Five primitives swapped in place, a draggable
 XYZ gizmo storing orientation as a quaternion so the object never gimbal-locks,
 and material controls lit by a generated `RoomEnvironment` cubemap.
 
-### [Topic 2 — Noise](docs/topic-2-noise.md)
+![Topic 1 — a torus knot rendered at high metalness, with the scene control widget on the right](docs/images/readme-topic-1-objects.png)
+
+### [Topic 2 — Noise](docs/topics/topic-2-noise.md)
 
 A field of values in `[0, 1]`, built and then progressively shaped:
 
@@ -31,7 +51,9 @@ A field of values in `[0, 1]`, built and then progressively shaped:
 - **Output** — eight per-cell shaping ops, five colour ramps interpolated in
   OKLab, and three geometry modes: height field, point cloud, or planet.
 
-### [Topic 3 — Voxels](docs/topic-3-voxels.md)
+![Topic 2 — an eroded height field beside the sidebar's source map and layer stack](docs/images/readme-topic-2-noise.png)
+
+### [Topic 3 — Voxels](docs/topics/topic-3-voxels.md)
 
 Solids defined as one scalar function of position, rather than as a grid of
 samples, and combined with constructive solid geometry:
@@ -49,9 +71,26 @@ samples, and combined with constructive solid geometry:
   contouring, which is the only one that can reconstruct a sharp corner:
   measured error at a box's corners falls from 23.8% of a cell to 1.2%.
 
-A short report on the meshing alternatives and on why chunking exists is in
-[`docs/topic-3-report.md`](docs/topic-3-report.md); the full technical detail
-is in [`docs/topic-3-voxels.md`](docs/topic-3-voxels.md).
+The same field, meshed four ways — a box with four spheres drilled out of it,
+sampled at 40³. Only dual contouring reconstructs the box's edges:
+
+| Blocks | Marching cubes | Surface nets | Dual contouring |
+| --- | --- | --- | --- |
+| ![Blocks](docs/images/topic-3-mesher-blocks.png) | ![Marching cubes](docs/images/topic-3-mesher-marching.png) | ![Surface nets](docs/images/topic-3-mesher-surface.png) | ![Dual contouring](docs/images/topic-3-mesher-dual.png) |
+| 1,536 tris · 3,072 verts | 4,288 tris · 12,864 verts | 4,272 tris · 2,128 verts | 4,272 tris · 2,128 verts |
+
+## Study notebook
+
+The write-ups are the coursework, not a side effect of it. The full index —
+with a description of what each document covers — is in
+**[`docs/README.md`](docs/README.md)**. In short:
+
+| Area | Contains |
+| --- | --- |
+| [`docs/topics/`](docs/topics/) | One chapter per topic: what it does, how it works, and the decisions behind it |
+| [`docs/analysis/`](docs/analysis/) | Measurement and comparison reports that outgrew their chapter |
+| [`docs/project/`](docs/project/) | Infrastructure — Firebase setup, auth, and the survey that preceded it |
+| [`docs/images/`](docs/images/) | Screenshots, all captured from the running app |
 
 ## Keyboard
 
@@ -67,6 +106,8 @@ The shortcut is ignored while a select or text field has focus, since a letter
 key means something there, but it still works from a slider or checkbox, which
 is where focus usually sits after changing a value.
 
+## Getting started
+
 ```bash
 npm install
 npm run dev
@@ -80,6 +121,11 @@ Then open the URL Vite prints (default `http://localhost:5173`).
 | `npm run build` | Typecheck and produce a production build in `dist/` |
 | `npm run lint` | Run ESLint |
 | `npm run preview` | Serve the production build locally |
+
+Firebase is optional. With no `.env` the header says so and all three topics
+run exactly as before — see [`docs/project/firebase-setup.md`](docs/project/firebase-setup.md).
+
+## Project structure
 
 ```
 src/
@@ -112,23 +158,28 @@ src/
 └── index.css                 Global reset
 
 docs/
-├── topic-1-objects.md         Topic 1 write-up
-├── topic-2-noise.md           Topic 2 write-up — the long one
-├── topic-3-voxels.md          Topic 3 write-up
-├── topic-3-report.md          Topic 3 short report — meshing, size, chunking
-├── firebase-integration-report.md   Codebase survey for planning a Firebase integration
-└── firebase.md                Firebase setup, auth, and saved configurations
+├── README.md                 Study notebook index — start here
+├── topics/                   One chapter per topic
+│   ├── topic-1-objects.md
+│   ├── topic-2-noise.md
+│   └── topic-3-voxels.md
+├── analysis/                 Measurement and comparison reports
+│   └── topic-3-meshing-and-chunking.md
+├── project/                  Infrastructure and setup
+│   ├── firebase-setup.md
+│   └── firebase-integration-report.md
+└── images/                   Screenshots, captured from the running app
 
 CLAUDE.md                     Working agreements, for AI assistants and humans
 ```
 
-Adding a topic is one page component, one entry in the `PAGES` array in
-`App.tsx` — which carries its own `render`, and the shell opens on the last
-entry — and one file in `docs/`.
+Adding a topic is one page component in `src/pages/`, one entry in the `PAGES`
+array in `App.tsx` — which carries its own `render`, and the shell opens on the
+last entry — and one chapter in `docs/topics/`.
 
 ## Conventions
 
-Decisions specific to a topic live in that topic's write-up. These hold
+Decisions specific to a topic live in that topic's chapter. These hold
 everywhere.
 
 **Scenes are built once and mutated in place.** Geometry swaps replace
@@ -146,6 +197,16 @@ controls leave the tab order with them, so tabbing while the UI is hidden
 cannot land inside a panel you cannot see. Both canvases watch their container
 with a `ResizeObserver`, so the view reflows to the full width rather than
 stretching.
+
+**Claims in the docs are measured, not estimated.** Every number in this
+repository — Hurst exponents, millisecond costs, triangle counts, percentage
+savings — came from running the code and reading the result. Where a
+measurement contradicted the expectation, the note says so rather than quietly
+dropping it.
+
+**Screenshots are captured from the running app**, by driving it in a headless
+browser rather than by posing a mock-up. A figure and the numbers beside it
+therefore describe the same run.
 
 **Work for a topic happens on its own branch** — `topic-3-voxels` and so on —
 and lands on `main` collapsed into one to three commits, when the topic is done

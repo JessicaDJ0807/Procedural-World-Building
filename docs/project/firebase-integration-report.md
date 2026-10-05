@@ -3,6 +3,9 @@
 Prepared 2026-09-23 as a handover document for planning a Firebase integration.
 Read-only inspection; no source files were modified to produce it.
 
+[← back to the README](../../README.md) · [study notebook index](../README.md)
+· [Firebase setup](firebase-setup.md)
+
 > **Branch note.** This report describes the working tree of the
 > `topic-3-voxels` branch. Topic 3 (`src/density.ts`, `src/mesher.ts`,
 > `src/VoxelViewport.tsx`, `src/CsgPanel.tsx`, and the real

@@ -4,7 +4,22 @@ Terrain and solids built as **density fields** — one scalar function of
 position — combined with **constructive solid geometry**, and turned back into
 triangles four different ways.
 
-[← back to the README](../README.md)
+[← back to the README](../../README.md) · [study notebook index](../README.md)
+
+![The Topic 3 page: a terrain solid with caves subtracted, the shape stack and mesher controls in the sidebar](../images/readme-topic-3-voxels.png)
+
+## Contents
+
+- [The field](#the-field) — a shape as a function, not a grid
+- [Shapes](#shapes) — the seven primitives, and which return true distance
+- [Boolean operations](#boolean-operations) — `min`, `max`, and smooth blends
+- [Sampling](#sampling) — sealing the volume, and what the isolevel means
+- [Four meshers](#four-meshers) — blocks, greedy, marching cubes, surface nets, dual contouring
+- [Notes](#notes) — the decisions, including the wrong ones
+
+A companion report, [Meshing, size, and
+chunking](../analysis/topic-3-meshing-and-chunking.md), compares the meshing
+techniques on their own and covers where this approach stops scaling.
 
 ## The field
 
@@ -83,6 +98,12 @@ shape is in the stack.
 
 ### Smooth blends
 
+![Two shapes joined by a smooth blend, the join filleted rather than creased](../images/topic-3-csg-blend.png)
+
+*The Blend scene. The same `min` that would produce a hard crease, softened by
+a blend width — 5,604 triangles over 3.2% of the grid. A boolean and a fillet
+are the same operation with one parameter changed.*
+
 `min` produces a crease where two surfaces meet, because it switches between
 them with a discontinuous derivative. The polynomial smooth minimum
 interpolates across a band instead:
@@ -152,6 +173,26 @@ exactly that much in world units: positive dilates the solid, negative erodes
 it. On the inexact shapes it still works, just not to scale.
 
 ## Four meshers
+
+All four consume the same samples and differ on one question: **where is a
+vertex allowed to be?** Below, one field — a box with four spheres drilled out
+of it — sampled at 40³ and meshed four ways. Watch the box's edges.
+
+| Blocks — on the voxel cube | Marching cubes — pinned to a grid edge |
+| --- | --- |
+| ![Blocks](../images/topic-3-mesher-blocks.png) | ![Marching cubes](../images/topic-3-mesher-marching.png) |
+| 1,536 triangles · 3,072 vertices. Greedy merging on: 69.7% of faces dropped as interior, then 64.0% of what remained merged away — 768 quads from 2,136. The staircase is not an artefact; it is what the samples literally say. | 4,288 triangles · 12,864 vertices. Smooth where the surface is smooth, but the box's edges are rounded off, because a vertex confined to a grid edge cannot sit on a corner. Six vertices per triangle: nothing is shared between cells. |
+
+| Surface nets — anywhere in the cell | Dual contouring — solved, not averaged |
+| --- | --- |
+| ![Surface nets](../images/topic-3-mesher-surface.png) | ![Dual contouring](../images/topic-3-mesher-dual.png) |
+| 4,272 triangles · 2,128 vertices. One vertex per crossed cell, shared by every quad touching it — a sixth of marching cubes' vertex data for the same triangles. Still rounds the corners: an average of the crossings lands inside the corner, never on it. | 4,272 triangles · 2,128 vertices — identical cost to surface nets. The only one that reconstructs the box's edges, because it solves for the point agreeing with the tangent plane at every crossing instead of averaging them. |
+
+The four images above cost the same to produce and differ only in the vertex
+rule. That the two dual methods are byte-for-byte identical in triangle and
+vertex count, and visibly different at the corners, is the clearest statement
+of what dual contouring buys: **the accuracy is free; only the solve is not.**
+
 
 "Voxel" means several different things and the difference is the topic. All
 four run over the same sampled field; switching between them changes nothing
