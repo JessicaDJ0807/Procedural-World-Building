@@ -199,7 +199,7 @@ src/
 │   ├── boids.ts              Fish schooling
 │   └── index.ts              The strategy registry
 ├── AuthBar.tsx               Header sign-in / sign-out
-├── ConfigPanel.tsx           Save, list, load and delete saved configurations
+├── ConfigPanel.tsx           The worlds library — Topic 3's left column
 ├── config/
 │   └── voxelConfig.ts        What a saved configuration is, and validation on load
 ├── firebase/                 App init, auth context and provider, Firestore, Storage

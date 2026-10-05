@@ -70,7 +70,7 @@ specific billable project, not because they are confidential.
 | `src/config/voxelConfig.ts` | The saved-document schema: what is stored, and validation on load |
 | `src/firebase/configs.ts` | Firestore CRUD over `users/{uid}/configs` |
 | `src/firebase/storage.ts` | JSON upload, plus the local download that works without Storage |
-| `src/ConfigPanel.tsx` | Sidebar UI — name, save, list, load, delete |
+| `src/ConfigPanel.tsx` | The worlds library — the left column of Topic 3 |
 | `firestore.rules`, `storage.rules` | Owner-scoped access rules, kept in the repo so they are reviewable |
 
 ## What is saved
@@ -93,14 +93,50 @@ field is 3.4 MB of `Float32Array` and the Firestore document limit is 1 MB, so
 storing the sampled world would not fit. A measured document for the default
 scene is **1,192 bytes**.
 
+## Layout
+
+Topic 3 is three columns: **library, canvas, inspector** — 220px, flexible,
+320px, all of it underneath the existing topic nav so the hierarchy reads
+app → topic → world → parameter.
+
+The right sidebar had been doing two jobs, editing the current world and
+managing saved ones. Separating them gives each column one question: *what am
+I working on*, *what does it look like*, *how do I change it*.
+
+Behaviour that followed from the split:
+
+- **The whole row opens a world.** A one-line Load button was a small target
+  for the action taken most often.
+- **Rename and delete sit behind `•••`.** A delete button on every row is
+  noise for something done rarely and never by accident.
+- **An unsaved marker.** The settings as stored are kept alongside the active
+  world and compared against the live state, so editing a loaded world shows
+  "• Unsaved" and the button becomes *Save changes*. With no edits it reads
+  *Saved* and is disabled.
+- **Export is not a save.** Download JSON is styled as a quiet link rather
+  than a second button, so the two do not read as alternatives.
+- **The Upload JSON copy checkbox is gone**, rather than offered and broken —
+  Storage is off. `storage.ts` keeps the upload for when it is enabled.
+
+**Opening a world does not re-read it.** `listConfigurations` already returns
+whole documents, parsed by the same code a per-document `get` would use, so
+the second read bought nothing and put a round trip in front of every click.
+`loadConfiguration` was deleted rather than left as a function nothing calls —
+a deviation from the original plan, which named it.
+
 ## Not yet verified
 
 Everything below the sign-in button is **unexercised against a real account**.
-A Google popup cannot be driven in headless Chrome, so the save, list, load and
-delete paths have been checked only as far as the Firestore rules: an
-unauthenticated client is rejected with `permission-denied`, which the panel
-shows translated. That the database exists and is in locked mode is the one
-thing that round trip does confirm.
+A Google popup cannot be driven in headless Chrome, so the save, rename and
+delete paths have never run against a real account.
+
+The row-click, selection, unsaved marker and `•••` menu *were* exercised, under
+a temporary harness that stubbed the signed-in user and supplied three
+fabricated rows. That harness was reverted and is not in the source. It earned
+its keep: it caught the redundant per-document read, a long name that hard-cut
+with no ellipsis because `text-overflow` has no effect on a flex container's
+own text node, and an inspector measuring 353px rather than 320 because
+`width` and padding add up without `box-sizing`.
 
 What *has* been verified is the part that does not need an account: the
 serialization round trip for all five stock scenes, 15 malformed documents, and
@@ -109,9 +145,9 @@ is no figure of the signed-in panel for the same reason; a stubbed screenshot
 would be a mock-up rather than a capture, and this notebook's figures come from
 the running app.
 
-**To finish the check:** sign in, save a stack, reload the page, load it back,
-and confirm the shape list and every slider match. Then delete it and confirm
-it leaves the list.
+**To finish the check:** sign in, save a world, reload the page, click it in
+the library, and confirm the shape list and every slider match. Then edit a
+slider and watch for "• Unsaved", save again, rename it, and delete it.
 
 ## Storage is off
 

@@ -2,7 +2,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
   orderBy,
   query,
@@ -96,6 +95,16 @@ export async function attachStoragePath(
   await updateDoc(doc(db, configsPath(uid), configId), { storagePath })
 }
 
+/** Rename only. The settings are untouched, so this cannot be a full save. */
+export async function renameConfiguration(
+  uid: string,
+  configId: string,
+  name: string,
+): Promise<void> {
+  const { db } = requireFirebase()
+  await updateDoc(doc(db, configsPath(uid), configId), { name, updatedAt: serverTimestamp() })
+}
+
 export async function listConfigurations(uid: string): Promise<VoxelConfig[]> {
   const { db } = requireFirebase()
   // Newest first. A document saved this moment has a null updatedAt until the
@@ -104,13 +113,6 @@ export async function listConfigurations(uid: string): Promise<VoxelConfig[]> {
   // optimistically prepended.
   const snap = await getDocs(query(collection(db, configsPath(uid)), orderBy('updatedAt', 'desc')))
   return snap.docs.map((d) => toConfig(d.id, d.data()))
-}
-
-export async function loadConfiguration(uid: string, configId: string): Promise<VoxelConfig> {
-  const { db } = requireFirebase()
-  const snap = await getDoc(doc(db, configsPath(uid), configId))
-  if (!snap.exists()) throw new Error('That configuration no longer exists.')
-  return toConfig(snap.id, snap.data())
 }
 
 export async function deleteConfiguration(uid: string, configId: string): Promise<void> {

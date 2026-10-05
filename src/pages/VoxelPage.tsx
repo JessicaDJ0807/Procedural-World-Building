@@ -191,6 +191,11 @@ export function VoxelPage() {
 
   return (
     <div className="voxel-page">
+      {/* Library, canvas, inspector. The left column answers "what am I working
+          on", the right one "how do I change it" — they were one panel doing
+          both jobs. */}
+      <ConfigPanel settings={settings} onLoad={applySettings} />
+
       <VoxelViewport mesh={mesh} ramp={ramp} spin={spin} showBounds={showBounds} />
 
       <aside className="control-sidebar" aria-label="Voxel controls">
@@ -384,19 +389,11 @@ export function VoxelPage() {
           />
         </label>
 
-        <h3 className="control-group">
-          <InfoTip text="Saved to Firestore under your account, as parameters rather than geometry. The field and the mesh are not stored — the world is deterministic, so loading the parameters reproduces it exactly.">
-            Saved configurations
-          </InfoTip>
-        </h3>
-
         {repairs.length > 0 && (
           <p className="hint">
-            The loaded document needed repairing: {repairs.join('; ')}.
+            The loaded world needed repairing: {repairs.join('; ')}.
           </p>
         )}
-
-        <ConfigPanel settings={settings} onLoad={applySettings} />
 
         <p className="hint">Drag to orbit, scroll to zoom, right-drag to pan.</p>
       </aside>

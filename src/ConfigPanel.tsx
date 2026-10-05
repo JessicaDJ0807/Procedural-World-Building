@@ -1,21 +1,19 @@
-import { useEffect, useState } from 'react'
-import { InfoTip } from './InfoTip'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from './firebase/authContext'
 import {
-  attachStoragePath,
   deleteConfiguration,
   describeFirestoreError,
   listConfigurations,
-  loadConfiguration,
+  renameConfiguration,
   saveConfiguration,
 } from './firebase/configs'
+import { deleteConfigurationJson, downloadJson } from './firebase/storage'
 import {
-  deleteConfigurationJson,
-  describeStorageError,
-  downloadJson,
-  uploadConfigurationJson,
-} from './firebase/storage'
-import { configToJson, type VoxelConfig, type VoxelSettings } from './config/voxelConfig'
+  configToJson,
+  defaultSettings,
+  type VoxelConfig,
+  type VoxelSettings,
+} from './config/voxelConfig'
 import { firebaseReady } from './firebase/config'
 
 type ConfigPanelProps = {
@@ -27,41 +25,59 @@ type ConfigPanelProps = {
 const slug = (name: string) =>
   name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'voxel-config'
 
+/** Coarse on purpose: the exact minute a world was saved is never the question. */
+function savedAgo(date: Date | null): string {
+  if (!date) return 'saving…'
+  const seconds = Math.max(0, (Date.now() - date.getTime()) / 1000)
+  if (seconds < 60) return 'just now'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`
+  return date.toLocaleDateString()
+}
+
+const sameSettings = (a: VoxelSettings, b: VoxelSettings) =>
+  JSON.stringify(a) === JSON.stringify(b)
+
 export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
   const { user, loading: authLoading } = useAuth()
-  const [name, setName] = useState('')
-  // Both the list and the "currently loaded" marker belong to one account, so
-  // they are stored with the uid that produced them and read back only when it
-  // still matches. Clearing them from an effect on sign-out would be the same
-  // thing done a render later, and a cascading render at that.
+
+  // The list and the active marker belong to one account, so they are stored
+  // with the uid that produced them and read back only while it still matches.
+  // Clearing them from an effect on sign-out is the same thing a render later,
+  // and a cascading render at that.
   const [owned, setOwned] = useState<{ owner: string | null; configs: VoxelConfig[] }>({
     owner: null,
     configs: [],
   })
-  const [active, setActive] = useState<{ owner: string | null; id: string | null }>({
-    owner: null,
-    id: null,
-  })
-  const [uploadJson, setUploadJson] = useState(false)
+  const [active, setActive] = useState<{
+    owner: string | null
+    id: string | null
+    /** The settings as stored, to compare against for the unsaved marker. */
+    snapshot: VoxelSettings | null
+  }>({ owner: null, id: null, snapshot: null })
 
   const [reloadToken, setReloadToken] = useState(0)
+  const [draftName, setDraftName] = useState('')
+  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
+  const [menuId, setMenuId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
 
   const uid = user?.uid ?? null
   const configs = owned.owner === uid ? owned.configs : []
   const activeId = active.owner === uid ? active.id : null
-  const setActiveId = (id: string | null) => setActive({ owner: uid, id })
-  // Not yet fetched for this account — derived, so signing out cannot leave the
-  // previous account's list on screen and no effect has to clear it.
+  const snapshot = active.owner === uid ? active.snapshot : null
   const listing = uid !== null && owned.owner !== uid
+  const dirty = snapshot !== null && !sameSettings(settings, snapshot)
 
-  // The fetch sets state only in the promise callback. A synchronous setState in
-  // an effect body cascades a second render before the first has painted, which
-  // react-hooks/set-state-in-effect rejects outright. Event handlers re-fetch by
-  // bumping `reloadToken` rather than by calling a loader directly.
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  // The fetch sets state only in the promise callback: a synchronous setState
+  // in an effect body cascades a second render before the first has painted,
+  // which react-hooks/set-state-in-effect rejects. Handlers re-fetch by bumping
+  // reloadToken rather than calling a loader directly.
   useEffect(() => {
     if (!uid) return
     let cancelled = false
@@ -72,10 +88,8 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
       .catch((caught) => {
         if (cancelled) return
         setError(describeFirestoreError(caught))
-        // Mark the fetch as settled even though it failed. `listing` is derived
-        // from whether this account has been fetched, so leaving it unset left
-        // "Loading saved configurations…" on screen permanently beneath the
-        // error message.
+        // Mark the fetch settled even though it failed, or `listing` stays true
+        // and the panel shows a loading line underneath the error forever.
         setOwned({ owner: uid, configs: [] })
       })
     return () => {
@@ -83,50 +97,91 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
     }
   }, [uid, reloadToken])
 
-  const refresh = () => setReloadToken((n) => n + 1)
+  useEffect(() => {
+    if (!menuId) return
+    const onDown = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuId(null)
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuId(null)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuId])
 
-  if (!firebaseReady) return null
-
-  if (authLoading) return <p className="hint">Checking sign-in…</p>
-
-  if (!uid) {
+  if (!firebaseReady) {
     return (
-      <p className="hint">
-        Sign in from the header to save this stack and load it back on another machine. Saved
-        configurations are per-account.
-      </p>
+      <aside className="config-library" aria-label="Saved worlds">
+        <div className="library-head">
+          <h3 className="library-title">Worlds</h3>
+        </div>
+        <p className="library-note">
+          Firebase is not configured, so nothing can be saved. Copy <code>.env.example</code> to{' '}
+          <code>.env</code>.
+        </p>
+      </aside>
     )
   }
 
+  if (authLoading || !uid) {
+    return (
+      <aside className="config-library" aria-label="Saved worlds">
+        <div className="library-head">
+          <h3 className="library-title">Worlds</h3>
+        </div>
+        <p className="library-note">
+          {authLoading
+            ? 'Checking sign-in…'
+            : 'Sign in from the header to save a world and open it again later.'}
+        </p>
+      </aside>
+    )
+  }
+
+  const refresh = () => setReloadToken((n) => n + 1)
+  const setActiveFrom = (config: VoxelConfig | null) =>
+    setActive({ owner: uid, id: config?.id ?? null, snapshot: config?.settings ?? null })
+
+  const startNew = () => {
+    setError(null)
+    setMenuId(null)
+    setActiveFrom(null)
+    setDraftName('')
+    onLoad(defaultSettings(), [])
+  }
+
+  // Straight from the list, with no second read. listConfigurations already
+  // returns whole documents parsed by the same code path a per-document get
+  // would use, so re-fetching bought nothing and put a network round trip in
+  // front of every click on a row.
+  const open = (config: VoxelConfig) => {
+    if (config.id === activeId) return
+    setError(null)
+    setMenuId(null)
+    onLoad(config.settings, config.repairs)
+    setActiveFrom(config)
+  }
+
   const save = async () => {
-    const trimmed = name.trim()
-    if (!trimmed) {
-      setError('Give the configuration a name first.')
+    const name = activeId
+      ? (configs.find((c) => c.id === activeId)?.name ?? 'Untitled')
+      : draftName.trim()
+    if (!activeId && !name) {
+      setError('Name the world before saving it.')
       return
     }
     setSaving(true)
     setError(null)
-    setNotice(null)
     try {
-      const id = await saveConfiguration(uid, trimmed, settings, activeId ?? undefined)
-      setActiveId(id)
-      // A local flag, not the `error` state: setError does not update the value
-      // captured by this closure, so reading it back here would always see null.
-      let storageFailure: string | null = null
-      let suffix = ''
-      if (uploadJson) {
-        // The Firestore write already succeeded, so an upload failure is a
-        // partial success, not a rollback: report it and keep the save.
-        try {
-          const path = await uploadConfigurationJson(uid, id, configToJson(trimmed, settings))
-          await attachStoragePath(uid, id, path)
-          suffix = ' and uploaded as JSON'
-        } catch (caught) {
-          storageFailure = `Saved “${trimmed}”, but the JSON upload failed. ${describeStorageError(caught)}`
-        }
-      }
-      if (storageFailure) setError(storageFailure)
-      else setNotice(`Saved “${trimmed}”${suffix}.`)
+      const id = await saveConfiguration(uid, name, settings, activeId ?? undefined)
+      // Snapshot what was just written, so the unsaved marker clears without
+      // waiting for the list to come back.
+      setActive({ owner: uid, id, snapshot: settings })
+      setDraftName('')
       refresh()
     } catch (caught) {
       setError(describeFirestoreError(caught))
@@ -135,20 +190,17 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
     }
   }
 
-  const load = async (config: VoxelConfig) => {
-    setBusyId(config.id)
+  const commitRename = async () => {
+    if (!renaming) return
+    const next = renaming.value.trim()
+    const target = renaming.id
+    setRenaming(null)
+    if (!next) return
+    setBusyId(target)
     setError(null)
-    setNotice(null)
     try {
-      const fresh = await loadConfiguration(uid, config.id)
-      onLoad(fresh.settings, fresh.repairs)
-      setName(fresh.name)
-      setActiveId(fresh.id)
-      setNotice(
-        fresh.repairs.length > 0
-          ? `Loaded “${fresh.name}” with ${fresh.repairs.length} field(s) reset: ${fresh.repairs.join('; ')}`
-          : `Loaded “${fresh.name}”.`,
-      )
+      await renameConfiguration(uid, target, next)
+      refresh()
     } catch (caught) {
       setError(describeFirestoreError(caught))
     } finally {
@@ -159,12 +211,11 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
   const remove = async (config: VoxelConfig) => {
     setBusyId(config.id)
     setError(null)
-    setNotice(null)
+    setMenuId(null)
     try {
       if (config.storagePath) await deleteConfigurationJson(config.storagePath)
       await deleteConfiguration(uid, config.id)
-      if (activeId === config.id) setActiveId(null)
-      setNotice(`Deleted “${config.name}”.`)
+      if (activeId === config.id) setActiveFrom(null)
       refresh()
     } catch (caught) {
       setError(describeFirestoreError(caught))
@@ -173,99 +224,151 @@ export function ConfigPanel({ settings, onLoad }: ConfigPanelProps) {
     }
   }
 
+  const exportName = activeId
+    ? (configs.find((c) => c.id === activeId)?.name ?? 'Untitled')
+    : draftName.trim() || 'Untitled'
+
   return (
-    <div className="config-panel">
-      <label className="control">
-        <span className="control-label">Name</span>
-        <input
-          type="text"
-          className="text-input"
-          value={name}
-          maxLength={120}
-          placeholder="Gorges with a cut sphere"
-          onChange={(event) => setName(event.target.value)}
-        />
-      </label>
-
-      <label className="control control-toggle">
-        <span className="control-label">
-          <InfoTip text="Also writes the configuration to Firebase Storage as a JSON object, alongside the Firestore document. Storage has to be enabled in the console first, which for a new project means attaching a billing account — until then this fails and the Firestore save still succeeds.">
-            Upload JSON copy
-          </InfoTip>
-        </span>
-        <input
-          type="checkbox"
-          checked={uploadJson}
-          onChange={(event) => setUploadJson(event.target.checked)}
-        />
-      </label>
-
-      <div className="button-row">
-        <button type="button" className="reset-button" disabled={saving} onClick={() => void save()}>
-          {saving ? 'Saving…' : activeId ? 'Update' : 'Save'}
-        </button>
-        <button
-          type="button"
-          className="reset-button"
-          onClick={() => downloadJson(`${slug(name)}.json`, configToJson(name.trim() || 'Untitled', settings))}
-        >
-          Download
+    <aside className="config-library" aria-label="Saved worlds">
+      <div className="library-head">
+        <h3 className="library-title">Worlds</h3>
+        <button type="button" className="library-new" onClick={startNew}>
+          + New
         </button>
       </div>
 
-      {activeId && (
-        <p className="hint">
-          Saving overwrites the loaded configuration. Clear the{' '}
-          <button type="button" className="link-button" onClick={() => setActiveId(null)}>
-            link to it
-          </button>{' '}
-          to save a copy instead.
-        </p>
-      )}
-
       {error && (
-        <p className="config-error" role="alert">
+        <p className="library-error" role="alert">
           {error}
         </p>
       )}
-      {notice && !error && <p className="config-notice">{notice}</p>}
 
-      {listing && configs.length === 0 ? (
-        <p className="hint">Loading saved configurations…</p>
-      ) : configs.length === 0 ? (
-        <p className="hint">Nothing saved yet.</p>
-      ) : (
-        <ul className="config-list">
-          {configs.map((config) => (
-            <li key={config.id} className={`config-row${config.id === activeId ? ' is-active' : ''}`}>
-              <div className="config-meta">
-                <span className="config-name">{config.name}</span>
-                <span className="config-sub">
-                  {config.settings.nodes.length} shapes · {config.settings.resolution}³
-                  {config.storagePath ? ' · JSON' : ''}
-                  {config.updatedAt ? ` · ${config.updatedAt.toLocaleDateString()}` : ''}
-                </span>
-              </div>
-              <div className="config-actions">
-                <button
-                  type="button"
-                  disabled={busyId === config.id}
-                  onClick={() => void load(config)}
+      <div className="library-list">
+        {listing ? (
+          <p className="library-note">Loading…</p>
+        ) : configs.length === 0 ? (
+          <p className="library-note">No saved worlds yet.</p>
+        ) : (
+          <ul>
+            {configs.map((config) => {
+              const isActive = config.id === activeId
+              return (
+                <li
+                  key={config.id}
+                  className={`world-row${isActive ? ' is-active' : ''}${
+                    busyId === config.id ? ' is-busy' : ''
+                  }`}
                 >
-                  Load
-                </button>
-                <button
-                  type="button"
-                  disabled={busyId === config.id}
-                  onClick={() => void remove(config)}
-                >
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+                  {renaming?.id === config.id ? (
+                    <input
+                      type="text"
+                      className="text-input world-rename"
+                      value={renaming.value}
+                      maxLength={120}
+                      autoFocus
+                      onChange={(event) => setRenaming({ id: config.id, value: event.target.value })}
+                      onBlur={() => void commitRename()}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') void commitRename()
+                        if (event.key === 'Escape') setRenaming(null)
+                      }}
+                    />
+                  ) : (
+                    <>
+                      {/* The whole row opens the world; only the menu is separate. */}
+                      <button
+                        type="button"
+                        className="world-open"
+                        aria-current={isActive ? 'true' : undefined}
+                        onClick={() => open(config)}
+                      >
+                        <span className="world-name">
+                          <span className="world-dot" aria-hidden="true" />
+                          <span className="world-label" title={config.name}>
+                            {config.name}
+                          </span>
+                          {isActive && dirty && <span className="world-dirty">• Unsaved</span>}
+                        </span>
+                        <span className="world-sub">
+                          {config.settings.nodes.length} shapes · {config.settings.resolution}³ ·{' '}
+                          {savedAgo(config.updatedAt)}
+                        </span>
+                      </button>
+                      <div className="world-menu-wrap" ref={menuId === config.id ? menuRef : null}>
+                        <button
+                          type="button"
+                          className="world-menu-button"
+                          aria-label={`More actions for ${config.name}`}
+                          aria-expanded={menuId === config.id}
+                          disabled={busyId === config.id}
+                          onClick={() => setMenuId((id) => (id === config.id ? null : config.id))}
+                        >
+                          •••
+                        </button>
+                        {menuId === config.id && (
+                          <div className="world-menu" role="menu">
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => {
+                                setMenuId(null)
+                                setRenaming({ id: config.id, value: config.name })
+                              }}
+                            >
+                              Rename
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="is-destructive"
+                              onClick={() => void remove(config)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="library-foot">
+        {!activeId && (
+          <input
+            type="text"
+            className="text-input"
+            value={draftName}
+            maxLength={120}
+            placeholder="Name this world"
+            onChange={(event) => setDraftName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') void save()
+            }}
+          />
+        )}
+        <button
+          type="button"
+          className="library-save"
+          disabled={saving || (activeId !== null && !dirty)}
+          onClick={() => void save()}
+        >
+          {saving ? 'Saving…' : activeId ? (dirty ? 'Save changes' : 'Saved') : 'Save world'}
+        </button>
+        {/* An export, not a save — kept visually quieter so the two do not read
+            as alternatives. */}
+        <button
+          type="button"
+          className="library-export"
+          onClick={() => downloadJson(`${slug(exportName)}.json`, configToJson(exportName, settings))}
+        >
+          Export JSON
+        </button>
+      </div>
+    </aside>
   )
 }
