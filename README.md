@@ -77,7 +77,7 @@ sampled at 40³. Only dual contouring reconstructs the box's edges:
 
 | Blocks | Marching cubes | Surface nets | Dual contouring |
 | --- | --- | --- | --- |
-| ![Blocks](docs/images/topic-3-mesher-blocks.png) | ![Marching cubes](docs/images/topic-3-mesher-marching.png) | ![Surface nets](docs/images/topic-3-mesher-surface.png) | ![Dual contouring](docs/images/topic-3-mesher-dual.png) |
+| ![Blocks](docs/images/topic-3-mesher-blocks.jpg) | ![Marching cubes](docs/images/topic-3-mesher-marching.jpg) | ![Surface nets](docs/images/topic-3-mesher-surface.jpg) | ![Dual contouring](docs/images/topic-3-mesher-dual.jpg) |
 | 1,536 tris · 3,072 verts | 4,288 tris · 12,864 verts | 4,272 tris · 2,128 verts | 4,272 tris · 2,128 verts |
 
 ### [Topic 4 — Shaders](docs/topics/topic-4-shaders.md)

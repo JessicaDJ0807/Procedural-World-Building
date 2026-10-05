@@ -180,12 +180,12 @@ of it — sampled at 40³ and meshed four ways. Watch the box's edges.
 
 | Blocks — on the voxel cube | Marching cubes — pinned to a grid edge |
 | --- | --- |
-| ![Blocks](../images/topic-3-mesher-blocks.png) | ![Marching cubes](../images/topic-3-mesher-marching.png) |
+| ![Blocks](../images/topic-3-mesher-blocks.jpg) | ![Marching cubes](../images/topic-3-mesher-marching.jpg) |
 | 1,536 triangles · 3,072 vertices. Greedy merging on: 69.7% of faces dropped as interior, then 64.0% of what remained merged away — 768 quads from 2,136. The staircase is not an artefact; it is what the samples literally say. | 4,288 triangles · 12,864 vertices. Smooth where the surface is smooth, but the box's edges are rounded off, because a vertex confined to a grid edge cannot sit on a corner. Six vertices per triangle: nothing is shared between cells. |
 
 | Surface nets — anywhere in the cell | Dual contouring — solved, not averaged |
 | --- | --- |
-| ![Surface nets](../images/topic-3-mesher-surface.png) | ![Dual contouring](../images/topic-3-mesher-dual.png) |
+| ![Surface nets](../images/topic-3-mesher-surface.jpg) | ![Dual contouring](../images/topic-3-mesher-dual.jpg) |
 | 4,272 triangles · 2,128 vertices. One vertex per crossed cell, shared by every quad touching it — a sixth of marching cubes' vertex data for the same triangles. Still rounds the corners: an average of the crossings lands inside the corner, never on it. | 4,272 triangles · 2,128 vertices — identical cost to surface nets. The only one that reconstructs the box's edges, because it solves for the point agreeing with the tangent plane at every crossing instead of averaging them. |
 
 The four images above cost the same to produce and differ only in the vertex
