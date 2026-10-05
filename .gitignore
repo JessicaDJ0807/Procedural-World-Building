@@ -18,6 +18,14 @@ dist-ssr
 .env.*
 !.env.example
 
+# Names a specific Firebase project, for the same reason .env is ignored.
+# firebase.json carries the deploy config and IS tracked.
+.firebaserc
+# Emulator and deploy scratch output.
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

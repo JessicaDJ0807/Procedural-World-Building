@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ConfigPanel } from '../ConfigPanel'
 import { CsgPanel } from '../CsgPanel'
 import { InfoTip } from '../InfoTip'
 import { Slider } from '../Slider'
@@ -12,7 +13,6 @@ import {
   sampleVolume,
   sealExtent,
   type CsgNode,
-  type SceneNode,
 } from '../density'
 import {
   meshBlocks,
@@ -24,10 +24,18 @@ import {
   type BlockStats,
   type Mesh,
 } from '../mesher'
+import {
+  MAX_RESOLUTION,
+  MIN_RESOLUTION,
+  defaultSettings,
+  newNodeId,
+  toSettings,
+  withIds,
+  type RenderMode,
+  type VoxelSettings,
+} from '../config/voxelConfig'
 import { CONTINUOUS, PALETTES, buildLut, type PaletteName } from '../palette'
 import { ACCENT_BLUE } from '../theme'
-
-type RenderMode = 'surface' | 'dual' | 'marching' | 'blocks'
 
 type MeshResult = Mesh & { blocks?: BlockStats & { quads?: number } }
 
@@ -56,25 +64,21 @@ const RENDER_MODES: { value: RenderMode; label: string; hint: string }[] = [
   },
 ]
 
-const DEFAULT_RESOLUTION = 56
-const MAX_RESOLUTION = 96
-
-let nextId = 0
-const withIds = (nodes: SceneNode[]): CsgNode[] =>
-  nodes.map((node) => ({ ...node, id: `node-${nextId++}` }))
+const INITIAL = defaultSettings()
 
 export function VoxelPage() {
-  const [sceneName, setSceneName] = useState(SCENES[0].value)
-  const [nodes, setNodes] = useState<CsgNode[]>(() => withIds(SCENES[0].nodes))
+  const [sceneName, setSceneName] = useState(INITIAL.sceneName)
+  const [nodes, setNodes] = useState<CsgNode[]>(() => withIds(INITIAL.nodes))
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const [mode, setMode] = useState<RenderMode>('surface')
-  const [greedy, setGreedy] = useState(true)
-  const [resolution, setResolution] = useState(DEFAULT_RESOLUTION)
-  const [iso, setIso] = useState(0)
-  const [spin, setSpin] = useState(0)
-  const [showBounds, setShowBounds] = useState(true)
-  const [palette, setPalette] = useState<PaletteName>('terrain')
+  const [mode, setMode] = useState<RenderMode>(INITIAL.mode)
+  const [greedy, setGreedy] = useState(INITIAL.greedy)
+  const [resolution, setResolution] = useState(INITIAL.resolution)
+  const [iso, setIso] = useState(INITIAL.iso)
+  const [spin, setSpin] = useState(INITIAL.spin)
+  const [showBounds, setShowBounds] = useState(INITIAL.showBounds)
+  const [palette, setPalette] = useState<PaletteName>(INITIAL.palette)
+  const [repairs, setRepairs] = useState<string[]>([])
 
   // Sampling and meshing are memoised apart, so changing the isolevel or the
   // render mode re-meshes the field it already has instead of re-evaluating
@@ -123,6 +127,30 @@ export function VoxelPage() {
     setSceneName(value)
     setNodes(withIds(getScene(value).nodes))
     setExpandedId(null)
+    setRepairs([])
+  }
+
+  // What a save writes. Memoised because ConfigPanel takes it as a prop and the
+  // page re-renders on every slider drag.
+  const settings = useMemo<VoxelSettings>(
+    () => toSettings({ sceneName, nodes, mode, greedy, resolution, iso, spin, showBounds, palette }),
+    [sceneName, nodes, mode, greedy, resolution, iso, spin, showBounds, palette],
+  )
+
+  // Replaces the whole page state. Node ids are regenerated rather than
+  // restored: they are editing-session handles, not part of the shape.
+  const applySettings = (next: VoxelSettings, noted: string[]) => {
+    setSceneName(next.sceneName)
+    setNodes(withIds(next.nodes))
+    setExpandedId(null)
+    setMode(next.mode)
+    setGreedy(next.greedy)
+    setResolution(next.resolution)
+    setIso(next.iso)
+    setSpin(next.spin)
+    setShowBounds(next.showBounds)
+    setPalette(next.palette)
+    setRepairs(noted)
   }
 
   const updateNode = (id: string, patch: Partial<CsgNode>) =>
@@ -144,7 +172,7 @@ export function VoxelPage() {
   const addNode = () => {
     const shape = getShape('sphere')
     const node: CsgNode = {
-      id: `node-${nextId++}`,
+      id: newNodeId(),
       shape: shape.value,
       params: defaultParamsFor(shape),
       op: 'subtract',
@@ -209,7 +237,7 @@ export function VoxelPage() {
           info="Samples per side. The cost is the cube of this — every step up multiplies the work by about 1.5× — and it is also the only thing standing between Blocks and Surface looking the same, since a fine enough grid makes the staircase smaller than a pixel."
           value={resolution}
           display={`${resolution}³`}
-          min={8}
+          min={MIN_RESOLUTION}
           max={MAX_RESOLUTION}
           step={1}
           onChange={setResolution}
@@ -355,6 +383,20 @@ export function VoxelPage() {
             onChange={(event) => setShowBounds(event.target.checked)}
           />
         </label>
+
+        <h3 className="control-group">
+          <InfoTip text="Saved to Firestore under your account, as parameters rather than geometry. The field and the mesh are not stored — the world is deterministic, so loading the parameters reproduces it exactly.">
+            Saved configurations
+          </InfoTip>
+        </h3>
+
+        {repairs.length > 0 && (
+          <p className="hint">
+            The loaded document needed repairing: {repairs.join('; ')}.
+          </p>
+        )}
+
+        <ConfigPanel settings={settings} onLoad={applySettings} />
 
         <p className="hint">Drag to orbit, scroll to zoom, right-drag to pan.</p>
       </aside>

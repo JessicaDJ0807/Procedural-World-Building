@@ -44,7 +44,7 @@ run, or that were investigated before being built.
 
 | Document | What it covers |
 | --- | --- |
-| [Firebase setup](project/firebase-setup.md) | How to configure sign-in, what each file in `src/firebase/` does, and the decisions behind the integration — why popup rather than redirect, why the hook lives outside the provider file, and how a missing `.env` is made harmless. |
+| [Firebase setup](project/firebase-setup.md) | How to configure sign-in, what a saved configuration stores and why it is parameters rather than geometry, and the decisions behind the integration — why popup rather than redirect, why loaded documents are treated as untrusted, why Storage is written but switched off, and how a missing `.env` is made harmless. |
 | [Firebase integration report](project/firebase-integration-report.md) | The survey written *before* the integration: a walk through the codebase, what state each page holds, what could be persisted, a proposed data model, and the problems ranked by priority. Kept as the record of the plan the work was measured against. |
 
 ## Images

@@ -644,3 +644,134 @@
 .shader-viewport canvas {
   display: block;
 }
+
+/* ---- Saved configurations (Firebase) ---- */
+
+.config-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.text-input {
+  width: 100%;
+  min-width: 0;
+  /* There is no global box-sizing reset, and unlike <select> an <input> is
+     content-box by default — width:100% plus the padding overflowed the
+     sidebar by 18px. Scoped here rather than reset globally, which would
+     move every existing panel. */
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8ecf4;
+  font: inherit;
+  font-size: 13px;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: rgba(110, 168, 254, 0.6);
+}
+
+.text-input::placeholder {
+  color: #6f7789;
+}
+
+/* Inline affordance inside a sentence, so it must not look like a block button. */
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9eb4ff;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.config-error,
+.config-notice {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.config-error {
+  color: #ff9a8b;
+}
+
+.config-notice {
+  color: #8fd0a6;
+}
+
+.config-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.config-row.is-active {
+  border-color: rgba(110, 168, 254, 0.45);
+  background: rgba(110, 168, 254, 0.08);
+}
+
+.config-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.config-name {
+  overflow: hidden;
+  color: #e8ecf4;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-sub {
+  color: #8b93a3;
+  font-size: 11px;
+}
+
+.config-actions {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.config-actions button {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #c5ccd8;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.config-actions button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e8ecf4;
+}
+
+.config-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

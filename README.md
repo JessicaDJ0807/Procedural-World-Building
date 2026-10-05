@@ -156,8 +156,10 @@ Then open the URL Vite prints (default `http://localhost:5173`).
 | `npm run lint` | Run ESLint |
 | `npm run preview` | Serve the production build locally |
 
-Firebase is optional. With no `.env` the header says so and all three topics
-run exactly as before — see [`docs/project/firebase-setup.md`](docs/project/firebase-setup.md).
+Firebase is optional. With no `.env` the header says so and every topic runs
+exactly as before. With one, you can sign in and save a Topic 3 shape stack to
+your account — parameters only, never geometry, because the world is
+deterministic. See [`docs/project/firebase-setup.md`](docs/project/firebase-setup.md).
 
 ## Project structure
 
@@ -197,7 +199,10 @@ src/
 │   ├── boids.ts              Fish schooling
 │   └── index.ts              The strategy registry
 ├── AuthBar.tsx               Header sign-in / sign-out
-├── firebase/                 Firebase config, auth context and provider
+├── ConfigPanel.tsx           Save, list, load and delete saved configurations
+├── config/
+│   └── voxelConfig.ts        What a saved configuration is, and validation on load
+├── firebase/                 App init, auth context and provider, Firestore, Storage
 ├── App.css                   Shell, panel, and canvas styling
 └── index.css                 Global reset
 
@@ -216,6 +221,8 @@ docs/
 │   └── firebase-integration-report.md
 └── images/                   Screenshots, captured from the running app
 
+firestore.rules               Owner-scoped Firestore access rules
+storage.rules                 Owner-scoped Storage access rules
 CLAUDE.md                     Working agreements, for AI assistants and humans
 ```
 

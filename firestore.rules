@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// users/{uid}/configs/{configId}
+//
+// The owner's uid is in the path, so the check is a path comparison: no
+// document can be read or written unless the signed-in uid matches the segment
+// it is stored under. There is no query that can span two users, because there
+// is no collection that contains two users' documents.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      // The user document itself is not used yet; denying it keeps the surface
+      // to exactly what the app writes.
+      allow read, write: if false;
+
+      match /configs/{configId} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+
+        // ownerUid is redundant with the path on purpose: it is what makes a
+        // document self-describing if it is ever exported. Requiring the two to
+        // agree stops a document being written that claims a different owner.
+        allow create, update: if request.auth != null
+          && request.auth.uid == uid
+          && request.resource.data.ownerUid == uid
+          && request.resource.data.topic == 'voxels'
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.settings is map;
+      }
+    }
+  }
+}
