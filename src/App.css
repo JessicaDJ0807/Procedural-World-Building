@@ -74,6 +74,73 @@
   white-space: nowrap;
 }
 
+/* ---- Auth bar (header, right-aligned) ---- */
+
+.auth-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Pushed to the far end so the topic tabs keep their place as tabs are added. */
+  margin-left: auto;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.auth-note {
+  color: #8b93a3;
+}
+
+.auth-note code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 11px;
+}
+
+.auth-error {
+  max-width: 320px;
+  overflow: hidden;
+  color: #ff9a8b;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-user {
+  overflow: hidden;
+  max-width: 200px;
+  color: #c5ccd8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Matches .reset-button, minus the full-width sidebar sizing. */
+.auth-button {
+  flex: none;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #c5ccd8;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.auth-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e8ecf4;
+}
+
+.auth-button.is-primary {
+  border-color: rgba(110, 168, 254, 0.45);
+  color: #cfe0ff;
+}
+
+.auth-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 /* Pages fill whatever the nav leaves; min-height:0 lets canvases shrink. */
 .app-page {
   position: relative;

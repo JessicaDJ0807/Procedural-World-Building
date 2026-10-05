@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react'
+import { AuthBar } from './AuthBar'
 import { NoisePage } from './pages/NoisePage'
 import { ObjectViewerPage } from './pages/ObjectViewerPage'
 import { VoxelPage } from './pages/VoxelPage'
@@ -74,6 +75,7 @@ function App() {
             </button>
           ))}
         </nav>
+        <AuthBar />
       </header>
 
       <main className="app-page">

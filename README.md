@@ -106,6 +106,8 @@ src/
 ├── mesher.ts                 Blocks, greedy, marching cubes, surface nets, dual contouring
 ├── VoxelViewport.tsx         3D scene for the meshed solid
 ├── CsgPanel.tsx              Shape stack editor (Topic 3)
+├── AuthBar.tsx               Header sign-in / sign-out
+├── firebase/                 Firebase config, auth context and provider
 ├── App.css                   Shell, panel, and canvas styling
 └── index.css                 Global reset
 
@@ -113,7 +115,9 @@ docs/
 ├── topic-1-objects.md         Topic 1 write-up
 ├── topic-2-noise.md           Topic 2 write-up — the long one
 ├── topic-3-voxels.md          Topic 3 write-up
-└── topic-3-report.md          Topic 3 short report — meshing, size, chunking
+├── topic-3-report.md          Topic 3 short report — meshing, size, chunking
+├── firebase-integration-report.md   Codebase survey for planning a Firebase integration
+└── firebase.md                Firebase setup, auth, and saved configurations
 
 CLAUDE.md                     Working agreements, for AI assistants and humans
 ```

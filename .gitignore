@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Local Firebase credentials. *.local above does not cover a plain .env,
+# and these keys identify a real project even though they are not secret.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
