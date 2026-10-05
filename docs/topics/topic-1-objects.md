@@ -6,7 +6,7 @@ generated content — the object is given, and everything around it is the work.
 
 [← back to the README](../../README.md) · [study notebook index](../README.md)
 
-![The Topic 1 viewer: a torus knot at metalness 0.85, roughness 0.18, with the floating scene widget on the right](../images/readme-topic-1-objects.png)
+![The Topic 1 viewer: a torus knot at metalness 0.85, roughness 0.18, centred between the worlds library and the scene controls](../images/readme-topic-1-objects.png)
 
 ## What it does
 
@@ -22,10 +22,12 @@ generated content — the object is given, and everything around it is the work.
   orientation, plus uniform scale.
 - **Orbit camera** — click and drag the main canvas to orbit the view.
 
-The whole topic fits in one floating widget: shape, orientation, transform and
-material, in that order.
+The whole topic fits in one sidebar: shape, orientation, transform and
+material, in that order. Spin and wireframe are not here — they change how the
+object is viewed rather than what it is, so they live in the View popover over
+the viewport.
 
-<img src="../images/topic-1-controls.png" alt="The scene control widget: shape select, XYZ rotation gizmo, spin and scale sliders, and the material group" width="300">
+<img src="../images/topic-1-controls.png" alt="The scene controls: shape select, XYZ rotation gizmo, scale slider, and the material group" width="300">
 
 ## Notes
 

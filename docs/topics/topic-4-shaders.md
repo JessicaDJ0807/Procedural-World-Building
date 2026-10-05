@@ -7,7 +7,7 @@ colour a surface is, then to decide what the surface *does*.
 
 [← back to the README](../../README.md) · [study notebook index](../README.md)
 
-![The Topic 4 page: ripples spreading across a water surface, with the strategy selector and parameters in the sidebar](../images/readme-topic-4-shaders.png)
+![The Topic 4 page: the surface-shading study on its eroded terrain, with the study and strategy selectors and the shader parameters in the sidebar](../images/readme-topic-4-shaders.png)
 
 ## Contents
 
@@ -333,6 +333,34 @@ be compile-time constant, so the school size cannot be a uniform. The velocity
 shader is **rebuilt** whenever the count changes.
 
 ## Notes
+
+**Play and Step are disabled on the shading study.** It declares
+`accumulates: false` — its terrain is built once at startup and held — so there
+is no state to advance and the two controls did nothing on that one study while
+looking live. Reset stays, because it still re-centres the camera. The page also
+opens paused now, so a simulation starts when it is asked to rather than being
+several hundred steps from its initial condition before you have looked at it.
+
+**`step` advances state; `draw` presents it.** The frame function calls `step`
+only while the simulation is advancing, and `draw` every frame. Anything a
+control changes about *appearance* therefore has to be written in `draw`, or it
+never reaches the GPU while paused.
+
+The shading study got this wrong: it wrote every shader uniform — strategy,
+relief, light direction, noise, Fresnel, haze — inside `step`. Paused, moving
+those sliders updated their labels and changed nothing on screen. `ramp` was
+already in `draw`, which is why exactly one control appeared to work and the
+rest looked broken. All of them now live in `draw`, and `step` is empty, which
+is the honest shape for a study that declares `accumulates: false`.
+
+The turntable moved with them. Spin is a View control, so it has to turn
+whether or not a simulation is running — and this study never runs one. Left in
+`step` it froze the moment the page defaulted to paused, while `animating()`
+still reported movement, so the loop drew 60 unchanging frames a second.
+
+The four real simulations already split correctly: ripples keeps speed and
+damping in `step` and relief in `draw`, and the others follow the same line.
+
 
 **Droplets are not parallelisable, so the algorithm changed.** Keeping the
 droplet model and running many droplets at once would have them writing to the

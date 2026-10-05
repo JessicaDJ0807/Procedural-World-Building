@@ -38,7 +38,7 @@ drilled out of it, sampled at 40³:
 
 | Blocks: the vertex is stuck on the cube | Dual contouring: the vertex is solved for |
 | --- | --- |
-| ![Blocks](../images/topic-3-mesher-blocks.png) | ![Dual contouring](../images/topic-3-mesher-dual.png) |
+| ![Blocks](../images/topic-3-mesher-blocks.jpg) | ![Dual contouring](../images/topic-3-mesher-dual.jpg) |
 | 1,536 triangles · 3,072 vertices | 4,272 triangles · 2,128 vertices |
 
 Blocks emits the fewest triangles of any technique here and still carries the

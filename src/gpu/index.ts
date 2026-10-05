@@ -21,6 +21,8 @@ export type SimulationMeta = {
   blurb: string
   params: Simulation['params']
   presets: Simulation['presets']
+  /** False for a study with no state to advance, so the page can say so. */
+  accumulates: boolean
   create: () => Simulation
 }
 
@@ -39,6 +41,7 @@ function describe(group: SimulationGroup, create: () => Simulation): SimulationM
     blurb: probe.blurb,
     params: probe.params,
     presets: probe.presets,
+    accumulates: probe.accumulates ?? true,
     create,
   }
 }

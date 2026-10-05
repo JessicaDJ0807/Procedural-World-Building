@@ -474,8 +474,28 @@ export function createShading(): Simulation {
       turntable = 0
     },
 
-    step(params) {
+    /**
+     * Nothing. This study accumulates no state — it says so with
+     * `accumulates: false` — and everything it shows is presentation, which
+     * belongs in draw.
+     *
+     * It used to write every shader uniform here, and step only runs while the
+     * simulation is advancing. Paused, none of it reached the GPU: the sliders
+     * moved their labels and the picture did not change. `ramp` was already in
+     * draw, which is why that one control worked and the rest looked broken.
+     */
+    step() {},
+
+    draw(webglRenderer, params) {
       if (!surface) return
+
+      // The turntable advances here rather than in step for the same reason.
+      // Spin is a View control; it must turn whether or not a simulation is
+      // running, and this study never runs one. Per-frame at the loop's 60 fps
+      // cap, which is the rate this was written against.
+      turntable += (param(params, PARAMS, 'spin') * Math.PI) / 180 / 60
+      surface.rotation.z = turntable
+
       const wanted = Math.round(param(params, PARAMS, 'strategy'))
       if (wanted !== active && materials[wanted]) {
         active = wanted
@@ -498,12 +518,6 @@ export function createShading(): Simulation {
         )
         .normalize()
 
-      turntable += (param(params, PARAMS, 'spin') * Math.PI) / 180 / 60
-      surface.rotation.z = turntable
-    },
-
-    draw(webglRenderer, params) {
-      if (!surface) return
       selectRamp(Math.round(param(params, PARAMS, 'ramp')))
       ;(uniforms.uCamera.value as THREE.Vector3).copy(camera.position)
       controls?.update()

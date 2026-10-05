@@ -6,10 +6,6 @@ notebook under [`docs/`](docs/). The app accumulates as the course goes rather
 than replacing what came before, so every earlier topic is still reachable and
 still runs.
 
-**Topics are not weeks.** The course meets weekly but not every week produces
-work — some are lectures — so pages, branches and docs are numbered by topic.
-Topic 3 is the third body of work, not the third week.
-
 ![Topic 3 — a voxel terrain with caves subtracted from it, meshed with surface nets](docs/images/readme-topic-3-voxels.png)
 
 ## Contents
@@ -34,7 +30,7 @@ A real-time WebGL object viewer. Five primitives swapped in place, a draggable
 XYZ gizmo storing orientation as a quaternion so the object never gimbal-locks,
 and material controls lit by a generated `RoomEnvironment` cubemap.
 
-![Topic 1 — a torus knot rendered at high metalness, with the scene control widget on the right](docs/images/readme-topic-1-objects.png)
+![Topic 1 — a torus knot rendered at high metalness, centred in the viewport between the worlds library and the scene controls](docs/images/readme-topic-1-objects.png)
 
 ### [Topic 2 — Maps](docs/topics/topic-2-maps.md)
 
@@ -52,7 +48,7 @@ A field of values in `[0, 1]`, built and then progressively shaped:
 - **Output** — eight per-cell shaping ops, five colour ramps interpolated in
   OKLab, and three geometry modes: height field, point cloud, or planet.
 
-![Topic 2 — an eroded height field beside the sidebar's source map and layer stack](docs/images/readme-topic-2-noise.png)
+![Topic 2 — a height field after 167,000 erosion droplets, beside the sidebar's source map and layer controls](docs/images/readme-topic-2-noise.png)
 
 ### [Topic 3 — Voxels](docs/topics/topic-3-voxels.md)
 
@@ -77,7 +73,7 @@ sampled at 40³. Only dual contouring reconstructs the box's edges:
 
 | Blocks | Marching cubes | Surface nets | Dual contouring |
 | --- | --- | --- | --- |
-| ![Blocks](docs/images/topic-3-mesher-blocks.png) | ![Marching cubes](docs/images/topic-3-mesher-marching.png) | ![Surface nets](docs/images/topic-3-mesher-surface.png) | ![Dual contouring](docs/images/topic-3-mesher-dual.png) |
+| ![Blocks](docs/images/topic-3-mesher-blocks.jpg) | ![Marching cubes](docs/images/topic-3-mesher-marching.jpg) | ![Surface nets](docs/images/topic-3-mesher-surface.jpg) | ![Dual contouring](docs/images/topic-3-mesher-dual.jpg) |
 | 1,536 tris · 3,072 verts | 4,288 tris · 12,864 verts | 4,272 tris · 2,128 verts | 4,272 tris · 2,128 verts |
 
 ### [Topic 4 — Shaders](docs/topics/topic-4-shaders.md)
@@ -133,9 +129,10 @@ with a description of what each document covers — is in
 | `H` | Hide every panel and give the whole window to the object. Press again to bring them back |
 | `Esc` | Always restores the panels, never hides them |
 
-Focus mode works on every topic — it hides the topic nav, Topic 2's sidebar and
-Topic 1's floating control widget. `Esc` only ever restores, which is what makes
-hiding the UI safe to try, and a small clickable reminder stays in the corner.
+Focus mode works on every topic — it hides the topic nav, both side panels and
+the dividers between them, leaving the viewport the whole window. `Esc` only
+ever restores, which is what makes hiding the UI safe to try, and a small
+clickable reminder stays in the corner.
 The shortcut is ignored while a select or text field has focus, since a letter
 key means something there, but it still works from a slider or checkbox, which
 is where focus usually sits after changing a value.
@@ -241,6 +238,25 @@ last entry — and one chapter in `docs/topics/`.
 
 Decisions specific to a topic live in that topic's chapter. These hold
 everywhere.
+
+**Every topic has the same three columns.** Library on the left, viewport in
+the middle, inspector on the right, under the topic nav — so the hierarchy
+reads app → topic → world → parameter. Both boundaries drag and are remembered
+per topic, because Topic 2 has far more controls than Topic 1 and one shared
+width would be wrong for both.
+
+**Controls are placed by what they change, not by topic.** The right sidebar
+answers "how is this made"; the floating **View** popover over the viewport
+answers "how am I looking at it". A control belongs in View only if changing it
+leaves the generated world identical — which is why Topic 4 keeps relief,
+lighting, Fresnel and haze in the sidebar: on a page about shading, the
+appearance is the subject.
+
+**A simulation step advances state; a draw presents it.** The render loop calls
+`step` only while a simulation is advancing and `draw` every frame, so anything
+a control changes about appearance has to be written in `draw` or it will not
+update while paused. Topic 4's shading study got this wrong once and the bug
+was invisible except as "the sliders do nothing".
 
 **Scenes are built once and mutated in place.** Geometry swaps replace
 `mesh.geometry` rather than the mesh itself, so the render loop never loses the

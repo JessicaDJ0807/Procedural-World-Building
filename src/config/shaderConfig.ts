@@ -23,7 +23,10 @@ export function defaultShaderSettings(): ShaderSettings {
     simulationId: SIMULATIONS[0].id,
     allParams: allDefaults(),
     presetName: {},
-    running: true,
+    // Paused on arrival. A simulation that is already running when the page
+    // opens has started without being asked, and the first thing you see is a
+    // state several hundred steps from its initial condition.
+    running: false,
   }
 }
 

@@ -5,13 +5,15 @@ import { ShaderViewport } from '../ShaderViewport'
 import { Slider } from '../Slider'
 import { ViewControls } from '../ViewControls'
 import { Workspace } from '../Workspace'
-import { shaderSpec, type ShaderSettings } from '../config/shaderConfig'
+import { defaultShaderSettings, shaderSpec, type ShaderSettings } from '../config/shaderConfig'
 import { GROUPS, SIMULATIONS, getSimulation } from '../gpu'
 import { defaults, type ParamSpec, type Stat } from '../gpu/simulation'
 
 type Report = { stats: Stat[]; fps: number; ms: number }
 
 const EMPTY: Report = { stats: [], fps: 0, ms: 0 }
+
+const INITIAL = defaultShaderSettings()
 
 /** Every simulation's defaults, so switching away and back keeps your tuning. */
 function initialParams(): Record<string, Record<string, number>> {
@@ -24,7 +26,7 @@ export function ShaderPage() {
   const [simulationId, setSimulationId] = useState(SIMULATIONS[0].id)
   const [allParams, setAllParams] = useState(initialParams)
   const [presetName, setPresetName] = useState<Record<string, string>>({})
-  const [running, setRunning] = useState(true)
+  const [running, setRunning] = useState(INITIAL.running)
   const [resetToken, setResetToken] = useState(0)
   const [stepToken, setStepToken] = useState(0)
   const [report, setReport] = useState<Report>(EMPTY)
@@ -177,15 +179,25 @@ export function ShaderPage() {
 
         {preset && <p className="hint">{preset.hint}</p>}
 
+        {/* Play and Step advance a simulation. The shading study has none — its
+            terrain is built once and held — so on that one they were live
+            controls that did nothing. Reset stays: it re-centres the camera. */}
         <div className="button-row">
-          <button type="button" className="reset-button" onClick={() => setRunning((v) => !v)}>
+          <button
+            type="button"
+            className="reset-button"
+            onClick={() => setRunning((v) => !v)}
+            disabled={!meta.accumulates}
+            title={meta.accumulates ? undefined : 'This study has no simulation to run'}
+          >
             {running ? 'Pause' : 'Play'}
           </button>
           <button
             type="button"
             className="reset-button"
             onClick={() => setStepToken((v) => v + 1)}
-            disabled={running}
+            disabled={running || !meta.accumulates}
+            title={meta.accumulates ? undefined : 'This study has no simulation to step'}
           >
             Step
           </button>
@@ -197,6 +209,13 @@ export function ShaderPage() {
             Reset
           </button>
         </div>
+
+        {!meta.accumulates && (
+          <p className="hint">
+            Nothing is simulated here, so there is nothing to play or step. Reset re-centres
+            the camera.
+          </p>
+        )}
 
         <p className="readout">
           <strong>{report.fps.toFixed(0)}</strong> frames/s ·{' '}

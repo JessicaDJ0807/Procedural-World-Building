@@ -6,7 +6,7 @@ planet.
 
 [← back to the README](../../README.md) · [study notebook index](../README.md)
 
-![The Topic 2 page: an eroded height field in the viewport, with the source map, layer stack and erosion controls in the sidebar](../images/readme-topic-2-noise.png)
+![The Topic 2 page: a height field after 167,000 erosion droplets, with the source map and the collapsible control sections in the sidebar](../images/readme-topic-2-noise.png)
 
 ## Contents
 
