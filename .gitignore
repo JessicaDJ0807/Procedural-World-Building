@@ -26,6 +26,12 @@ dist-ssr
 firebase-debug.log
 firestore-debug.log
 
+# Firebase agent skills, installed by the CLI. skills-lock.json pins the
+# source and a content hash for each one, so the content is restorable the
+# way node_modules is from a lockfile. .claude/settings.json stays tracked.
+.agents/skills/
+.claude/skills/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
