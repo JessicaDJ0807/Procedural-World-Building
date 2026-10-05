@@ -81,10 +81,16 @@ docs/
 
 ## Adding a topic
 
-One page component in `src/pages/`, one entry in the `PAGES` array in
-`App.tsx` (the shell opens on the last entry), one `docs/topics/topic-N-*.md`,
-and a row for it in `docs/README.md` and the root `README.md`.
+One page component in `src/pages/`, one entry in the `PLAYGROUND` array in
+`routes.ts` (the Playground opens on the last entry), one line in
+`PLAYGROUND_PAGES` in `App.tsx`, one `docs/topics/topic-N-*.md`, and a row for
+it in `docs/README.md` and the root `README.md`.
 Don't modify or fold away earlier topics.
+
+**Topics go in the Playground.** The app has two top-level sections — Playground
+for taking a technique apart, Project for putting them back together. New
+coursework is a topic in the Playground; the Project is not Topic 5 and does not
+get numbered pages. See `docs/project/app-structure.md`.
 
 ## Before you say it works
 

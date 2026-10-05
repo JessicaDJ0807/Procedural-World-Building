@@ -1,0 +1,453 @@
+/*
+ * The Project area's own stylesheet.
+ *
+ * Same design system as the Playground — the dark warm ground from theme.ts,
+ * the same blue accent, the same system font stack — but spent differently. A
+ * Playground topic is dense because every pixel near the viewport is worth a
+ * control. These pages are read, so they get a measured column, air between
+ * sections, and type large enough to present from.
+ *
+ * Separate from App.css deliberately: the separation of Project from Playground
+ * is the point of the change, and one 1,100-line stylesheet absorbing both
+ * would have hidden it.
+ */
+
+/* ---- Reading shell ---- */
+
+/* #root is overflow:hidden so viewports can size against a fixed box, which
+   means any page taller than the window has to make its own scroller. */
+.project-scroll {
+  overflow-y: auto;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #221f1b 0%, #1c1a17 340px, #1c1a17 100%);
+  color: #e8ecf4;
+  font: 15px/1.65 system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.project-page {
+  box-sizing: border-box;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 56px 32px 96px;
+}
+
+.project-head {
+  margin-bottom: 36px;
+}
+
+.project-title {
+  margin: 0 0 12px;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+/* Wider measure than the body and a lighter colour: it is a subtitle, so it
+   should read as one line of context rather than as the first paragraph. */
+.project-lede {
+  max-width: 68ch;
+  margin: 0;
+  color: #a7aebd;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.project-section {
+  margin: 48px 0 0;
+}
+
+.project-section h2 {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #8b93a3;
+}
+
+.project-section p {
+  max-width: 72ch;
+  margin: 0 0 14px;
+  color: #cfd4de;
+}
+
+.project-note {
+  max-width: 72ch;
+  margin: 0 0 20px;
+  color: #8b93a3;
+  font-size: 14px;
+}
+
+/* ---- Hero ---- */
+
+.project-hero {
+  margin: 0 0 24px;
+}
+
+/* A fixed height rather than an aspect ratio: the viewport inside measures its
+   container on mount, and a ratio that resolves after layout gives it a zero
+   height to build a camera from.
+ *
+ * `display: flex` is load-bearing, not tidiness. `.noise-viewport` sizes itself
+ * with `flex: 1` because in the Playground it is always a flex child, so in a
+ * plain block it has no height at all and the canvas mounted at 814×0 — a
+ * silent failure that typechecks, lints and builds clean. Caught by looking at
+ * the page rather than at the diff. */
+.project-hero-view {
+  display: flex;
+  overflow: hidden;
+  /* 480 rather than something shorter because the camera's field of view is
+     vertical: the terrain's apparent size tracks this number and nothing else,
+     so a short wide box renders a small object in a lot of empty ground. */
+  height: 560px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  background: #201d1a;
+}
+
+.project-caption {
+  margin: 10px 0 0;
+  color: #7d8494;
+  font-size: 13px;
+}
+
+/* ---- Buttons ---- */
+
+.project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 24px 0 0;
+}
+
+.project-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #c5ccd8;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.project-button:hover {
+  background: rgba(255, 255, 255, 0.11);
+  color: #e8ecf4;
+}
+
+.project-button.is-primary {
+  border-color: rgba(110, 168, 254, 0.45);
+  background: rgba(110, 168, 254, 0.16);
+  color: #cfe0ff;
+}
+
+.project-button.is-primary:hover {
+  background: rgba(110, 168, 254, 0.26);
+}
+
+.project-button.is-quiet {
+  padding: 6px 11px;
+  border-color: rgba(255, 255, 255, 0.11);
+  background: none;
+  font-size: 13px;
+}
+
+.project-button-note {
+  color: #6f7789;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+/* A button that reads as a link, because it navigates rather than acting. */
+.project-inline-link {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(110, 168, 254, 0.5);
+  background: none;
+  color: #9eb4ff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.project-inline-link:hover {
+  border-bottom-color: #9eb4ff;
+  color: #cfe0ff;
+}
+
+/* ---- Systems grid ---- */
+
+.project-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.project-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.project-card h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.project-card-topic {
+  color: #6f7789;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.project-card-role {
+  margin: 0;
+  color: #cfd4de;
+  font-size: 14px;
+}
+
+.project-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #969dac;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* The button sits at the card's foot whatever the list length, so a row of
+   cards does not stagger. */
+.project-card .project-button {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+/* ---- Status pills ---- */
+
+.project-status {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.project-status.is-in-the-demo {
+  background: rgba(126, 200, 140, 0.16);
+  color: #9fd8ac;
+}
+
+.project-status.is-partly-wired {
+  background: rgba(233, 196, 106, 0.15);
+  color: #e3c37a;
+}
+
+.project-status.is-not-yet-wired {
+  background: rgba(255, 255, 255, 0.07);
+  color: #8b93a3;
+}
+
+/* ---- Progress chain ---- */
+
+.project-chain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-stage {
+  position: relative;
+  padding: 0 0 28px 28px;
+}
+
+/* The connecting line, drawn on the item rather than between items so the last
+   one can stop it without a separate rule. */
+.project-stage::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.project-stage:last-child::before {
+  display: none;
+}
+
+.project-stage-arrow {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #6ea8fe;
+  box-shadow: 0 0 0 4px rgba(110, 168, 254, 0.14);
+}
+
+/* Pending stages are hollow. The chain still shows them, because leaving them
+   off would make the gap invisible rather than honest. */
+.project-stage.is-pending .project-stage-arrow {
+  background: #1c1a17;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.project-stage-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.project-stage-arrow-glyph {
+  color: #6f7789;
+  font-weight: 400;
+}
+
+.project-stage-to {
+  color: #9eb4ff;
+  font-weight: 500;
+}
+
+.project-stage-what {
+  max-width: 72ch;
+  margin: 0 0 10px;
+  color: #cfd4de;
+  font-size: 14px;
+}
+
+.project-stage-contribution,
+.project-stage-finding {
+  max-width: 72ch;
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.project-stage-contribution {
+  color: #b9c0cd;
+}
+
+/* Findings carry the measurements, so they are set apart from the prose —
+   this is the part of each stage that had to be produced rather than decided. */
+.project-stage-finding {
+  padding: 10px 12px;
+  border-left: 2px solid rgba(110, 168, 254, 0.35);
+  border-radius: 0 7px 7px 0;
+  background: rgba(110, 168, 254, 0.06);
+  color: #a7aebd;
+  font-size: 13.5px;
+}
+
+.project-stage-label {
+  display: block;
+  margin-bottom: 3px;
+  color: #6f7789;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.project-stage .project-status {
+  display: inline-block;
+  margin: 0 0 10px;
+}
+
+/* ---- Demo: the library panel's scenario list ---- */
+
+/* Matches the saved-worlds list the Playground topics use, so the two read as
+   the same kind of thing — these are just built in rather than stored. */
+.project-scenarios {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.project-scenario {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: #c5ccd8;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.project-scenario:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.project-scenario.is-active {
+  border-color: rgba(110, 168, 254, 0.4);
+  background: rgba(110, 168, 254, 0.12);
+}
+
+.project-scenario-name {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-scenario-summary {
+  color: #7d8494;
+  font-size: 11px;
+}
+
+/* Reuses the readout's own colour language: this is the one line in it that is
+   a caveat rather than a number. */
+.project-stale {
+  color: #e3c37a;
+}
+
+/* ---- Narrow windows ---- */
+
+@media (max-width: 640px) {
+  .project-page {
+    padding: 36px 20px 72px;
+  }
+
+  .project-title {
+    font-size: 26px;
+  }
+
+  .project-hero-view {
+    height: 260px;
+  }
+}

@@ -1,16 +1,22 @@
 # Procedural World Building
 
 Coursework for a weekly design course, built with React, TypeScript, and
-Three.js. Each **topic** is a page in the app and a chapter in the study
-notebook under [`docs/`](docs/). The app accumulates as the course goes rather
-than replacing what came before, so every earlier topic is still reachable and
-still runs.
+Three.js. The app has two halves. **Playground** holds the topics — one per
+body of work, each taking a single technique apart with every parameter it has
+on screen. **Project** puts them back together: one generated world that every
+system reads from, presented rather than dissected.
+
+Each topic is a page in the Playground and a chapter in the study notebook
+under [`docs/`](docs/). The app accumulates as the course goes rather than
+replacing what came before, so every earlier topic is still reachable and still
+runs.
 
 ![Topic 3 — a voxel terrain with caves subtracted from it, meshed with surface nets](docs/images/readme-topic-3-voxels.png)
 
 ## Contents
 
-- [Topics](#topics)
+- [The project](#the-project) — the integrated world
+- [Topics](#topics) — the Playground
   - [Topic 1 — Objects](#topic-1--objects)
   - [Topic 2 — Maps](#topic-2--maps)
   - [Topic 3 — Voxels](#topic-3--voxels)
@@ -22,7 +28,46 @@ still runs.
 - [Conventions](#conventions)
 - [Built with](#built-with)
 
+## The project
+
+One procedurally generated world, assembled from the techniques the topics take
+apart. The Playground asks how a single technique behaves; the project asks what
+happens when they all have to agree on the same ground.
+
+Three pages, none of them a topic — the project cuts across all of them and is
+numbered by nothing:
+
+- **Overview** — what is being built, which systems build it, and how far each
+  one is actually wired in. Its hero is a live viewport running the demo's own
+  generator, not a captured image.
+- **Demo** — the integrated world, with nine controls where Topic 2 has thirty.
+  Two views of the same heightfield: a surface, and the same field read as a
+  solid with a tunnel network cut out of it.
+- **Progress** — technique to contribution, in dependency order rather than
+  chronological, with the measurement each study produced.
+
+![The Project Demo: built-in worlds on the left, the integrated terrain in the middle, nine high-level controls on the right](docs/images/readme-project-demo.png)
+
+The demo's two views are the same world, not two worlds. One heightfield is
+generated — fBm stack, domain warp, droplet erosion, thermal collapse, sea level
+— and the caves view turns that same array into a signed distance function and
+subtracts a gyroid network from it with Topic 3's CSG, meshed back to triangles
+with surface nets. Moving a terrain dial moves both. At the defaults that is
+128² cells and 4,915 droplets in about 18 ms; the cave scenario meshes 118,092
+triangles in about 13 ms at 72³.
+
+Two things are deliberately **not** integrated yet, and both pages say so rather
+than implying otherwise: Topic 4's surface shading, which lives inside a
+full-screen GPU pipeline built around one fixed terrain and has to be lifted out
+of it rather than called, and its GPU erosion simulation.
+
+See [`docs/project/app-structure.md`](docs/project/app-structure.md) for how the
+two sections are divided, what the demo reuses, and why the navigation was
+written rather than installed.
+
 ## Topics
+
+The Playground. Each topic is one technique, taken apart.
 
 ### [Topic 1 — Objects](docs/topics/topic-1-objects.md)
 
@@ -119,7 +164,7 @@ with a description of what each document covers — is in
 | --- | --- |
 | [`docs/topics/`](docs/topics/) | One chapter per topic: what it does, how it works, and the decisions behind it |
 | [`docs/analysis/`](docs/analysis/) | Measurement and comparison reports that outgrew their chapter |
-| [`docs/project/`](docs/project/) | Infrastructure — Firebase setup, auth, and the survey that preceded it |
+| [`docs/project/`](docs/project/) | Infrastructure — how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
 | [`docs/images/`](docs/images/) | Screenshots, all captured from the running app |
 
 ## Keyboard
@@ -129,8 +174,9 @@ with a description of what each document covers — is in
 | `H` | Hide every panel and give the whole window to the object. Press again to bring them back |
 | `Esc` | Always restores the panels, never hides them |
 
-Focus mode works on every topic — it hides the topic nav, both side panels and
-the dividers between them, leaving the viewport the whole window. `Esc` only
+Focus mode works on every topic and on the Project Demo — it hides both
+navigation rows, both side panels and the dividers between them, leaving the
+viewport the whole window. `Esc` only
 ever restores, which is what makes hiding the UI safe to try, and a small
 clickable reminder stays in the corner.
 The shortcut is ignored while a select or text field has focus, since a letter
@@ -163,7 +209,8 @@ deterministic. See [`docs/project/firebase-setup.md`](docs/project/firebase-setu
 ```
 src/
 ├── main.tsx                  Entry point
-├── App.tsx                   Topic nav shell, page switching, focus mode
+├── App.tsx                   Two-row nav shell, page switching, focus mode
+├── routes.ts                 The route model: both destination tables, path ↔ state, useRoute
 ├── Slider.tsx                Labelled range input, shared by both pages
 ├── InfoTip.tsx               Hover explanation, portalled out of the scrolling panel
 ├── LayerPanel.tsx            Layer stack editor (Topic 2)
@@ -206,6 +253,14 @@ src/
 │   ├── noiseConfig.ts        Topic 2's saved shape
 │   ├── voxelConfig.ts        Topic 3's saved shape
 │   └── shaderConfig.ts       Topic 4's saved shape
+├── project/                  The Project section — separate from the topics, not Topic 5
+│   ├── ProjectLayout.tsx     Reading shell: measured column, generous margins, own scroller
+│   ├── ProjectOverview.tsx   What is being built, which systems, how far each is wired in
+│   ├── ProjectDemo.tsx       The integrated world and its nine high-level controls
+│   ├── ProjectProgress.tsx   Technique → contribution, in dependency order
+│   ├── world.ts              Generation orchestration — composes Topics 2 and 3, copies neither
+│   ├── useWorld.ts           Deferred generation, and a ramp fitted per view
+│   └── project.css           The Project section's own styling
 ├── firebase/                 App init, auth context and provider, Firestore, Storage
 ├── App.css                   Shell, panel, and canvas styling
 └── index.css                 Global reset
@@ -221,6 +276,7 @@ docs/
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
 ├── project/                  Infrastructure and setup
+│   ├── app-structure.md
 │   ├── firebase-setup.md
 │   └── firebase-integration-report.md
 └── images/                   Screenshots, captured from the running app
@@ -230,14 +286,26 @@ storage.rules                 Owner-scoped Storage access rules
 CLAUDE.md                     Working agreements, for AI assistants and humans
 ```
 
-Adding a topic is one page component in `src/pages/`, one entry in the `PAGES`
-array in `App.tsx` — which carries its own `render`, and the shell opens on the
-last entry — and one chapter in `docs/topics/`.
+Adding a topic is one page component in `src/pages/`, one entry in the
+`PLAYGROUND` array in `routes.ts` — the Playground opens on the last entry —
+one line in `PLAYGROUND_PAGES` in `App.tsx`, and one chapter in `docs/topics/`.
+Topics are added to the Playground; the Project is not where new coursework
+goes.
 
 ## Conventions
 
 Decisions specific to a topic live in that topic's chapter. These hold
 everywhere.
+
+**The app has two sections, and they are not peers of each other's pages.**
+Playground is where a technique is taken apart, Project is where the techniques
+are put back together — so they sit on their own row above the topic tabs, and
+the two sets are never shown at once. The project is not Topic 5: topics are
+numbered bodies of coursework, and the project cuts across all of them.
+Navigation is the History API in forty lines rather than a router, because seven
+static destinations use almost none of what a router is for — measured at
+`react-router-dom` 7.18.4 costing 15,235 bytes gzipped for the exports this
+would have needed.
 
 **Every topic has the same three columns.** Library on the left, viewport in
 the middle, inspector on the right, under the topic nav — so the hierarchy

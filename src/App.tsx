@@ -4,22 +4,35 @@ import { NoisePage } from './pages/NoisePage'
 import { ObjectViewerPage } from './pages/ObjectViewerPage'
 import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
+import { ProjectDemo } from './project/ProjectDemo'
+import { ProjectOverview } from './project/ProjectOverview'
+import { ProjectProgress } from './project/ProjectProgress'
+import {
+  DEFAULT_PLAYGROUND,
+  DEFAULT_PROJECT,
+  PLAYGROUND,
+  PROJECT,
+  SECTIONS,
+  sameRoute,
+  useRoute,
+  type PlaygroundId,
+  type ProjectId,
+  type Route,
+} from './routes'
 import './App.css'
 
-type PageId = 'objects' | 'maps' | 'voxels' | 'shaders'
+const PLAYGROUND_PAGES: Record<PlaygroundId, () => ReactElement> = {
+  objects: () => <ObjectViewerPage />,
+  maps: () => <NoisePage />,
+  voxels: () => <VoxelPage />,
+  shaders: () => <ShaderPage />,
+}
 
-// One entry per topic, newest last.
-//
-// Topics rather than weeks: the course meets weekly but not every week
-// produces a page — some are lectures — so a "Week 3" label would drift
-// further from the calendar with every gap, and numbering it honestly would
-// mean leaving holes. A topic is the unit of work, and it never has gaps.
-const PAGES: { id: PageId; topic: string; title: string; render: () => ReactElement }[] = [
-  { id: 'objects', topic: 'Topic 1', title: 'Objects', render: () => <ObjectViewerPage /> },
-  { id: 'maps', topic: 'Topic 2', title: 'Maps', render: () => <NoisePage /> },
-  { id: 'voxels', topic: 'Topic 3', title: 'Voxels', render: () => <VoxelPage /> },
-  { id: 'shaders', topic: 'Topic 4', title: 'Shaders', render: () => <ShaderPage /> },
-]
+const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => ReactElement> = {
+  overview: (navigate) => <ProjectOverview navigate={navigate} />,
+  demo: () => <ProjectDemo />,
+  progress: (navigate) => <ProjectProgress navigate={navigate} />,
+}
 
 /**
  * Controls that must not swallow the shortcut.
@@ -39,7 +52,7 @@ function isTyping(target: EventTarget | null): boolean {
 }
 
 function App() {
-  const [page, setPage] = useState<PageId>(PAGES[PAGES.length - 1].id)
+  const [route, navigate] = useRoute()
   const [focused, setFocused] = useState(false)
 
   useEffect(() => {
@@ -59,29 +72,78 @@ function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Each section remembers nothing: Playground opens on its newest topic and
+  // the Project on its Overview. A remembered sub-page would mean the same
+  // click leading somewhere different depending on history, and these two are
+  // front doors rather than places you were in the middle of.
+  const enter = (section: (typeof SECTIONS)[number]['id']) =>
+    navigate(section === 'playground' ? DEFAULT_PLAYGROUND : DEFAULT_PROJECT)
+
+  const sub =
+    route.section === 'playground'
+      ? PLAYGROUND.map((entry) => ({
+          route: { section: 'playground', page: entry.id } as Route,
+          label: entry.topic,
+          title: entry.title,
+          hint: undefined as string | undefined,
+        }))
+      : PROJECT.map((entry) => ({
+          route: { section: 'project', page: entry.id } as Route,
+          // Project pages carry no topic number — the project is not Topic 5.
+          label: undefined as string | undefined,
+          title: entry.title,
+          hint: entry.blurb,
+        }))
+
   return (
     <div className={`app-shell${focused ? ' is-focused' : ''}`}>
       <header className="app-nav">
         <span className="app-brand">Procedural World Building</span>
-        <nav className="topic-nav">
-          {PAGES.map((entry) => (
+
+        {/* The only two destinations at this level. Topic tabs never appear
+            here: mixing them would put "Shaders" and "Project" side by side as
+            if they were the same kind of thing. */}
+        <nav className="section-nav" aria-label="Sections">
+          {SECTIONS.map((section) => (
             <button
-              key={entry.id}
+              key={section.id}
               type="button"
-              className={`topic-link${page === entry.id ? ' is-active' : ''}`}
-              aria-current={page === entry.id ? 'page' : undefined}
-              onClick={() => setPage(entry.id)}
+              className={`section-link${route.section === section.id ? ' is-active' : ''}`}
+              aria-current={route.section === section.id ? 'true' : undefined}
+              title={section.hint}
+              onClick={() => enter(section.id)}
             >
-              <span className="topic-label">{entry.topic}</span>
-              <span className="topic-title">{entry.title}</span>
+              {section.title}
             </button>
           ))}
         </nav>
+
         <AuthBar />
       </header>
 
+      <nav
+        className={`app-subnav is-${route.section}`}
+        aria-label={route.section === 'playground' ? 'Topics' : 'Project pages'}
+      >
+        {sub.map((entry) => (
+          <button
+            key={`${entry.route.section}-${entry.route.page}`}
+            type="button"
+            className={`topic-link${sameRoute(route, entry.route) ? ' is-active' : ''}`}
+            aria-current={sameRoute(route, entry.route) ? 'page' : undefined}
+            title={entry.hint}
+            onClick={() => navigate(entry.route)}
+          >
+            {entry.label && <span className="topic-label">{entry.label}</span>}
+            <span className="topic-title">{entry.title}</span>
+          </button>
+        ))}
+      </nav>
+
       <main className="app-page">
-        {PAGES.find((entry) => entry.id === page)?.render()}
+        {route.section === 'playground'
+          ? PLAYGROUND_PAGES[route.page]()
+          : PROJECT_PAGES[route.page](navigate)}
       </main>
 
       {/* Hiding every control with no visible way back would be a trap, so a

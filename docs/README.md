@@ -44,6 +44,7 @@ run, or that were investigated before being built.
 
 | Document | What it covers |
 | --- | --- |
+| [Playground and Project](project/app-structure.md) | How the app splits into two top-level sections, why the project is not Topic 5, and why the navigation was written rather than installed — including the measurement that decided against React Router. Covers what the Project Demo integrates from Topics 2 and 3, and the two bugs that were invisible in the code: a hero viewport that mounted at 814×0, and a cave solid that came out entirely deep blue. |
 | [Firebase setup](project/firebase-setup.md) | How to configure sign-in, what a saved configuration stores and why it is parameters rather than geometry, and the decisions behind the integration — why popup rather than redirect, why loaded documents are treated as untrusted, why Storage is written but switched off, and how a missing `.env` is made harmless. |
 | [Firebase integration report](project/firebase-integration-report.md) | The survey written *before* the integration: a walk through the codebase, what state each page holds, what could be persisted, a proposed data model, and the problems ranked by priority. Kept as the record of the plan the work was measured against. |
 
@@ -55,8 +56,8 @@ question, not by posing a mock-up — so a figure and the numbers printed
 beside it come from the same run.
 
 Names say where an image is used: `readme-*` for the root README's per-topic
-hero shots, `topic-N-*` for figures inside a chapter, `project-*` for the
-project documents.
+hero shots, `readme-project-*` for the Project area's pages, `topic-N-*` for
+figures inside a chapter, and `project-*` for the project documents.
 
 ## How this is organised
 

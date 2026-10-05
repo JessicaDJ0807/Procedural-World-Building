@@ -8,8 +8,9 @@
 .app-nav {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
   flex: none;
+  min-width: 0;
   padding: 0 20px;
   height: 52px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -19,23 +20,92 @@
 }
 
 .app-brand {
+  overflow: hidden;
+  /* Allowed to shrink and then to go: it is the one thing in the header that
+     is decoration rather than navigation, so it yields before the tabs or the
+     sign-in button start colliding. */
+  min-width: 0;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.topic-nav {
+@media (max-width: 720px) {
+  .app-brand {
+    display: none;
+  }
+}
+
+/* ---- Top-level sections (Playground / Project) ---- */
+
+/* Two destinations, and they are a different kind of thing from the topic tabs
+   below — so they get weight and a pill, not a tab underline. Mixing the two
+   levels in one row was the thing worth avoiding: "Shaders" and "Project" side
+   by side read as peers, and they are not. */
+.section-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  padding: 3px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.section-link {
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: #8b93a3;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.section-link:hover:not(.is-active) {
+  color: #c5ccd8;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.section-link.is-active {
+  background: rgba(110, 168, 254, 0.18);
+  color: #cfe0ff;
+  box-shadow: inset 0 0 0 1px rgba(110, 168, 254, 0.3);
+}
+
+/* ---- Second-level navigation (topics, or project pages) ---- */
+
+/* Its own row rather than more tabs in the header. Overflow scrolls instead of
+   wrapping: a nav that grows to two rows moves the viewport down the page, and
+   on these pages the viewport is the content. */
+.app-subnav {
   display: flex;
   align-items: stretch;
+  flex: none;
   gap: 4px;
-  height: 100%;
+  height: 38px;
+  padding: 0 20px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #191714;
+  scrollbar-width: none;
+}
+
+.app-subnav::-webkit-scrollbar {
+  display: none;
 }
 
 .topic-link {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  flex: none;
   gap: 1px;
   padding: 0 14px;
   border: 0;
@@ -45,6 +115,12 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+/* Project pages have no topic number above the title, so the row would sit
+   high against a two-line tab's baseline without this. */
+.app-subnav.is-project .topic-link {
+  text-align: center;
 }
 
 .topic-link:hover {
@@ -508,6 +584,7 @@
 
 /* display:none rather than opacity, so hidden controls also leave the tab order. */
 .app-shell.is-focused .app-nav,
+.app-shell.is-focused .app-subnav,
 .app-shell.is-focused .workspace-library,
 .app-shell.is-focused .workspace-inspector,
 .app-shell.is-focused .workspace-divider {
