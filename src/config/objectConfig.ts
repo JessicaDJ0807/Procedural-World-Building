@@ -1,5 +1,5 @@
 import { SHAPES, type ShapeName } from '../shapes'
-import { ACCENT_BLUE } from '../theme'
+import { VIZ_ACCENT } from '../theme'
 import { bool, hex, isRecord, num, pick, type ConfigSpec } from './spec'
 
 export type ObjectSettings = {
@@ -19,7 +19,7 @@ export function defaultObjectSettings(): ObjectSettings {
     shape: 'box',
     spinSpeed: 0,
     scale: 1,
-    color: ACCENT_BLUE,
+    color: VIZ_ACCENT,
     metalness: 0.2,
     roughness: 0.35,
     wireframe: false,

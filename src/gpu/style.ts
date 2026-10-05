@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { CONTINUOUS, PALETTES, buildLut } from '../palette'
-import { ACCENT_BLUE, VIEWPORT_BACKGROUND, VIEWPORT_BACKGROUND_LOW } from '../theme'
+import { VIZ_ACCENT, VIEWPORT_BACKGROUND, VIEWPORT_BACKGROUND_LOW } from '../theme'
 
 /**
  * The visual language of Topic 4.
@@ -191,7 +191,7 @@ export const RAMPS: RampOption[] = [
   ...PALETTES.map((palette, index) => ({
     value: index + 3,
     label: `Topic 2 — ${palette.label}`,
-    data: buildLut(palette.value, ACCENT_BLUE, CONTINUOUS).linear,
+    data: buildLut(palette.value, VIZ_ACCENT, CONTINUOUS).linear,
   })),
 ]
 

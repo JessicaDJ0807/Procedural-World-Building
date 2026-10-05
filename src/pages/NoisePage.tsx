@@ -18,7 +18,7 @@ import {
   type NoiseSettings,
   type StoredLayer,
 } from '../config/noiseConfig'
-import { ACCENT_BLUE } from '../theme'
+import { VIZ_ACCENT } from '../theme'
 import {
   CONTINUOUS,
   FULL_DOMAIN,
@@ -124,7 +124,7 @@ export function NoisePage() {
   const [selected, setSelected] = useState<Cell | null>(null)
   const [spin, setSpin] = useState(0)
   const [wireframe, setWireframe] = useState(false)
-  const [tint, setTint] = useState(ACCENT_BLUE)
+  const [tint, setTint] = useState(VIZ_ACCENT)
   const [paletteName, setPaletteName] = useState<PaletteName>('terrain')
   const [bands, setBands] = useState(CONTINUOUS)
   const [fitRamp, setFitRamp] = useState(true)

@@ -38,7 +38,7 @@ import {
   type VoxelSettings,
 } from '../config/voxelConfig'
 import { CONTINUOUS, PALETTES, buildLut, type PaletteName } from '../palette'
-import { ACCENT_BLUE } from '../theme'
+import { VIZ_ACCENT } from '../theme'
 
 type MeshResult = Mesh & { blocks?: BlockStats & { quads?: number } }
 
@@ -119,7 +119,7 @@ export function VoxelPage() {
       if (y < min) min = y
       if (y > max) max = y
     }
-    const lut = buildLut(palette, ACCENT_BLUE, CONTINUOUS)
+    const lut = buildLut(palette, VIZ_ACCENT, CONTINUOUS)
     if (!Number.isFinite(min) || max <= min) return { ...lut, min: 0, span: 1 }
     return { ...lut, min, span: max - min }
   }, [mesh, palette])

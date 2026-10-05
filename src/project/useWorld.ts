@@ -1,7 +1,7 @@
 import { useDeferredValue, useMemo } from 'react'
 import type { Mesh } from '../mesher'
 import { CONTINUOUS, buildLut, fieldDomain, type Ramp } from '../palette'
-import { ACCENT_BLUE } from '../theme'
+import { VIZ_ACCENT } from '../theme'
 import { generate, meshCaves, type GenerationInputs, type World, type WorldSettings } from './world'
 
 export type WorldView = {
@@ -94,7 +94,7 @@ export function useWorld(settings: WorldSettings): WorldView {
    * the palette on heights the terrain no longer reaches.
    */
   const ramp = useMemo<Ramp>(() => {
-    const lut = buildLut(settings.palette, ACCENT_BLUE, CONTINUOUS)
+    const lut = buildLut(settings.palette, VIZ_ACCENT, CONTINUOUS)
     if (!mesh) return { ...lut, ...fieldDomain(world.height) }
 
     let min = Infinity

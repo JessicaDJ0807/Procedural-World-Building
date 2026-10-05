@@ -69,7 +69,7 @@ export function defaultWorld(): WorldSettings {
     slopeCollapse: 0,
     seaLevel: 0.28,
     relief: 1.4,
-    palette: 'terrain',
+    palette: 'land',
     caveDensity: 0.45,
   }
 }

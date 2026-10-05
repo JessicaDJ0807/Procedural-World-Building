@@ -13,10 +13,12 @@
   min-width: 0;
   padding: 0 20px;
   height: 52px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: #1b1815;
-  color: #e8ecf4;
-  font: 14px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .app-brand {
@@ -51,7 +53,7 @@
   flex: none;
   padding: 3px;
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-hover);
 }
 
 .section-link {
@@ -59,23 +61,36 @@
   border: 0;
   border-radius: 7px;
   background: none;
-  color: #8b93a3;
+  color: var(--text-muted);
   font: inherit;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: var(--weight-ui);
   white-space: nowrap;
   cursor: pointer;
 }
 
 .section-link:hover:not(.is-active) {
-  color: #c5ccd8;
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  background: var(--surface-hover);
 }
 
+/* Selected is carried by a lifted surface and brighter text, with the accent
+   only as a hairline. The earlier version filled the pill with accent and rang
+   it with a second accent line, which made the single largest patch of colour
+   in the chrome the thing that mattered least. */
 .section-link.is-active {
-  background: rgba(110, 168, 254, 0.18);
-  color: #cfe0ff;
-  box-shadow: inset 0 0 0 1px rgba(110, 168, 254, 0.3);
+  background: var(--surface-3);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.section-link.is-active::after {
+  content: '';
+  display: block;
+  height: 2px;
+  margin: 4px -6px -4px;
+  border-radius: 2px;
+  background: var(--accent);
 }
 
 /* ---- Second-level navigation (topics, or project pages) ---- */
@@ -92,8 +107,8 @@
   padding: 0 20px;
   overflow-x: auto;
   overflow-y: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: #191714;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
   scrollbar-width: none;
 }
 
@@ -111,7 +126,7 @@
   border: 0;
   border-bottom: 2px solid transparent;
   background: none;
-  color: #8b93a3;
+  color: var(--text-muted);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -124,29 +139,30 @@
 }
 
 .topic-link:hover {
-  color: #c5ccd8;
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  background: var(--surface-hover);
 }
 
 .topic-link.is-active {
-  color: #e8ecf4;
-  border-bottom-color: #6ea8fe;
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
 }
 
 .topic-label {
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
   text-transform: uppercase;
-  color: #6f7789;
+  color: var(--text-muted);
 }
 
 .topic-link.is-active .topic-label {
-  color: #9eb4ff;
+  color: var(--accent-strong);
 }
 
 .topic-title {
   font-size: 13px;
+  font-weight: var(--weight-ui);
   white-space: nowrap;
 }
 
@@ -163,20 +179,20 @@
 }
 
 .auth-note {
-  color: #8b93a3;
+  color: var(--text-muted);
 }
 
 .auth-note code {
   padding: 1px 4px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--surface-2);
   font-size: 11px;
 }
 
 .auth-error {
   max-width: 320px;
   overflow: hidden;
-  color: #ff9a8b;
+  color: var(--danger);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -184,7 +200,7 @@
 .auth-user {
   overflow: hidden;
   max-width: 200px;
-  color: #c5ccd8;
+  color: var(--text-secondary);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -194,22 +210,22 @@
   flex: none;
   padding: 5px 10px;
   border-radius: 7px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: #c5ccd8;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-secondary);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
 }
 
 .auth-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  color: #e8ecf4;
+  background: var(--surface-3);
+  color: var(--text-primary);
 }
 
 .auth-button.is-primary {
-  border-color: rgba(110, 168, 254, 0.45);
-  color: #cfe0ff;
+  border-color: var(--accent-line);
+  color: var(--accent-strong);
 }
 
 .auth-button:disabled {
@@ -247,12 +263,12 @@
 .control-group {
   margin: 18px 0 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #7f8798;
+  color: var(--text-muted);
 }
 
 .control {
@@ -266,17 +282,17 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  color: #c5ccd8;
+  color: var(--text-secondary);
 }
 
 .control-value {
   font-variant-numeric: tabular-nums;
-  color: #9eb4ff;
+  color: var(--accent-strong);
 }
 
 .control input[type='range'] {
   width: 100%;
-  accent-color: #6ea8fe;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
@@ -284,25 +300,32 @@
   width: 100%;
   padding: 7px 8px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: #e8ecf4;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-primary);
   font: inherit;
   cursor: pointer;
 }
 
+.control select:focus-visible,
+.control input[type='color']:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
 .control select option {
-  background: #1b1815;
-  color: #e8ecf4;
+  background: var(--surface-1);
+  color: var(--text-primary);
 }
 
 .control input[type='color'] {
   width: 100%;
   height: 32px;
   padding: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
   cursor: pointer;
 }
 
@@ -320,14 +343,14 @@
 .control-toggle input[type='checkbox'] {
   width: 16px;
   height: 16px;
-  accent-color: #6ea8fe;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
 .hint {
   margin: 4px 0 0;
   font-size: 12px;
-  color: #8b93a3;
+  color: var(--text-muted);
 }
 
 .gizmo {
@@ -339,8 +362,8 @@
 .gizmo canvas {
   display: block;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
   cursor: grab;
   touch-action: none;
 }
@@ -354,16 +377,41 @@
   margin-bottom: 14px;
   padding: 7px 8px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: #c5ccd8;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-secondary);
   font: inherit;
   cursor: pointer;
 }
 
 .reset-button:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #e8ecf4;
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+/* Three button roles, defined once and used everywhere. Primary is a lifted
+   neutral with an accent hairline rather than a saturated fill — on a dark
+   neutral a filled accent button reads as the loudest thing on the page, which
+   is not what "Save" is. Destructive keeps its own hue: a delete that looks
+   like a primary action is the failure worth designing against. */
+.reset-button.is-primary {
+  border-color: var(--accent-line);
+  background: var(--accent-subtle);
+  color: var(--accent-strong);
+}
+
+.reset-button.is-primary:hover {
+  background: var(--accent-subtle-hover);
+}
+
+.reset-button.is-destructive {
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+
+.reset-button.is-destructive:hover {
+  background: var(--danger-subtle);
+  color: var(--danger);
 }
 
 /* ---- Noise page (Topic 2) ---- */
@@ -391,9 +439,9 @@
   height: 100%;
   padding: 18px 16px 20px;
   overflow-y: auto;
-  background: #1b1815;
+  background: var(--surface-1);
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 .map-preview {
@@ -408,12 +456,12 @@
 .readout {
   margin: 8px 0 0;
   font-size: 12px;
-  color: #8b93a3;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .readout strong {
-  color: #ffb347;
+  color: var(--warning);
   font-weight: 600;
 }
 
@@ -431,14 +479,14 @@
 }
 
 .stack-card {
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-hover);
 }
 
 .stack-card.is-open {
-  border-color: rgba(110, 168, 254, 0.4);
-  background: rgba(110, 168, 254, 0.06);
+  border-color: var(--accent-line);
+  background: var(--accent-subtle);
 }
 
 .stack-head {
@@ -452,7 +500,7 @@
   flex: none;
   width: 14px;
   height: 14px;
-  accent-color: #6ea8fe;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
@@ -473,13 +521,13 @@
 
 .stack-name {
   font-size: 13px;
-  color: #e8ecf4;
+  color: var(--text-primary);
 }
 
 .stack-meta {
   overflow: hidden;
   font-size: 11px;
-  color: #7f8798;
+  color: var(--text-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -497,15 +545,15 @@
   border: 0;
   border-radius: 5px;
   background: none;
-  color: #8b93a3;
+  color: var(--text-muted);
   font-size: 11px;
   line-height: 1;
   cursor: pointer;
 }
 
 .stack-actions button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e8ecf4;
+  background: var(--surface-3);
+  color: var(--text-primary);
 }
 
 .stack-actions button:disabled {
@@ -515,7 +563,7 @@
 
 .stack-body {
   padding: 10px 10px 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border);
 }
 
 .stack-body .control:last-of-type {
@@ -538,8 +586,8 @@
 }
 
 .reset-button:disabled:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #c5ccd8;
+  background: var(--surface-2);
+  color: var(--text-secondary);
 }
 
 /* ---- Hover explanations ---- */
@@ -547,14 +595,14 @@
 /* A dotted underline is the only signal that a term has more behind it, so it
    has to read as an affordance without competing with the control itself. */
 .infotip-trigger {
-  border-bottom: 1px dotted rgba(255, 255, 255, 0.35);
+  border-bottom: 1px dotted var(--border-strong);
   cursor: help;
 }
 
 .infotip-trigger:hover,
 .infotip-trigger:focus-visible {
-  border-bottom-color: #6ea8fe;
-  color: #e8ecf4;
+  border-bottom-color: var(--accent);
+  color: var(--text-primary);
   outline: none;
 }
 
@@ -566,18 +614,20 @@
   max-width: calc(100vw - 32px);
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(32, 29, 25, 0.97);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  color: #c5ccd8;
-  font: 12px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-float);
+  box-shadow: 0 10px 30px var(--shadow);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.5;
   pointer-events: none; /* never steals the hover that opened it */
   backdrop-filter: blur(8px);
 }
 
 /* Group headings carry explanations too, and inherit the heading's colour. */
 .control-group .infotip-trigger {
-  border-bottom-color: rgba(255, 255, 255, 0.22);
+  border-bottom-color: var(--border-strong);
 }
 
 /* ---- Focus mode (H) ---- */
@@ -600,11 +650,13 @@
   align-items: center;
   gap: 7px;
   padding: 6px 11px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  background: rgba(28, 25, 21, 0.8);
-  color: #8b93a3;
-  font: 12px/1 system-ui, 'Segoe UI', Roboto, sans-serif;
+  background: var(--surface-float);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1;
   cursor: pointer;
   /* Bright while it is still news, then faint enough to forget about. */
   animation: focus-hint-settle 400ms ease-out 2.6s forwards;
@@ -614,19 +666,19 @@
 .focus-hint:focus-visible {
   animation: none;
   opacity: 1;
-  color: #e8ecf4;
-  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
   outline: none;
 }
 
 .focus-hint kbd {
   padding: 2px 6px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--surface-2);
   font: inherit;
   font-weight: 600;
-  color: #9eb4ff;
+  color: var(--accent-strong);
 }
 
 @keyframes focus-hint-settle {
@@ -682,8 +734,10 @@
   display: flex;
   width: 100%;
   height: 100%;
-  color: #e8ecf4;
-  font: 14px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .workspace-library,
@@ -730,13 +784,13 @@
   bottom: 0;
   left: 3px;
   width: 1px;
-  background: rgba(255, 255, 255, 0.09);
+  background: var(--surface-3);
 }
 
 .workspace-divider:hover::after,
 .workspace-divider:focus-visible::after,
 .workspace-divider.is-dragging::after {
-  background: #6ea8fe;
+  background: var(--accent);
 }
 
 .workspace-divider:focus-visible {
@@ -760,7 +814,7 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: #1b1815;
+  background: var(--surface-1);
 }
 
 .library-head {
@@ -778,29 +832,29 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #7f8798;
+  color: var(--text-muted);
 }
 
 .library-new {
   padding: 3px 8px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: #c5ccd8;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-secondary);
   font: inherit;
   font-size: 11px;
   cursor: pointer;
 }
 
 .library-new:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #e8ecf4;
+  background: var(--surface-3);
+  color: var(--text-primary);
 }
 
 .library-note {
   margin: 0;
   padding: 0 14px 12px;
-  color: #8b93a3;
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -808,13 +862,13 @@
 .library-note code {
   padding: 1px 4px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--surface-2);
   font-size: 11px;
 }
 
 .library-error {
   margin: 0 14px 10px;
-  color: #ff9a8b;
+  color: var(--danger);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -825,7 +879,7 @@
   overflow-y: auto;
   padding: 0 8px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 .library-list ul {
@@ -842,11 +896,11 @@
 }
 
 .world-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-hover);
 }
 
 .world-row.is-active {
-  background: rgba(110, 168, 254, 0.1);
+  background: var(--accent-subtle);
 }
 
 /* A rename or delete is in flight. */
@@ -882,7 +936,7 @@
   align-items: baseline;
   gap: 5px;
   min-width: 0;
-  color: #c5ccd8;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -896,7 +950,7 @@
 }
 
 .world-row.is-active .world-name {
-  color: #e8ecf4;
+  color: var(--text-primary);
 }
 
 /* Holds its space when inactive, so names do not shift on selection. */
@@ -909,18 +963,18 @@
 }
 
 .world-row.is-active .world-dot {
-  background: #6ea8fe;
+  background: var(--accent);
 }
 
 .world-dirty {
   flex: none;
-  color: #e0b05f;
+  color: var(--warning);
   font-size: 11px;
 }
 
 .world-sub {
   padding-left: 10px;
-  color: #7f8798;
+  color: var(--text-muted);
   font-size: 11px;
 }
 
@@ -940,7 +994,7 @@
   padding: 0 7px;
   border: 0;
   background: none;
-  color: #6f7789;
+  color: var(--text-muted);
   font: inherit;
   font-size: 12px;
   line-height: 1;
@@ -949,7 +1003,7 @@
 
 .world-row:hover .world-menu-button,
 .world-menu-button[aria-expanded='true'] {
-  color: #c5ccd8;
+  color: var(--text-secondary);
 }
 
 .world-menu {
@@ -961,10 +1015,10 @@
   flex-direction: column;
   min-width: 118px;
   padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: #232019;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  background: var(--surface-3);
+  box-shadow: 0 8px 20px var(--shadow);
 }
 
 .world-menu button {
@@ -972,7 +1026,7 @@
   border: 0;
   border-radius: 6px;
   background: none;
-  color: #c5ccd8;
+  color: var(--text-secondary);
   font: inherit;
   font-size: 12px;
   text-align: left;
@@ -980,12 +1034,12 @@
 }
 
 .world-menu button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #e8ecf4;
+  background: var(--surface-2);
+  color: var(--text-primary);
 }
 
 .world-menu button.is-destructive:hover {
-  color: #ff9a8b;
+  color: var(--danger);
 }
 
 .library-foot {
@@ -994,28 +1048,28 @@
   gap: 8px;
   flex: none;
   padding: 12px 14px 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border);
 }
 
 .library-save {
   padding: 7px 8px;
   border-radius: 8px;
-  border: 1px solid rgba(110, 168, 254, 0.45);
-  background: rgba(110, 168, 254, 0.14);
-  color: #cfe0ff;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-subtle);
+  color: var(--accent-strong);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
 }
 
 .library-save:hover:not(:disabled) {
-  background: rgba(110, 168, 254, 0.24);
+  background: var(--accent-subtle-hover);
 }
 
 .library-save:disabled {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--border);
   background: none;
-  color: #6f7789;
+  color: var(--text-muted);
   cursor: default;
 }
 
@@ -1024,7 +1078,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: #8b93a3;
+  color: var(--text-muted);
   font: inherit;
   font-size: 12px;
   text-align: left;
@@ -1032,7 +1086,7 @@
 }
 
 .library-export:hover {
-  color: #c5ccd8;
+  color: var(--text-secondary);
 }
 
 .text-input {
@@ -1045,20 +1099,21 @@
   box-sizing: border-box;
   padding: 6px 8px;
   border-radius: 7px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: #e8ecf4;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-primary);
   font: inherit;
   font-size: 13px;
 }
 
-.text-input:focus {
+.text-input:focus-visible {
   outline: none;
-  border-color: rgba(110, 168, 254, 0.6);
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
 }
 
 .text-input::placeholder {
-  color: #6f7789;
+  color: var(--text-muted);
 }
 
 /* ---- View: display-only controls, floated over the viewport ---- */
@@ -1076,20 +1131,26 @@
   gap: 6px;
   padding: 5px 10px 5px 8px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-strong);
   /* Opaque enough to stay legible over a bright render, dark enough to recede
      over the usual near-black background. */
-  background: rgba(27, 24, 21, 0.82);
+  background: var(--surface-float);
   backdrop-filter: blur(6px);
-  color: #8b93a3;
-  font: 12px/1 system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1;
   cursor: pointer;
 }
 
-.view-button:hover,
+.view-button:hover {
+  color: var(--text-primary);
+}
+
 .view-button.is-open {
-  border-color: rgba(255, 255, 255, 0.22);
-  color: #e8ecf4;
+  border-color: var(--accent-line);
+  background: var(--surface-3);
+  color: var(--accent-strong);
 }
 
 .view-button svg {
@@ -1105,15 +1166,17 @@
   max-height: min(420px, calc(100vh - 140px));
   overflow-y: auto;
   padding: 12px 13px 2px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-strong);
   border-radius: 10px;
-  background: rgba(27, 24, 21, 0.97);
+  background: var(--surface-float);
   backdrop-filter: blur(10px);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
-  color: #e8ecf4;
-  font: 14px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
+  box-shadow: 0 14px 34px var(--shadow);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.4;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 /* The popover is narrow, so its controls sit tighter than the sidebar's. */
@@ -1150,7 +1213,7 @@
   margin: 14px 0 10px;
   padding: 0 0 10px;
   border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border);
   background: none;
   color: inherit;
   font: inherit;
@@ -1164,7 +1227,7 @@
 }
 
 .control-section-toggle:hover {
-  color: #c5ccd8;
+  color: var(--text-secondary);
 }
 
 .control-section-caret {

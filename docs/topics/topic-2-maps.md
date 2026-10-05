@@ -110,10 +110,20 @@ uniform, each ramp spends a different amount of colour on the same data:
 | Palette | distinguishable steps | notes |
 | --- | --- | --- |
 | **Terrain** | **165** | Hypsometric tints, the cartographic convention. Widest range. |
+| **Land** *(default)* | **127** | The same idea desaturated, to sit beside a neutral interface. |
 | Magma | 114 | Dark to bright with rising hue. |
 | Greyscale | 100 | Pure luminance — the baseline worth measuring against. |
 | Single hue | 86 | Black to the picked colour. Shows the **Colour** picker. |
 | Viridis | 83 | Perceptually uniform: equal value steps *look* equal. |
+
+**Land is the default, and restraint is what it costs.** 127 against Terrain's
+165 — desaturating spends 23% of the ramp's resolving power. The first draft of
+it scored 94, *below greyscale*, which would have inverted the point this
+section is making; getting back above the baseline meant widening the lightness
+range and keeping hue rotation at low chroma rather than keeping saturation.
+Both ramps stay, because deleting the cartographic one to make the interface
+calmer would trade a measurement for a preference. See
+[the visual system](../project/visual-system.md).
 
 Viridis scoring lowest is not a defect. It deliberately trades total range for
 even steps, which makes it the honest ramp rather than the punchy one — the

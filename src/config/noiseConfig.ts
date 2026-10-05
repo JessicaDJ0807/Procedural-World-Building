@@ -11,7 +11,7 @@ import {
 import { EROSION_PARAM_SPECS, EROSION_PRESETS, getPreset, type ErosionParams } from '../erosion'
 import { PALETTES, type PaletteName } from '../palette'
 import { CONTINUOUS } from '../palette'
-import { ACCENT_BLUE } from '../theme'
+import { VIZ_ACCENT } from '../theme'
 import { bool, hex, int, isRecord, num, params as parseParams, pick, type ConfigSpec } from './spec'
 
 /** A layer as stored: the live layer without its id, which is a React key. */
@@ -100,8 +100,8 @@ export function defaultNoiseSettings(): NoiseSettings {
     slice: 0,
     spin: 0,
     wireframe: false,
-    tint: ACCENT_BLUE,
-    paletteName: 'terrain',
+    tint: VIZ_ACCENT,
+    paletteName: 'land',
     bands: CONTINUOUS,
     fitRamp: true,
     presetName: DEFAULT_PRESET,

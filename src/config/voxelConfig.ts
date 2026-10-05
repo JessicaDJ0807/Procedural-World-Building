@@ -68,7 +68,7 @@ export function defaultSettings(): VoxelSettings {
     iso: 0,
     spin: 0,
     showBounds: true,
-    palette: 'terrain',
+    palette: 'land',
   }
 }
 

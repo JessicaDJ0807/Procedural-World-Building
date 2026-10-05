@@ -1,3 +1,123 @@
+/*
+ * Design tokens, and the only place a raw colour is written.
+ *
+ * Everything else in the app refers to these by name. Before this existed the
+ * two stylesheets held about 45 distinct literals, including four near-identical
+ * muted greys that were all doing the same job — they differed because nothing
+ * had named the role, not because anyone chose four.
+ *
+ * ## Neutral surfaces, slate accent
+ *
+ * The surfaces are genuinely neutral: red, green and blue within two points of
+ * each other. The ramp is three visible steps plus the ground, so hierarchy
+ * comes from surface level rather than from borders, and a panel can sit on the
+ * background without a box drawn round it.
+ *
+ * The accent is used only where interaction or state needs to be read — a
+ * selected tab, a primary action, a focus ring, a slider's filled track. It is
+ * never a large fill. A dark UI tinted blue over most of its area stops reading
+ * as neutral, and the blue stops meaning "this one".
+ *
+ * ## Chrome is not visualization
+ *
+ * These tokens dress the application. They deliberately do not reach the
+ * generated worlds: `theme.ts` owns what Three.js reads, and `palette.ts` owns
+ * the ramps a field is coloured with. The one value that has to exist in both
+ * places is the viewport ground, which is paired explicitly below — the page
+ * paints it before any canvas has drawn, and a seam between the two is very
+ * visible.
+ */
+
+:root {
+  /* Surfaces, darkest first. Level 1 is the ground the app sits on, level 2 is
+     panels and navigation, level 3 is what sits on a panel — inputs, cards,
+     dropdowns — and level 4 is raised or hovered. */
+  --bg: #151617;
+  --surface-1: #1b1c1e;
+  --surface-2: #212325;
+  --surface-3: #292b2e;
+  --surface-hover: rgba(255, 255, 255, 0.05);
+  --surface-active: rgba(255, 255, 255, 0.08);
+  /* Popovers and menus sit above a viewport, not on a panel, so they are opaque
+     rather than translucent: a tooltip you can read the terrain through is a
+     tooltip you have to read twice. */
+  --surface-float: #232629;
+  --shadow: rgba(0, 0, 0, 0.45);
+
+  /* Two border weights, not eight alphas. Low contrast by design: separation is
+     the surface step's job, and a border is only there to finish an edge. */
+  --border: #2c2f33;
+  --border-strong: #3a3e44;
+
+  /* Three text greys and a disabled one — not the four this started with.
+     Holding every size to WCAG AA's 4.5:1 puts the floor at #949aa3 against the
+     lightest surface small text ever lands on (a selected row, where the
+     accent tint lifts the background), and four distinct greys will not fit
+     between that floor and near-white without two of them being
+     indistinguishable. The level that was lost is carried by size, weight and
+     letter spacing instead, which is where that distinction belonged.
+
+     Measured on the worst-case surface, not the darkest: 11.6, 6.0 and 4.5
+     to 1. Disabled text is exempt and stays low on purpose. */
+  --text-primary: #e6e8ea;
+  --text-secondary: #b4bac1;
+  --text-muted: #949aa3;
+  --text-disabled: #5c626a;
+
+  /* Slate blue: desaturated enough to sit on neutral without glowing. 6.1:1 on
+     --surface-1 as text, and the -strong step is for hover and for the few
+     places it has to carry small type. */
+  --accent: #7d9cc9;
+  --accent-strong: #9ab4d9;
+  --accent-line: #5f7899;
+  --accent-subtle: rgba(125, 156, 201, 0.13);
+  --accent-subtle-hover: rgba(125, 156, 201, 0.2);
+
+  /* Focus has to survive on every surface, so it is a ring rather than a tint. */
+  --focus: #8fb0dd;
+  --focus-ring: 0 0 0 2px rgba(143, 176, 221, 0.45);
+
+  /* Semantic, and deliberately not blue — a destructive action that looks like
+     a primary one is the failure mode worth avoiding. */
+  --danger: #d98b7d;
+  --danger-line: rgba(217, 139, 125, 0.4);
+  --danger-subtle: rgba(217, 139, 125, 0.12);
+  --warning: #cbab74;
+  --warning-subtle: rgba(203, 171, 116, 0.13);
+  --success: #8fae92;
+  --success-subtle: rgba(143, 174, 146, 0.14);
+
+  /* Paired with VIEWPORT_BACKGROUND in theme.ts — this is what shows before a
+     canvas has drawn, and any seam between the two is very visible. Checked by
+     a script rather than by eye; see docs/project/visual-system.md. */
+  --viewport-bg: #1a1c1e;
+
+  /* One family for the whole product, UI and prose alike. Project pages are set
+     apart by size, weight, line height and space — never by a second family.
+     Declaring it here means every `font: inherit` in the two stylesheets
+     resolves to it, which is what stops a control inheriting the UA serif. */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+
+  /* The small uppercase label — WORLDS, STRATEGY, TOPIC 1, CONTRIBUTES. Five
+     rules were repeating the same weight, tracking and transform with slightly
+     different numbers each time. The size stays local to each one, because that
+     is where the Playground and the Project are meant to differ: the same label
+     is 11px in a dense sidebar and 13px on a page you present from. */
+  --label-weight: 600;
+  --label-tracking: 0.08em;
+  /* Navigation and buttons sit a step above body weight so they read as
+     actionable without changing size. */
+  --weight-ui: 500;
+  --weight-strong: 600;
+
+  /* Range inputs and checkboxes are painted by the browser, and its default
+     blue is brighter and more saturated than anything else here. One
+     declaration re-tints both. */
+  accent-color: var(--accent);
+  color-scheme: dark;
+}
+
 html,
 body,
 #root {
@@ -5,7 +125,30 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
-  /* Matches VIEWPORT_BACKGROUND in theme.ts — this is what shows before a
-     canvas has drawn, and any seam between the two is very visible. */
-  background: #201d1a;
+  background: var(--viewport-bg);
+}
+
+body {
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers that update in place — frame rates, millisecond costs, triangle
+   counts — jitter as their glyph widths change. Tabular figures hold the
+   column still without bringing in a second font family. */
+.readout,
+.control-value,
+.project-caption {
+  font-variant-numeric: tabular-nums;
+}
+
+/* One visible focus treatment for everything, since the UA default is the
+   browser blue this theme is trying to avoid. :focus-visible rather than
+   :focus, so a mouse click on a button does not leave a ring behind. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }

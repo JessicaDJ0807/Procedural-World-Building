@@ -90,7 +90,7 @@ A field of values in `[0, 1]`, built and then progressively shaped:
   speckled noise into connected landmasses and caves.
 - **Erosion** — droplet hydraulic erosion plus thermal slippage, which is what
   cuts dendritic valley networks that noise alone never produces.
-- **Output** — eight per-cell shaping ops, five colour ramps interpolated in
+- **Output** — eight per-cell shaping ops, six colour ramps interpolated in
   OKLab, and three geometry modes: height field, point cloud, or planet.
 
 ![Topic 2 — a height field after 167,000 erosion droplets, beside the sidebar's source map and layer controls](docs/images/readme-topic-2-noise.png)
@@ -164,7 +164,7 @@ with a description of what each document covers — is in
 | --- | --- |
 | [`docs/topics/`](docs/topics/) | One chapter per topic: what it does, how it works, and the decisions behind it |
 | [`docs/analysis/`](docs/analysis/) | Measurement and comparison reports that outgrew their chapter |
-| [`docs/project/`](docs/project/) | Infrastructure — how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
+| [`docs/project/`](docs/project/) | Infrastructure — the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
 | [`docs/images/`](docs/images/) | Screenshots, all captured from the running app |
 
 ## Keyboard
@@ -296,6 +296,20 @@ goes.
 
 Decisions specific to a topic live in that topic's chapter. These hold
 everywhere.
+
+**Chrome is neutral so the worlds do not have to be.** Every colour the
+interface uses is a semantic token in `src/index.css` — neutral charcoal
+surfaces, one slate blue for interaction, and nothing else. What a topic
+*generates* is governed separately by `theme.ts`, `palette.ts` and
+`gpu/style.ts`, and is as saturated as its subject needs. The two used to share
+constants, which meant restraining a button would have washed out a lit surface.
+See [the visual system](docs/project/visual-system.md).
+
+**One font family, and the hierarchy comes from size and weight.** The Project
+pages are more spacious than the Playground; that difference is carried by size,
+line height and whitespace, never by a second typeface. The stack is declared
+once on `body`, which is what keeps a control from inheriting the user agent's
+serif when it moves.
 
 **The app has two sections, and they are not peers of each other's pages.**
 Playground is where a technique is taken apart, Project is where the techniques

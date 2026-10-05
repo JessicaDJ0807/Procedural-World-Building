@@ -8,6 +8,14 @@
  * uniform, scaling this project's accent blue spends 0.74 of colour where a
  * terrain ramp spends 1.65: roughly 74 distinguishable steps against 165.
  * Same data, twice the readable detail.
+ *
+ * Two of the ramps below map height, and they are not redundant. `terrain` is
+ * the cartographic convention at full strength and the widest range measured
+ * here; `land` is the same idea desaturated to sit beside a neutral interface,
+ * and it is the default. The cost of that restraint was measured rather than
+ * assumed — 127 steps against 165 — because the most literal reading of
+ * "lower saturation" scored 94, below the greyscale baseline of 100, which
+ * would have quietly inverted the point this whole section is making.
  */
 
 import { hexToRgb } from './theme'
@@ -64,7 +72,7 @@ function oklabToLinear([L, a, b]: Lab): Rgb {
  * Palettes
  * ------------------------------------------------------------------------- */
 
-export type PaletteName = 'terrain' | 'viridis' | 'magma' | 'grey' | 'hue'
+export type PaletteName = 'land' | 'terrain' | 'viridis' | 'magma' | 'grey' | 'hue'
 
 export type Palette = {
   value: PaletteName
@@ -76,9 +84,18 @@ export type Palette = {
 
 export const PALETTES: Palette[] = [
   {
+    value: 'land',
+    label: 'Land',
+    hint: 'The default. Hypsometric tints held at low saturation — blue-grey water, cool greens, stone rather than sand. 130 distinguishable steps against Terrain\u2019s 165: desaturating costs resolving power, and this is the restrained end of what still clearly beats greyscale\u2019s 100.',
+    stops: [
+      '#0f1b26', '#234a63', '#5a8496', '#9c9d89', '#648a63',
+      '#3f6039', '#85795f', '#b5ad98', '#e8e5dd',
+    ],
+  },
+  {
     value: 'terrain',
     label: 'Terrain',
-    hint: 'Hypsometric tints — the cartographic convention. Widest range of the five: about 165 distinguishable steps against 74 for the old ramp.',
+    hint: 'Hypsometric tints — the cartographic convention. The widest range measured here: about 165 distinguishable steps against 74 for the old ramp.',
     stops: [
       '#0b2545', '#1d6a96', '#57b7c4', '#e8d8a0', '#7fa25a',
       '#4a6b3a', '#8a7355', '#b9b0a6', '#ffffff',
