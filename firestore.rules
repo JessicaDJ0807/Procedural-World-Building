@@ -22,7 +22,7 @@ service cloud.firestore {
         allow create, update: if request.auth != null
           && request.auth.uid == uid
           && request.resource.data.ownerUid == uid
-          && request.resource.data.topic in ['objects', 'noise', 'voxels', 'shaders']
+          && request.resource.data.topic in ['objects', 'maps', 'voxels', 'shaders']
           && request.resource.data.name is string
           && request.resource.data.name.size() > 0
           && request.resource.data.name.size() <= 120

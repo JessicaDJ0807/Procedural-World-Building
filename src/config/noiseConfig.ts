@@ -236,7 +236,7 @@ function parse(raw: unknown): { settings: NoiseSettings; repairs: string[] } {
 }
 
 export const noiseSpec: ConfigSpec<NoiseSettings> = {
-  topic: 'noise',
+  topic: 'maps',
   schemaVersion: 1,
   defaults: defaultNoiseSettings,
   parse,

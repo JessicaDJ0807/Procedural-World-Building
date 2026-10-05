@@ -396,7 +396,7 @@ export function NoisePage() {
 
   return (
     <Workspace
-      topic="noise"
+      topic="maps"
       library={<ConfigPanel spec={noiseSpec} settings={settings} onLoad={applySettings} />}
       inspector={
         <aside className="control-sidebar" aria-label="Noise controls">

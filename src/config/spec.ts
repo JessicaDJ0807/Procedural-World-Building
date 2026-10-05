@@ -5,9 +5,9 @@
  * what the defaults are, how to validate a document, how to summarise it in one
  * line — are supplied per topic and everything else is written once.
  */
-export type TopicId = 'objects' | 'noise' | 'voxels' | 'shaders'
+export type TopicId = 'objects' | 'maps' | 'voxels' | 'shaders'
 
-export const TOPIC_IDS: TopicId[] = ['objects', 'noise', 'voxels', 'shaders']
+export const TOPIC_IDS: TopicId[] = ['objects', 'maps', 'voxels', 'shaders']
 
 export type ConfigSpec<S> = {
   topic: TopicId
