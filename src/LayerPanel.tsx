@@ -33,7 +33,7 @@ export function LayerPanel({
   onAdd,
 }: LayerPanelProps) {
   return (
-    <div className="layer-list">
+    <div className="stack-list">
       {/* Rendered top-down so the visual order matches an image editor, while
           the array itself stays bottom-up in compositing order. */}
       {layers
@@ -44,8 +44,8 @@ export function LayerPanel({
           const shaping = getShapingOp(layer.shapingName)
 
           return (
-            <div key={layer.id} className={`layer-card${expanded ? ' is-open' : ''}`}>
-              <div className="layer-head">
+            <div key={layer.id} className={`stack-card${expanded ? ' is-open' : ''}`}>
+              <div className="stack-head">
                 <input
                   type="checkbox"
                   checked={layer.enabled}
@@ -54,17 +54,17 @@ export function LayerPanel({
                 />
                 <button
                   type="button"
-                  className="layer-title"
+                  className="stack-title"
                   aria-expanded={expanded}
                   onClick={() => onToggleExpand(layer.id)}
                 >
-                  <span className="layer-name">{layer.name}</span>
-                  <span className="layer-meta">
+                  <span className="stack-name">{layer.name}</span>
+                  <span className="stack-meta">
                     {BLEND_MODES.find((m) => m.value === layer.blendName)?.label} ·{' '}
                     {Math.round(layer.opacity * 100)}% · f{layer.frequency}
                   </span>
                 </button>
-                <div className="layer-actions">
+                <div className="stack-actions">
                   <button
                     type="button"
                     aria-label={`Move ${layer.name} up`}
@@ -93,7 +93,7 @@ export function LayerPanel({
               </div>
 
               {expanded && (
-                <div className="layer-body">
+                <div className="stack-body">
                   <Slider
                     label="Frequency"
                     info={"Lattice cells per side for this layer, interpolated up to the display resolution. A coarse lattice under a fine one is the octave stacking fractal noise is built from; at frequency equal to the resolution it degenerates back to per-cell white noise."}

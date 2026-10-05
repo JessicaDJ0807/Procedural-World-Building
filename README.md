@@ -33,7 +33,25 @@ A field of values in `[0, 1]`, built and then progressively shaped:
 
 ### [Topic 3 — Voxels](docs/topic-3-voxels.md)
 
-Placeholder — the page, nav entry, and styling exist; the work has yet to land.
+Solids defined as one scalar function of position, rather than as a grid of
+samples, and combined with constructive solid geometry:
+
+- **Density fields** — seven primitives (sphere, box, torus, cylinder,
+  half-space, gyroid, and terrain as a solid rather than a height map, so it
+  can have caves cut into it). Five of the seven return true Euclidean
+  distance, measured; the panel says which.
+- **CSG** — union, intersection and difference are `min`, `max` and
+  `max(a, −b)`. No polygon clipping and no intersection curves to solve. A
+  per-operation blend width turns any boolean into a weld or a fillet.
+- **Four meshers** over the same field — blocks (with optional greedy merging
+  of coplanar faces, 40–73% fewer quads and provably lossless), marching cubes
+  with a case table derived rather than transcribed, surface nets, and dual
+  contouring, which is the only one that can reconstruct a sharp corner:
+  measured error at a box's corners falls from 23.8% of a cell to 1.2%.
+
+A short report on the meshing alternatives and on why chunking exists is in
+[`docs/topic-3-report.md`](docs/topic-3-report.md); the full technical detail
+is in [`docs/topic-3-voxels.md`](docs/topic-3-voxels.md).
 
 ## Keyboard
 
@@ -73,7 +91,7 @@ src/
 ├── pages/
 │   ├── ObjectViewerPage.tsx  Topic 1 — viewer and its control panel
 │   ├── NoisePage.tsx         Topic 2 — viewport, sidebar, and noise state
-│   └── VoxelPage.tsx         Topic 3 — placeholder, no content yet
+│   └── VoxelPage.tsx         Topic 3 — viewport, sidebar, and CSG state
 ├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
@@ -84,13 +102,18 @@ src/
 ├── noise.ts                  PRNG, sampling, shaping ops, blend modes, compositing
 ├── automata.ts               Cellular automaton over the composited field
 ├── erosion.ts                Droplet hydraulic erosion over the height field
+├── density.ts                Distance-field primitives, CSG operations, scenes (Topic 3)
+├── mesher.ts                 Blocks, greedy, marching cubes, surface nets, dual contouring
+├── VoxelViewport.tsx         3D scene for the meshed solid
+├── CsgPanel.tsx              Shape stack editor (Topic 3)
 ├── App.css                   Shell, panel, and canvas styling
 └── index.css                 Global reset
 
 docs/
 ├── topic-1-objects.md         Topic 1 write-up
 ├── topic-2-noise.md           Topic 2 write-up — the long one
-└── topic-3-voxels.md          Topic 3 write-up
+├── topic-3-voxels.md          Topic 3 write-up
+└── topic-3-report.md          Topic 3 short report — meshing, size, chunking
 
 CLAUDE.md                     Working agreements, for AI assistants and humans
 ```

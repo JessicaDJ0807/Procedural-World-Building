@@ -354,7 +354,7 @@ export function NoisePage() {
         wireframe={wireframe}
       />
 
-      <aside className="noise-sidebar" aria-label="Noise controls">
+      <aside className="control-sidebar" aria-label="Noise controls">
         <h2>Source map</h2>
         <NoiseMapPreview
           resolution={resolution}

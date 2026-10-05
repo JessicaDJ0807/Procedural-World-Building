@@ -120,7 +120,7 @@
 }
 
 .control-widget h2,
-.noise-sidebar h2 {
+.control-sidebar h2 {
   margin: 0 0 16px;
   font-size: 15px;
   font-weight: 600;
@@ -271,7 +271,10 @@
   height: 100%;
 }
 
-.noise-sidebar {
+/* Shared by Topic 2 and Topic 3. Named for what it is rather than for the
+   page it first appeared on — it was `.noise-sidebar` until Topic 3 reused
+   it, at which point the name recorded history instead of function. */
+.control-sidebar {
   flex: none;
   width: 296px;
   padding: 18px 16px 20px;
@@ -303,34 +306,38 @@
   font-weight: 600;
 }
 
-/* ---- Layer stack (Topic 2) ---- */
+/* ---- Control stack (Topic 2 layers, Topic 3 shapes) ---- */
 
-.layer-list {
+/* A card list with a head, a disclosure and reorder buttons. Both stacks want
+   exactly this, so it is `.stack-*` rather than `.layer-*`: a CSG node is not
+   a layer. */
+
+.stack-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-bottom: 14px;
 }
 
-.layer-card {
+.stack-card {
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
 }
 
-.layer-card.is-open {
+.stack-card.is-open {
   border-color: rgba(110, 168, 254, 0.4);
   background: rgba(110, 168, 254, 0.06);
 }
 
-.layer-head {
+.stack-head {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 7px 8px;
 }
 
-.layer-head input[type='checkbox'] {
+.stack-head input[type='checkbox'] {
   flex: none;
   width: 14px;
   height: 14px;
@@ -338,7 +345,7 @@
   cursor: pointer;
 }
 
-.layer-title {
+.stack-title {
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -353,12 +360,12 @@
   cursor: pointer;
 }
 
-.layer-name {
+.stack-name {
   font-size: 13px;
   color: #e8ecf4;
 }
 
-.layer-meta {
+.stack-meta {
   overflow: hidden;
   font-size: 11px;
   color: #7f8798;
@@ -366,13 +373,13 @@
   white-space: nowrap;
 }
 
-.layer-actions {
+.stack-actions {
   display: flex;
   flex: none;
   gap: 2px;
 }
 
-.layer-actions button {
+.stack-actions button {
   width: 20px;
   height: 20px;
   padding: 0;
@@ -385,22 +392,22 @@
   cursor: pointer;
 }
 
-.layer-actions button:hover:not(:disabled) {
+.stack-actions button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
   color: #e8ecf4;
 }
 
-.layer-actions button:disabled {
+.stack-actions button:disabled {
   opacity: 0.25;
   cursor: default;
 }
 
-.layer-body {
+.stack-body {
   padding: 10px 10px 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.layer-body .control:last-of-type {
+.stack-body .control:last-of-type {
   margin-bottom: 12px;
 }
 
@@ -466,7 +473,7 @@
 
 /* display:none rather than opacity, so hidden controls also leave the tab order. */
 .app-shell.is-focused .app-nav,
-.app-shell.is-focused .noise-sidebar,
+.app-shell.is-focused .control-sidebar,
 .app-shell.is-focused .control-widget {
   display: none;
 }
@@ -519,30 +526,27 @@
 
 /* ---- Voxel page (Topic 3) ---- */
 
+/* Same split as the noise page: viewport left, scrolling controls right. The
+   sidebar reuses .control-sidebar rather than duplicating 60 lines of panel
+   styling for a panel that should look identical, and its shape list reuses
+   .stack-* for the same reason. */
 .voxel-page {
   display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
   height: 100%;
   color: #e8ecf4;
   font: 14px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
-.page-placeholder {
-  text-align: center;
+.voxel-viewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.page-placeholder h2 {
-  margin: 4px 0;
-  font-size: 22px;
-  font-weight: 600;
+.voxel-viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.placeholder-topic {
-  margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #8b93a3;
-}
