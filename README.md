@@ -200,6 +200,8 @@ src/
 │   └── index.ts              The strategy registry
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── Workspace.tsx             Three resizable columns: library, canvas, inspector
+├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
+├── ControlSection.tsx        Collapsible sidebar group
 ├── ConfigPanel.tsx           The worlds library — the left column on every topic
 ├── config/
 │   ├── spec.ts               The per-topic contract and shared validators

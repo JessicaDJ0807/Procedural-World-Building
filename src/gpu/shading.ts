@@ -290,12 +290,17 @@ const PARAMS: ParamSpec[] = [
   },
   {
     key: 'spin',
-    label: 'Turntable',
-    info: 'Degrees per second the surface turns. A still matte render is ambiguous about which way a slope faces; movement resolves it immediately. Drag to orbit manually at any time.',
+    view: true,
+    // "Spin", matching the other three topics, and off by default for the same
+    // reason they are: the page should open on a still frame you chose to move,
+    // not one already moving. Worth turning on, though — a still matte render
+    // is ambiguous about which way a slope faces, and movement resolves it.
+    label: 'Spin',
+    info: 'Degrees per second the surface turns. Off by default; worth turning on, because a still matte render is ambiguous about which way a slope faces and movement resolves it immediately. Drag to orbit manually at any time.',
     min: 0,
     max: 30,
     step: 0.5,
-    value: 5,
+    value: 0,
     format: (v) => (v === 0 ? 'off' : `${v.toFixed(1)}°/s`),
   },
 ]
@@ -389,13 +394,13 @@ export function createShading(): Simulation {
         value: 'dusk',
         label: 'Dusk',
         hint: 'The palette at its intended settings: low warm key, lavender shadow, gentle haze.',
-        params: { azimuth: 152, elevation: 28, haze: 0.4, fresnel: 0.34, relief: 0.38, spin: 5 },
+        params: { azimuth: 152, elevation: 28, haze: 0.4, fresnel: 0.34, relief: 0.38, spin: 0 },
       },
       {
         value: 'overcast',
         label: 'Overcast',
         hint: 'High, soft light. Relief almost disappears and the palette carries the whole image.',
-        params: { azimuth: 90, elevation: 74, haze: 0.3, fresnel: 0.22, relief: 0.34, spin: 5 },
+        params: { azimuth: 90, elevation: 74, haze: 0.3, fresnel: 0.22, relief: 0.34, spin: 0 },
       },
     ],
 

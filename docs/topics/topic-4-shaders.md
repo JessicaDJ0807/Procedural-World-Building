@@ -432,7 +432,7 @@ on its own.
 Two things made it harder than it sounds. The shading study is modelled as a
 simulation by the page but accumulates nothing — its surface is built once and
 held — so `running` being true was keeping it awake forever; it declares
-`accumulates: false` and lets `animating()` speak for the turntable instead.
+`accumulates: false` and lets `animating()` speak for the spin instead.
 And `OrbitControls.update()` reports movement down to its own 1e-6 epsilon,
 which under damping kept a loop awake for hundreds of frames after a drag,
 rendering motion orders of magnitude below a pixel. Gating on a threshold the

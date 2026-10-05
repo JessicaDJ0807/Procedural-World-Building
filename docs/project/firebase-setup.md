@@ -123,6 +123,35 @@ Every topic is three columns: **library, canvas, inspector** — 220px,
 flexible, 320px by default, all of it underneath the topic nav so the hierarchy
 reads app → topic → world → parameter.
 
+Within that, controls are placed by what they change, not by topic:
+
+| Where | Answers | Example |
+| --- | --- | --- |
+| Right sidebar | How is this made? | Mesher, octaves, erosion, shader strategy |
+| View popover | How am I looking at it? | Palette, spin, wireframe, sampling bounds |
+
+The View button is a floating eye in the viewport's top-right, identical on all
+four topics, opening a compact popover. It lives inside the canvas column
+rather than the sidebar, so it stays anchored when a divider is dragged and
+opening it resizes nothing — measured: the canvas is the same width open and
+closed.
+
+The test is whether changing a control leaves the generated world identical.
+That is why Topic 4 moves almost nothing: relief, lighting, the height ramp,
+Fresnel and haze all change appearance, but on a page about shading the
+appearance *is* the subject. Only Spin moves, flagged with `view: true` on
+its `ParamSpec`. By the same reasoning Topic 2 keeps Slice (z), which chooses a
+plane of the volume, and Colour by cut/fill, which is how an erosion result is
+read.
+
+Topic 2's sidebar is additionally collapsible — Geometry, Layers, Warp,
+Automata, Erosion, Output — because six groups of controls do not fit on
+screen and scrolling past four of them to reach erosion was the problem.
+
+Moving a control moved only its JSX. Each one still reads and writes the state
+it always did, and the saved-document schemas are untouched, so palette and
+spin are still stored exactly as before.
+
 **Both boundaries drag.** Widths are clamped so neither panel can squeeze the
 canvas below 300px, double-clicking a divider resets it, and the arrow keys
 move it 16px at a time (1px with Shift). Widths are remembered **per topic** in
