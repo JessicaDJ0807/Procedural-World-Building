@@ -1,0 +1,317 @@
+/*
+ * The explorable worlds.
+ *
+ * Built on the same tokens as everything else, with one deliberate exception:
+ * once you are inside a world the chrome gets out of the way entirely. The
+ * subject is the terrain, and a panel over it would be the only thing on screen
+ * that is not procedural.
+ */
+
+/* ---- Choosing ---- */
+
+.explore-chooser {
+  overflow-y: auto;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.explore-chooser-inner {
+  box-sizing: border-box;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 56px 32px 72px;
+}
+
+.explore-title {
+  margin: 0 0 12px;
+  font-size: 32px;
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
+}
+
+.explore-lede {
+  max-width: 64ch;
+  margin: 0 0 36px;
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.explore-cards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.explore-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-1);
+}
+
+.explore-card h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: var(--weight-strong);
+}
+
+.explore-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* The world's own ramp, as the card's only colour. It is the one honest
+   preview available before anything has been generated. */
+.explore-card-swatch {
+  display: flex;
+  overflow: hidden;
+  height: 54px;
+  border-radius: 8px;
+}
+
+.explore-card-swatch span {
+  flex: 1;
+}
+
+.explore-enter {
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 8px 18px;
+  border: 1px solid var(--accent-line);
+  border-radius: 8px;
+  background: var(--accent-subtle);
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: 14px;
+  font-weight: var(--weight-ui);
+  cursor: pointer;
+}
+
+.explore-enter:hover {
+  background: var(--accent-subtle-hover);
+}
+
+.explore-note {
+  margin: 28px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.explore-note kbd,
+.explore-curtain kbd {
+  display: inline-block;
+  min-width: 11px;
+  margin: 0 1px;
+  padding: 2px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11px;
+}
+
+/* ---- Inside a world ---- */
+
+.explore-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.explore-viewport {
+  width: 100%;
+  height: 100%;
+}
+
+.explore-viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The canvas is the click target for pointer lock; a text cursor over it
+     reads as something selectable. */
+  cursor: crosshair;
+}
+
+/* The whole viewport is the button, because a small one is a thing to miss in
+   front of an audience. */
+.explore-curtain {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  background: rgba(10, 11, 12, 0.55);
+  backdrop-filter: blur(2px);
+  color: var(--text-primary);
+  font: inherit;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.explore-curtain-name {
+  font-size: 15px;
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.explore-curtain-cta {
+  font-size: 30px;
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.01em;
+}
+
+.explore-curtain-look {
+  max-width: 44ch;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.explore-curtain-keys {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* A dot, not a crosshair graphic: enough to anchor the eye while turning,
+   small enough not to be part of the picture. */
+.explore-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+.explore-hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(10, 11, 12, 0.72);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.explore-hud span:first-child {
+  color: var(--text-primary);
+}
+
+.explore-leave {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
+  padding: 7px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface-float);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.explore-leave:hover {
+  color: var(--text-primary);
+}
+
+/* ---- Overview ---- */
+
+.explore-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
+  display: flex;
+  gap: 8px;
+}
+
+.explore-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface-float);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.explore-action:hover {
+  color: var(--text-primary);
+}
+
+.explore-action.is-active {
+  border-color: var(--accent-line);
+  color: var(--accent-strong);
+}
+
+.explore-action kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 11px;
+}
+
+.explore-survey-note {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  z-index: 5;
+  max-width: 54ch;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(10, 11, 12, 0.72);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.explore-survey-note strong {
+  color: var(--text-primary);
+}

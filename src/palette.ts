@@ -201,7 +201,19 @@ export function fieldDomain(field: Float32Array): { min: number; span: number } 
  */
 export function buildLut(name: PaletteName, tint: string, bands: number): Lut {
   const palette = getPalette(name)
-  const hexStops = palette.stops ?? ['#000000', tint]
+  return buildStopsLut(palette.stops ?? ['#000000', tint], bands)
+}
+
+/**
+ * The same ramp from an arbitrary stop list rather than a named palette.
+ *
+ * Split out for the explorable worlds, which each carry their own stops and
+ * are not Topic 2 palettes — they describe one world's ground rather than
+ * offering a choice of ways to read a field, so adding them to `PALETTES`
+ * would put them in a dropdown where they do not belong. The OKLab
+ * interpolation is the part worth sharing, and it is all here.
+ */
+export function buildStopsLut(hexStops: string[], bands: number): Lut {
   const stops = hexStops.map((hex) => rgbToOklab(hexToRgb(hex)))
 
   const srgb = new Uint8Array(256 * 3)

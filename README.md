@@ -43,6 +43,12 @@ numbered by nothing:
 - **Demo** — the integrated world, with nine controls where Topic 2 has thirty.
   Two views of the same heightfield: a surface, and the same field read as a
   solid with a tunnel network cut out of it.
+- **Explore** — three worlds you can fly around in, generated from one system.
+  Chunked terrain from a hashed height function, landmarks that are terms in
+  that function rather than placed meshes, and scatter that answers to the
+  ground. <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to walk the terrain,
+  <kbd>R</kbd>/<kbd>F</kbd> to fly and <kbd>G</kbd> to land, and <kbd>M</kbd> for
+  an overview of the whole world with a pin where you were standing.
 - **Progress** — technique to contribution, in dependency order rather than
   chronological, with the measurement each study produced.
 
@@ -164,7 +170,7 @@ with a description of what each document covers — is in
 | --- | --- |
 | [`docs/topics/`](docs/topics/) | One chapter per topic: what it does, how it works, and the decisions behind it |
 | [`docs/analysis/`](docs/analysis/) | Measurement and comparison reports that outgrew their chapter |
-| [`docs/project/`](docs/project/) | Infrastructure — the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
+| [`docs/project/`](docs/project/) | Infrastructure — the explorable worlds, the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
 | [`docs/images/`](docs/images/) | Screenshots, all captured from the running app |
 
 ## Keyboard
@@ -247,6 +253,14 @@ src/
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
 ├── ControlSection.tsx        Collapsible sidebar group
 ├── ConfigPanel.tsx           The worlds library — the left column on every topic
+├── explore/                  Three explorable worlds, one system
+│   ├── terrain.ts            Hashed height function, shaping ops, landmarks
+│   ├── chunks.ts             The ring of chunks that follows the camera, and scatter
+│   ├── controls.ts           Pointer-locked WASD flight
+│   ├── survey.ts             The overview: one coarse mesh of the whole world
+│   ├── worlds.ts             The three specs — no code path branches on which
+│   ├── ExploreViewport.tsx   Scene, fog, lights, water, render loop
+│   └── ExplorePage.tsx       World cards, the curtain, the debug HUD
 ├── showcase/                 Five demonstration worlds, four documents each
 │   ├── worlds.ts             The presets, built from each topic's own defaults
 │   ├── validate.ts           Whether a preset is storable and renderable
@@ -280,6 +294,7 @@ docs/
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
 ├── project/                  Infrastructure and setup
+│   ├── explorable-worlds.md
 │   ├── showcase-worlds.md
 │   ├── visual-system.md
 │   ├── app-structure.md
