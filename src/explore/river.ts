@@ -1,4 +1,4 @@
-import { heightField, valueNoise, type TerrainSpec } from './terrain'
+import { heightField, macroField, routeField, valueNoise, type TerrainSpec } from './terrain'
 
 /**
  * A river that runs downhill.
@@ -65,6 +65,21 @@ export type RiverSpec = {
   drift: number
   /** Low-frequency wander, in radians of heading. */
   meander: number
+  /**
+   * How much of the mountain mass is taken back out near the water, and over
+   * what distance it returns.
+   *
+   * The reason this exists is composition. Mountains placed by noise alone land
+   * wherever the noise is high, which sooner or later is right beside the river
+   * — and a river with mountains on both banks everywhere is a canyon, not a
+   * valley. Removing most of the macro term near the course and letting it
+   * return over a few hundred units gives gentle ground at the water, rolling
+   * hills beyond it, and the big formations held back to the distance.
+   *
+   * It is applied *after* the route is traced, so it cannot change where the
+   * river decided to go.
+   */
+  valleyFloor: { reach: number; strength: number } | null
 }
 
 export type RiverNode = {
@@ -95,20 +110,28 @@ export type River = {
   nodes: RiverNode[]
   /** Total course length. */
   length: number
-  /** Nearest point on the course, or null outside the influence radius. */
-  at(x: number, z: number): RiverSample | null
+  /** Nearest point on the course, or null beyond `radius` (default: the carve's). */
+  at(x: number, z: number, radius?: number): RiverSample | null
   /** The terrain height with the channel cut into it. */
   carve(x: number, z: number, base: number): number
   spec: RiverSpec
 }
 
 /** Cells of this size bucket the nodes, so `at` does not walk the whole course. */
-const BUCKET = 120
+/*
+ * Bucket size, and it has to exceed the widest radius anyone asks `at` for.
+ * Nodes are registered into their own cell and the eight around it, so a lookup
+ * reads one cell — which only finds everything within one cell's width.
+ */
+const BUCKET = 420
 
 export function buildRiver(terrain: TerrainSpec, spec: RiverSpec): River {
-  // The route is traced against the *uncarved* ground. Tracing against a
-  // surface the river has already cut would be circular, and the descent would
-  // follow its own channel rather than the landscape.
+  // Two surfaces, for two different questions. The route is chosen on the
+  // regional shape, because that is what a river responds to and because
+  // following every bump drops it into the nearest hollow. The profile is set
+  // against the real ground, because the water has to stay under the terrain
+  // that actually exists.
+  const route = routeField(terrain)
   const base = heightField(terrain)
   const seed = terrain.seed
 
@@ -120,7 +143,7 @@ export function buildRiver(terrain: TerrainSpec, spec: RiverSpec): River {
     for (let dx = -spec.source.radius; dx <= spec.source.radius; dx += spec.source.radius / 12) {
       const x = spec.source.x + dx
       const z = spec.source.z + dz
-      const v = base(x, z)
+      const v = route(x, z)
       if (v > best) {
         best = v
         sx = x
@@ -137,7 +160,7 @@ export function buildRiver(terrain: TerrainSpec, spec: RiverSpec): River {
   for (let k = 0; k < 24; k++) {
     const a = (k / 24) * Math.PI * 2
     let sum = 0
-    for (let d = 500; d <= 1600; d += 100) sum += base(sx + Math.cos(a) * d, sz + Math.sin(a) * d)
+    for (let d = 500; d <= 1600; d += 100) sum += route(sx + Math.cos(a) * d, sz + Math.sin(a) * d)
     if (sum < bearingScore) {
       bearingScore = sum
       bearing = a
@@ -149,8 +172,8 @@ export function buildRiver(terrain: TerrainSpec, spec: RiverSpec): River {
   // Initial heading: straight downhill from the source, so the first step is
   // not an arbitrary direction that the cone then locks in.
   let heading = Math.atan2(
-    base(sx, sz + 8) - base(sx, sz - 8),
-    base(sx + 8, sz) - base(sx - 8, sz),
+    route(sx, sz + 40) - route(sx, sz - 40),
+    route(sx + 40, sz) - route(sx - 40, sz),
   ) + Math.PI
 
   for (let i = 1; i < spec.nodes; i++) {
@@ -172,7 +195,7 @@ export function buildRiver(terrain: TerrainSpec, spec: RiverSpec): River {
       let off = a - bearing
       off = Math.abs(Math.atan2(Math.sin(off), Math.cos(off)))
       const score =
-        base(nx, nz) * spec.descentBias + Math.abs(k / 5) * 1.4 + off * spec.drift
+        route(nx, nz) * spec.descentBias + Math.abs(k / 5) * 1.4 + off * spec.drift
       if (score < bestScore) {
         bestScore = score
         bestAngle = a
@@ -250,7 +273,7 @@ export function buildRiver(terrain: TerrainSpec, spec: RiverSpec): River {
       }
   }
 
-  const at = (x: number, z: number): RiverSample | null => {
+  const at = (x: number, z: number, radius = spec.influence): RiverSample | null => {
     const list = buckets.get(key(Math.floor(x / BUCKET), Math.floor(z / BUCKET)))
     if (!list) return null
     let bestNode: RiverNode | null = null
@@ -263,7 +286,7 @@ export function buildRiver(terrain: TerrainSpec, spec: RiverSpec): River {
         bestNode = n
       }
     }
-    if (!bestNode || bestDist > spec.influence) return null
+    if (!bestNode || bestDist > radius) return null
     return {
       node: bestNode,
       lateral: bestDist,
@@ -311,9 +334,37 @@ export function buildRiver(terrain: TerrainSpec, spec: RiverSpec): River {
 export function createTerrain(terrain: TerrainSpec, river: RiverSpec | null) {
   const base = heightField(terrain)
   if (!river) return { height: base, river: null as River | null }
+
+  /*
+   * Two passes, because the two depend on each other.
+   *
+   * How tall the ground is near the river should depend on the river, and where
+   * the river goes depends on how tall the ground is. Tracing the route on the
+   * full macro terrain and only then flattening around the finished course
+   * breaks the circle: the river picked its way through the real landscape, and
+   * the landscape is adjusted afterwards without the route being reconsidered.
+   */
   const built = buildRiver(terrain, river)
+  const floor = river.valleyFloor
+  if (!floor) {
+    return { height: (x: number, z: number) => built.carve(x, z, base(x, z)), river: built }
+  }
+
+  const macro = macroField(terrain)
   return {
-    height: (x: number, z: number) => built.carve(x, z, base(x, z)),
     river: built,
+    height: (x: number, z: number) => {
+      let h = base(x, z)
+      const hit = built.at(x, z, floor.reach)
+      if (hit) {
+        // 1 at the channel, 0 at the reach. The mass is removed rather than
+        // scaled, so the valley floor sits at the height it would have had if
+        // the mountains had never been there.
+        const t = Math.min(1, hit.lateral / floor.reach)
+        const eased = 1 - t * t * (3 - 2 * t)
+        h -= macro(x, z) * floor.strength * eased
+      }
+      return built.carve(x, z, h)
+    },
   }
 }

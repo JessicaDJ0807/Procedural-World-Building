@@ -257,9 +257,10 @@ src/
 │   ├── terrain.ts            Hashed height function, shaping ops, landmarks
 │   ├── chunks.ts             The ring of chunks that follows the camera, and scatter
 │   ├── controls.ts           Pointer-locked WASD flight
-│   ├── survey.ts             The overview: one coarse mesh of the whole world
+│   ├── relief.ts             Coarse mesh of the height field, shared by the two below
+│   ├── survey.ts             The overview: the whole world, seen from above
 │   ├── worlds.ts             The three specs — no code path branches on which
-│   ├── ExploreViewport.tsx   Scene, fog, lights, water, render loop
+│   ├── ExploreViewport.tsx   Scene, fog, lights, water, distant backdrop, render loop
 │   └── ExplorePage.tsx       World cards, the curtain, the debug HUD
 ├── showcase/                 Five demonstration worlds, four documents each
 │   ├── worlds.ts             The presets, built from each topic's own defaults

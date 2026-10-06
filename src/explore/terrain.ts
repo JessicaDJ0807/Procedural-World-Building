@@ -188,6 +188,16 @@ export type TerrainSpec = {
     width: number
   } | null
   /**
+   * Mountain masses: very low frequency, and thresholded so only the top of the
+   * noise rises at all.
+   *
+   * Thresholding is what makes these read as a few formations rather than as
+   * bigger rolling hills. Plain low-frequency noise raises everything by
+   * something, which is uniform by another name; taking only the part above a
+   * cutoff leaves most of the world alone and a handful of places tall.
+   */
+  massifs: { frequency: number; amount: number; threshold: number } | null
+  /**
    * A regional gradient, in units of fall per world unit.
    *
    * Added because a river needs a watershed and this terrain had none. Measured
@@ -211,9 +221,65 @@ export type TerrainSpec = {
  * at 96×96 asks for 9,409 heights and the scatter pass asks for more, so the
  * per-call cost is what the frame budget is actually made of.
  */
+/**
+ * The mountain masses on their own.
+ *
+ * Separate because two things need it independently: the height function adds
+ * it, and the valley floor subtracts part of it back near the river. Keeping
+ * the biggest landforms away from the water is what stops the world becoming a
+ * canyon, and it can only be done if the term is reachable by itself.
+ */
+export function macroField(spec: TerrainSpec): (x: number, z: number) => number {
+  const { massifs, seed } = spec
+  if (!massifs) return () => 0
+  return (x: number, z: number) => {
+    const n =
+      valueNoise(x * massifs.frequency, z * massifs.frequency, seed + 1717) * 0.72 +
+      valueNoise(x * massifs.frequency * 2.3, z * massifs.frequency * 2.3, seed + 2929) * 0.28
+    if (n <= massifs.threshold) return 0
+    const t = (n - massifs.threshold) / (1 - massifs.threshold)
+    // Squared, so a mass rises slowly at its foot and steeply near its summit
+    // rather than meeting the plain at an angle.
+    return t * t * massifs.amount
+  }
+}
+
+/**
+ * The landscape at the scale a river responds to.
+ *
+ * Tilt, mountain masses and the two broadest octaves — no ridges, no fine
+ * octaves, no detail. A route traced on the full height follows every bump, and
+ * once the mountains arrived that meant falling into whichever basin the noise
+ * happened to make and circling in it: 5,131 self-overlapping pairs, a course
+ * four thousand units long that ended one thousand from its source.
+ *
+ * Rivers do not respond to boulders. Routing on the regional shape is both the
+ * robust choice and the more honest one.
+ */
+export function routeField(spec: TerrainSpec): (x: number, z: number) => number {
+  const { seed, frequency, persistence, amplitude, tilt } = spec
+  const macroAt = macroField(spec)
+  return (x: number, z: number) => {
+    let sum = 0
+    let total = 0
+    let amp = 1
+    let freq = frequency
+    for (let o = 0; o < 2; o++) {
+      sum += valueNoise(x * freq, z * freq, seed + o * 1013) * amp
+      total += amp
+      amp *= persistence
+      freq *= 2
+    }
+    let h = (sum / total) * amplitude + macroAt(x, z)
+    if (tilt) h += x * tilt.x + z * tilt.z
+    return h
+  }
+}
+
 export function heightField(spec: TerrainSpec): (x: number, z: number) => number {
   const { seed, frequency, octaves, persistence, amplitude, shaping, outputShaping, warp, landmark, detail, channels, ridges, tilt } =
     spec
+  const macroAt = macroField(spec)
 
   return (x: number, z: number) => {
     let wx = x
@@ -269,6 +335,7 @@ export function heightField(spec: TerrainSpec): (x: number, z: number) => number
     // only see within a few dozen units, which is the scale the chunk grid can
     // actually resolve and the one that stops near ground reading as polished.
     if (tilt) h += x * tilt.x + z * tilt.z
+    h += macroAt(x, z)
 
     if (ridges) {
       // Folded and squared: the fold makes a crease rather than a dune, and

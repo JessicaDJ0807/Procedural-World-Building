@@ -299,6 +299,23 @@ export class ChunkField {
               if (roll > (1 - rule.clump) + rule.clump * f * 1.15) continue
             }
 
+            /*
+             * Nothing grows underwater.
+             *
+             * The height window cannot express this. A river that descends 80
+             * units has no single waterline, so a bed 20 units down sits inside
+             * `[minHeight, maxHeight]` exactly like the bank beside it — and
+             * conifers duly grew in midstream, which went unnoticed until a
+             * spawn was finally chosen that looked at the water. The
+             * environment already measures depth against the *local* water
+             * surface, so this asks it rather than adding another number.
+             *
+             * Last, not first: it is the only test here that costs a height
+             * field evaluation, and the clump gate above rejects most of what
+             * reaches it. Ordered the other way it cost 0.7 ms a chunk.
+             */
+            if (this.env.at(x, z, y, ny).depth > 0) continue
+
             // `scale` is now the object's height in world units, because every
             // geometry is normalised to one unit. Before, the geometry carried
             // its own size too and the two multiplied — which is where the

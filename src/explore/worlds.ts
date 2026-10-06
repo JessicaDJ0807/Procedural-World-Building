@@ -36,6 +36,21 @@ export type ScatterRule = {
   scale: [number, number]
   color: string
   /** Lifts the base below the surface so nothing appears to hover on a slope. */
+  /**
+   * How far to settle a prop into the ground, as a fraction of its own height.
+   *
+   * It is a fraction because `scale` became the object's height in world units
+   * when the geometries were normalised — and these numbers were not refitted
+   * at the time. They had been written in world units against geometries that
+   * carried their own size, so `sink: 2.5` stopped meaning "two and a half
+   * units down" and started meaning "two and a half times its height down".
+   * Measured, that buried all 312 of the archipelago's bergs (206% of their
+   * height below ground) and all 149 of the caldera's pillars (45% below), and
+   * left the valley's trees showing 42% of themselves — crown only, no trunk,
+   * which is why they read as boulders.
+   *
+   * A few percent is all this is for: enough that nothing appears to float.
+   */
   sink: number
   /**
    * How strongly a low-frequency field gates placement, 0 to 1.
@@ -139,6 +154,7 @@ export const WORLDS: WorldSpec[] = [
       warp: 16,
       detail: 1.1,
       ridges: { amount: 13, frequency: 0.004 },
+      massifs: null,
       tilt: null,
       landmark: { kind: 'volcano', x: 0, z: 0, radius: 500, height: 210 },
       // Seven flows out of the crater. The waterline then only reaches what
@@ -237,7 +253,7 @@ export const WORLDS: WorldSpec[] = [
         minFlatness: 0.62,
         scale: [0.9, 2.2],
         color: '#2a1c17',
-        sink: 0.3,
+        sink: 0.06,
         clump: 0.55,
         clumpScale: 0.014,
         variants: 3,
@@ -254,7 +270,7 @@ export const WORLDS: WorldSpec[] = [
         minFlatness: 0.55,
         scale: [7, 20],
         color: '#19100e',
-        sink: 1.5,
+        sink: 0.12,
         clump: 0.85,
         clumpScale: 0.004,
         variants: 3,
@@ -271,7 +287,7 @@ export const WORLDS: WorldSpec[] = [
         minFlatness: 0.4,
         scale: [1.4, 4.2],
         color: '#241a17',
-        sink: 0.4,
+        sink: 0.18,
         clump: 0.6,
         clumpScale: 0.006,
         variants: 3,
@@ -307,6 +323,7 @@ export const WORLDS: WorldSpec[] = [
       warp: 9,
       detail: 0.55,
       ridges: { amount: 9, frequency: 0.0055 },
+      massifs: null,
       tilt: null,
       landmark: { kind: 'massif', x: 0, z: 0, radius: 520, height: 130 },
       channels: null,
@@ -394,7 +411,7 @@ export const WORLDS: WorldSpec[] = [
         minFlatness: 0.68,
         scale: [0.9, 2.2],
         color: '#b6cbd6',
-        sink: 0.3,
+        sink: 0.06,
         clump: 0.6,
         clumpScale: 0.013,
         variants: 3,
@@ -413,7 +430,7 @@ export const WORLDS: WorldSpec[] = [
         minFlatness: 0.3,
         scale: [5, 16],
         color: '#cfe0e8',
-        sink: 2.5,
+        sink: 0.22,
         clump: 0.7,
         clumpScale: 0.0055,
         variants: 3,
@@ -430,7 +447,7 @@ export const WORLDS: WorldSpec[] = [
         minFlatness: 0.45,
         scale: [1.2, 3.6],
         color: '#9fb3bd',
-        sink: 0.4,
+        sink: 0.18,
         clump: 0.6,
         clumpScale: 0.006,
         variants: 3,
@@ -459,7 +476,17 @@ export const WORLDS: WorldSpec[] = [
       outputShaping: 'none',
       warp: 12,
       detail: 0.9,
-      ridges: { amount: 15, frequency: 0.0032 },
+      // Medium scale: the rolling hills and ridges between the river and the
+      // mountains.
+      ridges: { amount: 26, frequency: 0.0026 },
+      // Largest scale. A ~1,400-unit wavelength over a 3,600-unit area is about
+      // three masses, and the 0.6 threshold means most of the world is not one
+      // of them — which is what leaves the flat ground the brief asks for.
+      // 440, not 170. The threshold-and-square shaping means only the part of
+      // the noise above 0.6 counts and it is then squared, so the tallest point
+      // reaches about 38% of this number — measured at 65 units when the spec
+      // said 170. The figure here is nominal; the mountains are ~165.
+      massifs: { frequency: 0.0007, amount: 440, threshold: 0.6 },
       // ~45 units of fall across the play area, running from the high
       // north-east corner toward the low south-west. Invisible underfoot.
       tilt: { x: 0.009, z: -0.0105 },
@@ -488,8 +515,12 @@ export const WORLDS: WorldSpec[] = [
       width: 20,
       influence: 78,
       descentBias: 1,
-      drift: 1.8,
+      // Raised once the mountains arrived: with strong regional relief the
+      // route needs holding to its bearing or it wanders into a basin.
+      drift: 2.6,
       meander: 0.75,
+      // Gentle at the water, rolling by 150 units, full mountains past ~460.
+      valleyFloor: { reach: 380, strength: 0.88 },
     },
     stops: ['#30402c', '#45573a', '#5d7246', '#7a8d57', '#9aa578', '#bdbaa0'],
     /*
@@ -574,7 +605,18 @@ export const WORLDS: WorldSpec[] = [
     },
     // Refitted after the regional tilt widened the height span: measured
     // around the river's midpoint, the ground runs -7 to 46.
-    colorRange: [-7, 46],
+    /*
+     * Fitted to the valley floor, not to the mountains.
+     *
+     * Measured around the course: p2 -15.3, p50 24.8, p98 44.7. The massifs
+     * reach 203 units, and stretching the range to cover them would put the
+     * entire valley below altitude 0.2, where one band wins everywhere and
+     * the upland variation disappears from the ground the viewer walks on.
+     * Leaving them to clamp at 1 is the better trade: the distant peaks come
+     * out pale sage with rock on the steep faces, which is what aerial
+     * perspective does to relief 1,300 units away anyway.
+     */
+    colorRange: [-11, 43],
     sky: '#a8c4cc',
     fog: { color: '#c3cfbb', density: 0.00085 },
     // Teal-blue, and smoother and more metallic than before: the moving
@@ -592,12 +634,17 @@ export const WORLDS: WorldSpec[] = [
         // you — which is where a viewer spends most of a demo looking.
         kind: 'tuft',
         attempts: 240,
-        minHeight: -11,
-        maxHeight: 24,
+        // Refitted after the macro pass raised the ground. Dry ground in the
+        // play area now runs p1 -6.2, p50 27.0, p90 45.9, max 171 — the old
+        // [-11, 24] window admitted 40% of it, and that 40% was the lowest
+        // ground, so everything above the valley floor came out bare. Ground
+        // cover grows nearly everywhere, so this one is wide.
+        minHeight: -8,
+        maxHeight: 70,
         minFlatness: 0.7,
         scale: [1.1, 2.4],
         color: '#4e6b3c',
-        sink: 0.25,
+        sink: 0.06,
         clump: 0.75,
         clumpScale: 0.012,
         variants: 3,
@@ -608,16 +655,25 @@ export const WORLDS: WorldSpec[] = [
       },
       {
         kind: 'tree',
-        // The densest scatter of the three, and the one most constrained: above
-        // the water, below the ridgelines, and off anything steep. Those three
-        // bands are what make a wooded valley rather than a dusting of cones.
+        /*
+         * The densest scatter of the three, and the only one with a real upper
+         * limit: 44 is p88 of dry ground, so the stands cover the valley and
+         * the lower slopes and stop short of the uplands. That cutoff is the
+         * point — a treeline is one of the few cues that reads elevation from
+         * inside the world rather than from the map.
+         *
+         * The flatness bound is close to free and worth saying so: measured,
+         * 97% of dry ground clears 0.82, because slope here is 1 - normalY and
+         * this terrain is gentle almost everywhere. What actually shapes the
+         * stands is `clump` at 0.92, not this.
+         */
         attempts: 150,
-        minHeight: -11,
-        maxHeight: 22,
+        minHeight: -8,
+        maxHeight: 44,
         minFlatness: 0.82,
         scale: [7, 17],
         color: '#3f5a36',
-        sink: 0.6,
+        sink: 0.04,
         clump: 0.92,
         clumpScale: 0.0035,
         variants: 5,
@@ -629,12 +685,14 @@ export const WORLDS: WorldSpec[] = [
       {
         kind: 'rock',
         attempts: 30,
-        minHeight: -14,
-        maxHeight: 30,
+        // Up to p98, so the uplands and the lower mountain flanks are stony
+        // rather than bare grass above the treeline.
+        minHeight: -10,
+        maxHeight: 140,
         minFlatness: 0.5,
         scale: [1, 2.6],
         color: '#6a6d5c',
-        sink: 0.35,
+        sink: 0.18,
         clump: 0.6,
         clumpScale: 0.006,
         variants: 3,
@@ -645,7 +703,32 @@ export const WORLDS: WorldSpec[] = [
       },
     ],
     // On the bank above a wide reach, looking downstream, clear of the trees.
-    spawn: { x: 384, z: 126, yaw: 2.55, pitch: -0.08, lift: 0 },
+    // Solved for the composition rather than the position: above the valley,
+    // the river leading away downstream, relief on the skyline beyond it.
+    /*
+     * Solved — and the search had to be rebuilt three times before it was
+     * measuring the right thing.
+     *
+     * It scored the river by marching a ray over the *terrain* beside it,
+     * which is a different question: the channel is carved below its banks, so
+     * the near bank is visible from almost anywhere while the water is not.
+     * Projecting the water surface through the real camera settled that — at
+     * the spawn it chose, 81 nodes were in frame and 0 unoccluded.
+     *
+     * It also only ever sampled fixed offsets from river nodes, which is far
+     * too coarse to find a clearing, and this valley has 2,093 props over four
+     * units tall in a single chunk ring. Every answer was a wooded knoll with
+     * a conifer at point-blank range cropping a third of the frame. Searching
+     * the play area properly — 8-unit steps, the chunk field rebuilt once per
+     * 320-unit cell — found 2,285 standing places that are open, dry and
+     * gentle, which is the set the first search should have been choosing
+     * from.
+     *
+     * This one: 37 units above the local water, nearest prop over four units
+     * tall 33 away, nothing wider than 7 degrees anywhere in frame, and a
+     * skyline of 7.94 degrees carrying 104 units of relief after fog.
+     */
+    spawn: { x: 616, z: -200, yaw: -2.36, pitch: -0.07, lift: 0 },
   },
 ]
 

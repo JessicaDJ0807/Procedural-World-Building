@@ -121,13 +121,32 @@ function conifer(tiers: number, lean: number, seed: number): THREE.BufferGeometr
   return merge(parts)
 }
 
-/** A broadleaf: a short trunk under a roughened blob, for silhouette variety. */
+/**
+ * A broadleaf: a trunk under a roughened crown, for silhouette variety.
+ *
+ * The crown used to be 0.38 of a unit on a trunk 0.4 tall — a sphere occupying
+ * most of the height with a thin stick under it. At the 12 to 15 units these
+ * come out at in Verdant it read as a boulder, not a tree, and two of them sat
+ * in the middle of the opening frame looking exactly like rock. The silhouette
+ * a viewer uses to tell a tree from a stone is the gap of ground under the
+ * canopy, so the trunk is taller and thicker and the crown smaller and lifted
+ * clear of it. Two offset lobes rather than one sphere, because a single
+ * convex blob has no outline to read at distance.
+ */
 function broadleaf(seed: number): THREE.BufferGeometry {
-  const trunk = new THREE.CylinderGeometry(0.06, 0.1, 0.4, 5, 1)
-  trunk.translate(0, 0.2, 0)
-  const crown = roughen(new THREE.IcosahedronGeometry(0.38, 0), 0.26, seed)
-  crown.translate(0, 0.66, 0)
-  return merge([trunk, crown])
+  const trunk = new THREE.CylinderGeometry(0.075, 0.125, 0.62, 6, 1)
+  trunk.translate(0, 0.31, 0)
+  const lower = roughen(new THREE.IcosahedronGeometry(0.3, 0), 0.3, seed)
+  lower.scale(1, 0.8, 1)
+  lower.translate(0, 0.74, 0)
+  const upper = roughen(new THREE.IcosahedronGeometry(0.22, 0), 0.32, seed + 7)
+  upper.scale(1, 0.85, 1)
+  upper.translate(
+    (valueNoise(seed, seed * 1.7, seed) - 0.5) * 0.16,
+    0.96,
+    (valueNoise(seed * 2.3, seed, seed) - 0.5) * 0.16,
+  )
+  return merge([trunk, lower, upper])
 }
 
 /** A dead tree: trunk and two bare limbs. Rare, and worth it for the contrast. */

@@ -3,9 +3,23 @@ import * as THREE from 'three'
 import { startRenderLoop, type RenderLoop } from '../renderLoop'
 import { ChunkField, RADIUS, CHUNK_SIZE, scatterGeometry } from './chunks'
 import { createControls, EYE_HEIGHT } from './controls'
+import { buildRelief } from './relief'
 import { buildSurvey, type Survey } from './survey'
 import { createRiverSurface, createWater, type Water } from './water'
 import type { WorldSpec } from './worlds'
+
+/*
+ * The backdrop's reach and resolution.
+ *
+ * 5,200 units across because the fog is effectively total past 2,600, so a
+ * half-width of 2,600 is as far as anything can be seen from the middle; wider
+ * would be triangles behind an opaque wall of haze. 160 cells is 32.5 units a
+ * cell — at the 1,300 units where the mountains stand that is 1.4 degrees of
+ * arc, which is finer than the silhouette needs, and it is 51k triangles in one
+ * draw call built once per world.
+ */
+const BACKDROP_EXTENT = 5200
+const BACKDROP_RESOLUTION = 160
 
 export type Telemetry = {
   x: number
@@ -114,9 +128,21 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, requestLockR
     // chunk radius, and it thickens smoothly so the horizon has no visible end.
     scene.fog = new THREE.FogExp2(world.fog.color, world.fog.density)
 
-    // Beyond the loaded ring there is nothing to draw, so the far plane sits
-    // just past it rather than at a number that sounds generous.
-    const FAR = (RADIUS + 1) * CHUNK_SIZE
+    /*
+     * The far plane has to clear the backdrop, not the chunk ring.
+     *
+     * It used to sit just past the ring at 480 units, which was right when the
+     * ring was all there was to draw. It also meant this world's mountains —
+     * measured at 1,300 to 2,200 units out, because the brief puts the big
+     * relief away from the river — were behind the far plane and could never
+     * appear. Nothing was wrong with the terrain; there was no distance to put
+     * it in.
+     *
+     * Near stays at 0.5, so the depth range is 6,400:1. That is well inside
+     * what a 24-bit depth buffer holds without z-fighting on the ground at the
+     * viewer's feet, which is the thing a generous far plane usually breaks.
+     */
+    const FAR = BACKDROP_EXTENT * 0.62
     const camera = new THREE.PerspectiveCamera(
       72,
       container.clientWidth / container.clientHeight,
@@ -147,6 +173,22 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, requestLockR
 
     const field = new ChunkField(world)
     scene.add(field.group)
+
+    /*
+     * The distant relief, behind the chunk ring.
+     *
+     * The ring reaches 400 units; the fog at this world's density is 70% opaque
+     * by 1,300 units and 99% by 2,600, so the backdrop's job is the band in
+     * between — far enough to read as distance, near enough to still be there
+     * at all. It is the same height function, sunk 3 units so the detailed ring
+     * wins wherever both are drawn.
+     */
+    const backdrop = buildRelief(world, {
+      extent: BACKDROP_EXTENT,
+      resolution: BACKDROP_RESOLUTION,
+      drop: 3,
+    })
+    scene.add(backdrop.mesh)
 
     // Water is one plane that follows the camera. It is flat and unbounded in
     // effect, so there is nothing to chunk and nothing to seam.
@@ -279,6 +321,8 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, requestLockR
         survey.update(clock)
         survey.setMarker(controls.state.position.x, controls.state.position.z)
         field.group.visible = false
+        // The survey builds its own, finer relief over the same ground.
+        backdrop.mesh.visible = false
         for (const mesh of instanced.values()) mesh.visible = false
         if (water) water.mesh.visible = false
 
@@ -314,6 +358,7 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, requestLockR
       if (survey) survey.group.visible = false
       if (scene.fog instanceof THREE.FogExp2) scene.fog.density = world.fog.density
       field.group.visible = true
+      backdrop.mesh.visible = true
       for (const mesh of instanced.values()) mesh.visible = true
       if (water) water.mesh.visible = true
       if (camera.far !== FAR) {
@@ -371,6 +416,7 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, requestLockR
       controls.dispose()
       controlsRef.current = null
       survey?.dispose()
+      backdrop.dispose()
       field.dispose()
       for (const mesh of instanced.values()) {
         scene.remove(mesh)

@@ -12,6 +12,8 @@ measurements found them.
 - [The pipeline](#the-pipeline)
 - [Chunks](#chunks)
 - [The height function](#the-height-function)
+- [Macro topography](#macro-topography)
+- [The backdrop](#the-backdrop)
 - [Ground, and why it stopped being one colour](#ground-and-why-it-stopped-being-one-colour)
 - [The river](#the-river)
 - [Scatter](#scatter)
@@ -36,7 +38,8 @@ demo exists to make, so the implementation had to be honest about it.
 | Shaping of the sum | none | **terrace** | none |
 | Amplitude | 30 | 38 | 27 |
 | Domain warp | 16 | 9 | 12 |
-| Landmark | volcano, 210 high | massif, 130 high | valley trough, 34 deep |
+| Landmark | volcano, 210 high | massif, 130 high | none — see [Macro topography](#macro-topography) |
+| Macro relief | — | — | **massifs to 203, river corridor damped** |
 | Waterline | 16 (81% dry) | 21 (**48% dry**) | −13 (97% dry) |
 | Scatter | pillars, rocks | bergs, rocks | **trees**, rocks |
 | Seed | 1337 | 20260108 | 77 |
@@ -49,7 +52,7 @@ out live.
 
 ![Frozen Archipelago: terraced ice shelves above the waterline, the massif ahead](../images/explore-frozen.jpg)
 
-![Verdant Valley: trees clustered on the flats, thinning as the ground steepens toward the trough](../images/explore-verdant.jpg)
+![Verdant Valley: the river in its carved bed, a treeline along the far bank, and the macro relief hazing out on the horizon](../images/explore-verdant.jpg)
 
 ## Chunks
 
@@ -92,6 +95,91 @@ is a cone with a crater subtracted from its summit, added to the height at every
 coordinate inside its radius. That makes it procedural, seamless across chunks
 for free, and — because it sits at a known coordinate — something a spawn point
 can be aimed at.
+
+## Macro topography
+
+Verdant's terrain used to be one band of octaves, and it read as one band of
+octaves: rolling ground of roughly the same size everywhere, with nothing to
+walk toward. The brief for this pass was explicit that the fix is *not* more
+amplitude everywhere — gentle near the river, rolling at mid distance, ridges
+and mountains far out.
+
+That is three terms, and the order they are applied in is the whole design:
+
+    macro terrain -> downhill river route -> river carving -> local detail
+
+**`macroField` is the mountains**, at frequency 0.0007 — a wavelength of about
+1,400 units, so one mass spans most of the play area. It is thresholded at 0.6
+and squared, which is what keeps them as discrete masses rather than a swell.
+That shaping costs more than it looks: thresholding and squaring yields about
+38% of the nominal amplitude, so 170 produced 65-unit hills. The figure is 440
+now, which measures as 169.5 units with 25.9% of the area raised.
+
+**`routeField` is what the river is routed on** — the tilt, the macro term and
+the first two octaves, but not the fine detail. Routing on the full height
+function put the course into the first hollow it found and it never came out:
+5,131 self-overlaps. Routing on the regional shape alone lets it find the real
+watershed, and the detail it then runs through is small enough not to trap it.
+
+**`valleyFloor` takes the mountains back out near the finished course.** Without
+it the river is routed through terrain that then has a 200-unit massif standing
+on its bank, which is a canyon, not a valley. It removes 88% of the macro term
+within 380 units of the course, easing out with a smoothstep.
+
+The reach is the one number here that was actually a trade, so it was priced
+rather than picked. Measured across settings, from viewpoints that can see the
+water:
+
+| `valleyFloor.reach` | best skyline, after fog | p90 bank slope |
+| --- | --- | --- |
+| 460 | 4.62° | 0.427 |
+| **380** | **5.29°** | **0.440** |
+| 300 | 4.78° | 0.448 |
+| 240 | 3.88° | 0.464 |
+| 180 | 3.88° | 0.482 |
+
+Narrowing it does not buy skyline — it mostly steepens the banks, which is the
+canyon it exists to prevent. 380 is the best of both and the setting in use.
+
+Dry ground across the play area now runs p1 −6.2, p25 18.3, p50 27.0, p75 36.9,
+p90 45.9, p99 126.9, max 171.1. The long tail is the point: the median is still
+valley, and the top percentile is mountain.
+
+The river is unchanged by any of this, as it should be — it is routed before the
+carve and before the damping. 215 nodes, 4,280 units, falls 80.7, no validation
+problems, identical on a second build.
+
+## The backdrop
+
+The chunk ring is 5×5 at 160 units, so terrain exists 400 units from the camera
+and the far plane sat just past it at 480. Mountains measured at 1,300 to 2,200
+units out therefore could not appear in the world at all. Nothing was wrong with
+the terrain; there was no distance to put it in.
+
+**So there is a second, much coarser mesh behind the ring**: 5,200 units across
+at 160 cells, the same height function and the same material classification,
+51,200 triangles in one draw call, built once per world in 13–29 ms.
+
+Widening the ring instead would mean RADIUS 8 — 289 chunks against 25, and 11×
+the build cost, to draw ground whose detail is far below a pixel at that range.
+The extent is 5,200 because this world's fog is 99% opaque by 2,600 units, so a
+half-width of 2,600 is as far as anything can be seen from the middle; wider is
+triangles behind a wall of haze. At 1,300 units, where the massifs stand, the
+fog leaves about 30% — which is why they read as pale silhouettes rather than
+as green hills, and why `colorRange` is left fitted to the valley and the peaks
+allowed to clamp.
+
+**It is sunk 3 units.** It samples the same height function as the ring, so in
+the near field the two surfaces are coincident and z-fight across the whole
+ground — far more noticeable than anything the backdrop adds. A height field can
+only be sunk into hidden ground, never pushed up through it, so this cannot make
+the backdrop poke through the floor. At the 400 units where the ring ends, a
+3-unit step subtends 0.4°.
+
+`buildRelief` is shared with the overview, which wants the same thing from the
+other direction: the same height function sampled coarsely over far more ground
+than the ring. One function means the ridge on the horizon, the ridge on the
+map and the ridge you eventually walk onto are the same ridge.
 
 ## The pipeline
 
@@ -248,7 +336,7 @@ stays positive, neighbouring nodes stay a step apart, the source is in the play
 area and most of the course with it, and no two distant parts of the course
 overlap. All constraints hold, and the river is identical on a second build.
 
-## Scatter## Scatter
+## Scatter
 
 Candidates per chunk from a deterministic per-chunk sequence, filtered by bands
 on height and slope, then gated by a low-frequency field. The gate is what turns
@@ -324,7 +412,7 @@ produce different characters again.
 <kbd>M</kbd> from anywhere, locked or not, lifts you out of the world and orbits
 it from above.
 
-![The Frozen Archipelago from above: the massif, the island distribution, and the pin where you were standing](../images/explore-survey.jpg)
+![Verdant Valley from above: the river's whole course with its banks, the rolling macro relief, and the pin where you were standing](../images/explore-survey.jpg)
 
 **It is a toggle inside Explore rather than a separate page.** It is the same
 world and the same spec, so a page of its own would duplicate the scene setup
@@ -357,24 +445,130 @@ crossed:
 
 | | Volcanic | Frozen | Verdant |
 | --- | --- | --- | --- |
-| Chunk build, median | 3.9 ms | 4.6 ms | 5.4 ms |
-| Chunk build, worst | 6.6 ms | 9.6 ms | 11.0 ms |
+| Chunk build, median | 5.1–5.4 ms | 5.7–6.3 ms | 6.4–7.9 ms |
+| Chunk build, p90 | 5.7–6.4 ms | 6.4–7.3 ms | 6.6–9.2 ms |
+| Chunk build, worst after warm-up | 7.8–8.7 ms | 10.5–10.8 ms | 9.9–11.0 ms |
 | Live chunks, max | 25 | 25 | 25 |
-| Scatter instances, max | 4,544 | 2,779 | 7,130 |
+| Scatter instances, max | 4,544 | 2,713 | 6,879 |
+| Ring triangles | 204,800 | 204,800 | 204,800 |
+| Backdrop triangles | 51,200 | 51,200 | 51,200 |
+| Backdrop build, once per world | 17 ms | 13 ms | 29 ms |
 
-Verdant costs about 0.6 ms more per chunk than the others: every vertex asks the
-river where it is, twice — once to carve the height and once to classify the
-surface.
-| Triangles | 204,800 | 204,800 | 204,800 |
+Ranges, because two runs of the same walk differ by about 15% and a single
+figure would be false precision. Verdant is the dearest: every vertex asks the
+river where it is twice — once to carve the height and once to classify the
+surface — and the scatter now asks a third time, to keep props out of the
+water. It is the dearest backdrop for the same reason.
+
+**The worst build is always crossing 0**, and in Verdant it is 60–64 ms, which
+is four dropped frames. It is the JIT seeing this code for the first time:
+after eight crossings the worst is 9.9–11.0 ms, inside the 16.7 ms budget, and
+in the app that first build happens behind the curtain rather than under a
+viewer who is moving. Reporting it as *the* worst case, as this table used to,
+described a stutter nobody experiences.
 
 Nothing grows. Entering and leaving all three worlds twice returns the canvas
-count to zero every time and moves the heap from 42.8 MB to 52.5 MB.
+count to zero every time and moves the heap from 85.4 MB to 93.1 MB — the
+backdrop is built per world and disposed with it.
 
 The render loop is the project's own, so a world that nobody is flying stops
 scheduling frames entirely — the loop reports "still moving" only while the
 pointer is locked.
 
 ## Notes
+
+**The skyline read 0.00° and the terrain was not at fault.** The viewpoint
+solver reported no relief above the eye line from anywhere, through several
+rounds of raising the massif amplitude. Both limits were the instrument's: its
+rays stopped at 1,700 units while the massifs begin at 1,300 and peak at 1,900
+to 2,200, and its headings were pinned to within 0.7 rad of downstream. Measured
+straight off the height field, the best skyline from the same spot was 6.18°.
+The real ceiling was elsewhere again — the far plane was 480 units, so none of
+it could be drawn. Three different measurement windows, each hiding the next.
+
+**The river was scored by looking at the ground beside it.** `riverSeen`
+marched a ray over the terrain and counted samples near the channel that beat
+the horizon. But the river sits in a bed carved below its banks, so what that
+test confirms is that the *near bank* is visible — which it is from almost
+anywhere. Projecting the water surface through the real camera settled it: at
+the spawn that test chose, 81 nodes were inside the frame and **0** were
+unoccluded. Scoring the water points directly is the fix, and it is also slower,
+so the visibility is computed once per standing position and the headings are
+scored against that.
+
+Visibility falls off a cliff, which is worth knowing when placing anything:
+
+| Standing off the course | Nodes visible, mean | Best |
+| --- | --- | --- |
+| 20 units | 57.3 | 88 |
+| 60 units | 59.0 | 90 |
+| 90 units | 27.2 | 87 |
+| 130 units | 8.3 | 47 |
+| 330 units | 6.3 | 106 |
+| 600 units | 2.1 | 50 |
+
+The mean collapses between 90 and 130 units while the best stays high — good
+vantages exist out there, they are just rare, which is the case for solving for
+one rather than picking a spot that looks sensible on the map.
+
+**The macro pass moved the ground out from under the scatter.** The height
+windows were fitted to the old, flatter terrain and left alone: trees capped at
+22 when the median of dry ground is now 27. Measured, the tree rule admitted
+33.4% of dry ground and it was the lowest third, so everything above the valley
+floor came out bare — which is exactly what the first screenshot after the macro
+pass showed. Refitted to p1–p88, `[−8, 44]`, which keeps a treeline instead of
+losing one. Changing a default and not grepping for what depended on it is the
+failure this repo keeps repeating.
+
+**The flatness bounds were close to decorative.** The comment claimed trees were
+kept "off anything steep". Measured, 97% of dry ground clears `minFlatness`
+0.82 and 100% clears 0.5, because slope here is `1 − normalY` and this terrain
+is gentle nearly everywhere. What actually shapes the stands is `clump` at 0.92.
+The numbers are unchanged; the claim is not.
+
+**Trees grew in the river.** The scatter gated on absolute height and slope and
+nothing else, and an absolute height window cannot express "not underwater" for
+a river that descends 80 units: a bed 20 units down sits inside
+`[minHeight, maxHeight]` exactly like the bank beside it. Conifers stood in
+midstream, and it went unnoticed until a spawn was finally chosen that looked at
+the water — every earlier one was scoring the bank. The environment already
+measures depth against the *local* water surface, so the gate asks it rather
+than adding another number to tune. Measured after: 0 of 20,671 instances
+underwater in the valley, 0 of 14,368 in the caldera, 0 of 10,501 in the
+archipelago.
+
+**Two worlds' signature props were entirely underground.** `sink` is applied as
+`y − sink × scale`, and `scale` became the object's *height in world units* when
+the geometries were normalised. The sink values were never refitted: they had
+been written in world units against geometries that carried their own size, so
+`sink: 2.5` stopped meaning "two and a half units down" and started meaning "two
+and a half times its own height down". Measured, as a share of each prop's
+height standing above ground:
+
+| | before | after |
+| --- | --- | --- |
+| Caldera pillars | **−45%** | 88% |
+| Archipelago bergs | **−206%** | 73% |
+| Valley trees | 42% | 96% |
+
+All 149 pillars and all 312 bergs were below the ground they stood on, so
+neither world had ever shown the prop it was designed around. The valley's trees
+were the visible symptom: 42% of height above ground buries the whole trunk, and
+a broadleaf crown with no trunk under it is a boulder — which is exactly what
+the opening frame looked like, and why the first fix attempted was to the
+*geometry* rather than to the number that was wrong.
+
+It is the same failure as the scatter height windows above and the same failure
+as the 73-unit tree spikes before them: a refactor changed what a number means
+and the numbers written against the old meaning were left alone. The type now
+documents the unit.
+
+**Clearance has to be angular.** Rejecting a viewpoint with a prop inside a
+fixed radius passed a spawn with broadleaf trees 16 to 20 units away — and
+those trees are 15 units across, so each subtended 32–42° of a 72° frame and two
+of them covered the middle of the shot. A prop's cost to a composition is the
+angle it eats, which is size over distance, so that is what the test measures.
+
 
 **The first build cost a dropped frame about once a second.** `normalAt` asks
 the height function four extra times per vertex, which is five calls where one
