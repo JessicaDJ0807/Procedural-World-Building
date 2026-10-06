@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import * as THREE from 'three'
 import { startRenderLoop, type RenderLoop } from '../renderLoop'
 import { ChunkField, RADIUS, CHUNK_SIZE, scatterGeometry } from './chunks'
 import { createControls, EYE_HEIGHT } from './controls'
 import { buildSurvey, type Survey } from './survey'
+import { createRiverSurface, createWater, type Water } from './water'
 import type { WorldSpec } from './worlds'
 
 export type Telemetry = {
@@ -21,8 +22,17 @@ type Props = {
   world: WorldSpec
   onTelemetry: (t: Telemetry) => void
   onLockChange: (locked: boolean) => void
-  /** Bumped by the page to ask for pointer lock from a user gesture. */
-  lockToken: number
+  /**
+   * Filled in with a function that takes the pointer, and emptied when the
+   * scene goes away.
+   *
+   * A handle rather than a counter the page increments. The counter version
+   * fired its effect on mount as well as on change and was never reset, so the
+   * first world entered behaved and every one after it grabbed the pointer
+   * while the curtain was still up — leaving no cursor to click the curtain
+   * with. A handle has nothing to go stale.
+   */
+  requestLockRef: MutableRefObject<(() => void) | null>
   /** Survey lifts the camera off the ground and shows the world from above. */
   mode: 'fly' | 'survey'
 }
@@ -36,7 +46,7 @@ type Props = {
  * updates with no way to tell when one had been forgotten. A rebuild costs
  * about as much as the first load, which happens behind a click either way.
  */
-export function ExploreViewport({ world, onTelemetry, onLockChange, lockToken, mode }: Props) {
+export function ExploreViewport({ world, onTelemetry, onLockChange, requestLockRef, mode }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const controlsRef = useRef<ReturnType<typeof createControls> | null>(null)
   // Held so anything outside the scene effect can restart a stopped loop. Both
@@ -123,14 +133,16 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, lockToken, m
     /*
      * The fill, and it carries more than the sun does on anything facing away.
      *
-     * At 0.45 this was nominal and every back slope went to near-black — the
-     * foreground of all three worlds was a dark mass with a rim of light on the
-     * ridges. Outdoors the sky is a hemisphere of light, not a point, and a
+     * At 0.45 this was nominal and every back slope went to near-black. At 1.05
+     * it was the opposite fault: enough flat fill to erase the modelling
+     * entirely, which is most of what made the surface look washed out. It is
+     * per world now, because an overcast valley and a lava field at dusk do not
+     * want the same amount of sky. Outdoors the sky is a hemisphere of light, not a point, and a
      * single directional with a token ambient is what makes a render look like
      * a render. Sky colour above, the ground's own darkest stop below, so a
      * slope picks up the world it is standing in.
      */
-    const bounce = new THREE.HemisphereLight(world.sky, world.stops[0], 1.05)
+    const bounce = new THREE.HemisphereLight(world.sky, world.stops[0], world.fill)
     scene.add(bounce)
 
     const field = new ChunkField(world)
@@ -138,23 +150,15 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, lockToken, m
 
     // Water is one plane that follows the camera. It is flat and unbounded in
     // effect, so there is nothing to chunk and nothing to seam.
-    let water: THREE.Mesh | null = null
-    if (world.water && world.terrain.seaLevel !== null) {
-      const size = (RADIUS * 2 + 3) * CHUNK_SIZE
-      water = new THREE.Mesh(
-        new THREE.PlaneGeometry(size, size),
-        new THREE.MeshStandardMaterial({
-          color: world.water.color,
-          transparent: world.water.opacity < 1,
-          opacity: world.water.opacity,
-          metalness: world.water.metalness,
-          roughness: world.water.roughness,
-        }),
-      )
-      water.rotation.x = -Math.PI / 2
-      water.position.y = world.terrain.seaLevel
-      scene.add(water)
-    }
+    // A river carries its own descending surface; a sea is one level plane that
+    // follows the camera. Only one of the two is ever right for a world.
+    const water: Water | null = field.river
+      ? createRiverSurface(field.river, world)
+      : createWater(world, (RADIUS * 2 + 3) * CHUNK_SIZE)
+    if (water) scene.add(water.mesh)
+    // The ribbon is a fixed object in the world, so it must not be dragged
+    // along behind the camera the way the sea plane is.
+    const waterFollows = !field.river
 
     // One InstancedMesh per scatter kind. Counts are set from the first ring
     // and the buffer is reused after that, so walking never allocates.
@@ -233,6 +237,7 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, lockToken, m
     }
 
     let survey: Survey | null = null
+    let clock = 0
     let orbit = 0
     let frames = 0
     let sampled = 0
@@ -270,10 +275,12 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, lockToken, m
          */
         if (scene.fog instanceof THREE.FogExp2) scene.fog.density = 0.83 / (survey.extent * 1.7)
         survey.group.visible = true
+        clock += delta
+        survey.update(clock)
         survey.setMarker(controls.state.position.x, controls.state.position.z)
         field.group.visible = false
         for (const mesh of instanced.values()) mesh.visible = false
-        if (water) water.visible = false
+        if (water) water.mesh.visible = false
 
         // A slow orbit, because a still overhead shot of a procedural world is
         // hard to read as relief — the parallax is what makes the landform
@@ -308,7 +315,7 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, lockToken, m
       if (scene.fog instanceof THREE.FogExp2) scene.fog.density = world.fog.density
       field.group.visible = true
       for (const mesh of instanced.values()) mesh.visible = true
-      if (water) water.visible = true
+      if (water) water.mesh.visible = true
       if (camera.far !== FAR) {
         camera.far = FAR
         camera.updateProjectionMatrix()
@@ -317,8 +324,14 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, lockToken, m
       const moved = controls.update(delta, camera, (x, z) => field.heightAt(x, z))
       if (moved && field.update(camera.position.x, camera.position.z)) syncScatter()
       if (water) {
-        water.position.x = camera.position.x
-        water.position.z = camera.position.z
+        if (waterFollows) {
+          water.mesh.position.x = camera.position.x
+          water.mesh.position.z = camera.position.z
+        }
+        // Elapsed rather than per-frame delta: the ripples are a function of
+        // time, so a dropped frame has to skip forward rather than fall behind.
+        clock += delta
+        water.update(clock)
       }
       renderer.render(scene, camera)
 
@@ -347,10 +360,12 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, lockToken, m
     })
 
     loopRef.current = loop
+    requestLockRef.current = () => controls.request()
     setReady(true)
 
     return () => {
       loopRef.current = null
+      requestLockRef.current = null
       observer.disconnect()
       loop?.dispose()
       controls.dispose()
@@ -364,32 +379,13 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, lockToken, m
         mesh.dispose()
       }
       instanced.clear()
-      if (water) {
-        water.geometry.dispose()
-        ;(water.material as THREE.Material).dispose()
-      }
+      water?.dispose()
       skyTexture.dispose()
       renderer.dispose()
       renderer.domElement.remove()
       setReady(false)
     }
-  }, [world])
-
-  /**
-   * Taking the pointer lock, only ever from a click.
-   *
-   * This used to fire on mount as well, which was wrong twice over. Pointer
-   * lock needs a user gesture, and entering a world is a click on a card in a
-   * different component — but worse, StrictMode mounts this twice, so the first
-   * request landed on a canvas that the cleanup immediately removed. The result
-   * was a hidden cursor over a curtain that still wanted clicking, with no
-   * pointer left to click it.
-   *
-   * The curtain is the gesture now, and it is the only path in.
-   */
-  useEffect(() => {
-    if (lockToken > 0) controlsRef.current?.request()
-  }, [lockToken])
+  }, [world, requestLockRef])
 
   return <div className="explore-viewport" ref={containerRef} data-ready={ready} />
 }

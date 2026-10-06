@@ -1,6 +1,7 @@
 import * as THREE from 'three'
-import { buildStopsLut } from '../palette'
-import { heightField } from './terrain'
+import { classify, compileBands, createEnvironment } from './environment'
+import { createRiverSurface, createWater, type Water } from './water'
+import { createTerrain } from './river'
 import type { WorldSpec } from './worlds'
 
 /**
@@ -25,11 +26,19 @@ import type { WorldSpec } from './worlds'
  * lie. Those read from shading, and shading needs geometry.
  */
 
-const EXTENT = 4200
-const RESOLUTION = 128
+/*
+ * Tighter and finer than the first version, which was 4,200 units at 128 — 33
+ * units a cell, on which a river 40 units wide is one cell and reads as a
+ * smudge. At 3,400 and 192 a cell is 17.7 units, so the river has a shape and
+ * the banks either side of it survive.
+ */
+const EXTENT = 3400
+const RESOLUTION = 192
 
 export type Survey = {
   group: THREE.Group
+  /** Keeps the overview's water moving too, so it reads as water from above. */
+  update(elapsed: number): void
   /** Moves the marker to where the camera left off on the ground. */
   setMarker(x: number, z: number): void
   /** Half-width of the ground covered, for framing the camera. */
@@ -38,8 +47,14 @@ export type Survey = {
 }
 
 export function buildSurvey(spec: WorldSpec): Survey {
-  const height = heightField(spec.terrain)
-  const lut = buildStopsLut(spec.stops, 0)
+  const built = createTerrain(spec.terrain, spec.river)
+  const height = built.height
+  // The same classification the ground uses, so the overview and the walk
+  // agree: the pale band you can see from up here is the bank you were just
+  // standing on. It was a height ramp before, which quietly disagreed with
+  // everything after the bands landed.
+  const env = createEnvironment(spec, height, built.river)
+  const bands = compileBands(spec.bands)
   const group = new THREE.Group()
 
   const n = RESOLUTION + 1
@@ -49,8 +64,6 @@ export function buildSurvey(spec: WorldSpec): Survey {
   const positions = new Float32Array(n * n * 3)
   const normals = new Float32Array(n * n * 3)
   const colors = new Float32Array(n * n * 3)
-  const [lo, hi] = spec.colorRange
-  const span = hi - lo || 1
 
   // One extra ring, so the normals at the edge are differenced the same way as
   // everywhere else rather than going one-sided and lighting the border wrong.
@@ -78,11 +91,7 @@ export function buildSurvey(spec: WorldSpec): Survey {
       normals[o + 1] = 1 / len
       normals[o + 2] = -dz / len
 
-      const t = Math.min(1, Math.max(0, (y - lo) / span))
-      const c = Math.min(255, Math.max(0, Math.round(t * 255))) * 3
-      colors[o] = lut.linear[c]
-      colors[o + 1] = lut.linear[c + 1]
-      colors[o + 2] = lut.linear[c + 2]
+      classify(bands, env.at(origin + i * step, origin + j * step, y, normals[o + 1]), colors, o)
     }
   }
 
@@ -112,22 +121,13 @@ export function buildSurvey(spec: WorldSpec): Survey {
   })
   group.add(new THREE.Mesh(geometry, material))
 
-  let waterGeometry: THREE.PlaneGeometry | null = null
-  let waterMaterial: THREE.Material | null = null
-  if (spec.water && spec.terrain.seaLevel !== null) {
-    waterGeometry = new THREE.PlaneGeometry(EXTENT, EXTENT)
-    waterMaterial = new THREE.MeshStandardMaterial({
-      color: spec.water.color,
-      transparent: spec.water.opacity < 1,
-      opacity: spec.water.opacity,
-      metalness: spec.water.metalness,
-      roughness: spec.water.roughness,
-    })
-    const water = new THREE.Mesh(waterGeometry, waterMaterial)
-    water.rotation.x = -Math.PI / 2
-    water.position.y = spec.terrain.seaLevel
-    group.add(water)
-  }
+  // The same animated surface the ground uses, at the overview's extent — the
+  // river is the thing the overview is most often read for, and a still strip
+  // of flat colour is exactly what it should not look like.
+  const water: Water | null = built.river
+    ? createRiverSurface(built.river, spec)
+    : createWater(spec, EXTENT)
+  if (water) group.add(water.mesh)
 
   // A pin rather than a dot: from above, a flat marker on sloping ground is
   // impossible to place in depth, and a vertical line reads its own height.
@@ -147,14 +147,16 @@ export function buildSurvey(spec: WorldSpec): Survey {
   return {
     group,
     extent: EXTENT / 2,
+    update(elapsed) {
+      water?.update(elapsed)
+    },
     setMarker(x, z) {
       marker.position.set(x, height(x, z) + 130, z)
     },
     dispose() {
       geometry.dispose()
       material.dispose()
-      waterGeometry?.dispose()
-      waterMaterial?.dispose()
+      water?.dispose()
       markerGeometry.dispose()
       markerMaterial.dispose()
     },

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ExploreViewport, type Telemetry } from './ExploreViewport'
 import { WORLDS, type WorldSpec } from './worlds'
 import './explore.css'
@@ -17,7 +17,9 @@ const EMPTY: Telemetry = {
 export function ExplorePage() {
   const [world, setWorld] = useState<WorldSpec | null>(null)
   const [locked, setLocked] = useState(false)
-  const [lockToken, setLockToken] = useState(0)
+  // Set by the viewport while its scene is alive. Calling it is the only way
+  // the pointer is ever taken, and it is only ever called from a click.
+  const requestLockRef = useRef<(() => void) | null>(null)
   const [telemetry, setTelemetry] = useState<Telemetry>(EMPTY)
   const [hud, setHud] = useState(false)
   const [mode, setMode] = useState<'fly' | 'survey'>('fly')
@@ -26,8 +28,8 @@ export function ExplorePage() {
     setWorld(next)
     setTelemetry(EMPTY)
     setMode('fly')
-    // Deliberately does not ask for the pointer: the world opens behind the
-    // curtain, and the click on the curtain is the gesture that takes it.
+    // Deliberately does not ask for the pointer. The world opens behind the
+    // curtain and the click on the curtain is the gesture that takes it.
     setLocked(false)
   }
 
@@ -100,14 +102,14 @@ export function ExplorePage() {
         world={world}
         onTelemetry={onTelemetry}
         onLockChange={onLockChange}
-        lockToken={lockToken}
+        requestLockRef={requestLockRef}
         mode={mode}
       />
 
       {!locked && mode === 'fly' && (
         // Click-to-explore, because pointer lock needs a gesture and a browser
         // that has just released the pointer will refuse an immediate re-lock.
-        <button type="button" className="explore-curtain" onClick={() => setLockToken((n) => n + 1)}>
+        <button type="button" className="explore-curtain" onClick={() => requestLockRef.current?.()}>
           <span className="explore-curtain-name">{world.name}</span>
           <span className="explore-curtain-cta">Click to explore</span>
           <span className="explore-curtain-look">{world.look}</span>
@@ -154,9 +156,9 @@ export function ExplorePage() {
 
       {mode === 'survey' && (
         <div className="explore-survey-note">
-          <strong>{world.name}</strong> from 4,200 units across — the same height
-          function the ground is built from, sampled coarsely. The pin is where you
-          were standing.
+          <strong>{world.name}</strong> from 3,400 units across — the same height
+          function and the same material classification the ground uses, sampled
+          coarsely. The pin is where you were standing.
         </div>
       )}
     </div>

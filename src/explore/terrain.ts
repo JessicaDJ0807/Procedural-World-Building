@@ -41,6 +41,8 @@ function hash2(ix: number, iz: number, seed: number): number {
 
 const fade = (t: number) => t * t * (3 - 2 * t)
 
+const ramp01 = (v: number, a: number, b: number) => fade(Math.min(1, Math.max(0, (v - a) / (b - a || 1e-6))))
+
 /** One octave of value noise at a continuous coordinate. */
 export function valueNoise(x: number, z: number, seed: number): number {
   const x0 = Math.floor(x)
@@ -153,7 +155,51 @@ export type TerrainSpec = {
   warp: number
   /** Fine roughness, in world units, added after shaping. 0 leaves it smooth. */
   detail: number
+  /**
+   * A medium-frequency ridged layer, added on top of the octave stack.
+   *
+   * The stack alone gives one family of shapes at every scale, because each
+   * octave is the same noise at twice the frequency. Hills and cliffs are a
+   * different kind of feature from the landmasses under them, and this is where
+   * they come from: ridged noise at a few hundred units, strong enough to break
+   * a smooth flank and weak enough to leave the macro geography recognisable.
+   */
+  ridges: { amount: number; frequency: number } | null
   landmark: Landmark
+  /**
+   * Channels radiating from a point, cut into the terrain.
+   *
+   * The reason lava needs this. Flooding everything below a waterline gives
+   * hundreds of unconnected red patches wherever the noise happens to dip —
+   * a red camouflage pattern rather than a lava field. Cutting a few deep
+   * channels out from the crater and then flooding gives flows: connected,
+   * running downhill, and recognisable as having come from somewhere.
+   */
+  channels: {
+    x: number
+    z: number
+    /** How many run out from the centre. A handful reads; twenty does not. */
+    count: number
+    /** How far down they cut, in world units. */
+    depth: number
+    /** How far out they reach before fading. */
+    reach: number
+    /** Angular width, as a fraction of the gap between channels. */
+    width: number
+  } | null
+  /**
+   * A regional gradient, in units of fall per world unit.
+   *
+   * Added because a river needs a watershed and this terrain had none. Measured
+   * before it existed: mean height across the whole play area ran from 16.7 to
+   * 26.5 — ten units over three and a half thousand, which is flat. Greedy
+   * descent on flat ground does not descend, it circles, and the first traced
+   * course was 3,380 units long and ended 530 units from its own source.
+   *
+   * Small enough to be invisible standing on it, large enough to be the reason
+   * water goes one way rather than another.
+   */
+  tilt: { x: number; z: number } | null
   /** World Y of the water plane. `null` for a dry world. */
   seaLevel: number | null
 }
@@ -166,7 +212,7 @@ export type TerrainSpec = {
  * per-call cost is what the frame budget is actually made of.
  */
 export function heightField(spec: TerrainSpec): (x: number, z: number) => number {
-  const { seed, frequency, octaves, persistence, amplitude, shaping, outputShaping, warp, landmark, detail } =
+  const { seed, frequency, octaves, persistence, amplitude, shaping, outputShaping, warp, landmark, detail, channels, ridges, tilt } =
     spec
 
   return (x: number, z: number) => {
@@ -192,11 +238,47 @@ export function heightField(spec: TerrainSpec): (x: number, z: number) => number
 
     let h = shape(sum / total, outputShaping) * amplitude + landmarkAt(landmark, x, z, seed)
 
+    if (channels) {
+      const dx = x - channels.x
+      const dz = z - channels.z
+      const r = Math.hypot(dx, dz)
+      if (r > 1 && r < channels.reach) {
+        // The angle, wandered by a noise field that varies with radius. Without
+        // it the channels are straight spokes, which reads as a wheel rather
+        // than as drainage.
+        const wander = (valueNoise(r * 0.004, 0, seed + 606) - 0.5) * 1.5
+        const a = Math.atan2(dz, dx) / (Math.PI * 2) + wander
+        // JS `%` keeps the sign of its left operand, so atan2's negative half
+        // came back negative here and never matched a channel — the flows
+        // existed on one side of the crater only.
+        const f = (((a * channels.count) % 1) + 1) % 1
+        const t = Math.abs(f - 0.5) * 2
+        const across = 1 - Math.min(1, t / channels.width)
+        if (across > 0) {
+          // Shallow at the rim, deepest mid-way, closing again at the reach —
+          // so a flow has a head and a toe rather than ending at a wall.
+          const along = Math.min(1, r / (channels.reach * 0.22)) * (1 - ramp01(r / channels.reach, 0.55, 1))
+          h -= channels.depth * (across * across * (3 - 2 * across)) * along
+        }
+      }
+    }
+
     // A fine octave added after the shaping rather than inside it. Inside, the
     // output op would quantise it away — terracing in particular flattens
     // anything finer than a tread. Outside, it survives as the roughness you
     // only see within a few dozen units, which is the scale the chunk grid can
     // actually resolve and the one that stops near ground reading as polished.
+    if (tilt) h += x * tilt.x + z * tilt.z
+
+    if (ridges) {
+      // Folded and squared: the fold makes a crease rather than a dune, and
+      // squaring keeps the troughs flat so the result reads as ridges standing
+      // on the existing ground rather than as a second layer of hills.
+      const v = valueNoise(wx * ridges.frequency, wz * ridges.frequency, seed + 808)
+      const fold = 1 - Math.abs(v * 2 - 1)
+      h += fold * fold * ridges.amount
+    }
+
     if (detail > 0) {
       h += (valueNoise(x * frequency * 9, z * frequency * 9, seed + 404) - 0.5) * 2 * detail
     }
