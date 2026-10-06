@@ -194,3 +194,12 @@
 .path-list .segmented-option {
   flex: 1 1 45%;
 }
+
+.flow-viewport {
+  cursor: crosshair;
+}
+
+.study-paused {
+  top: 12px;
+  left: 12px;
+}

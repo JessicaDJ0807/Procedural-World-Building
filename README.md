@@ -23,6 +23,7 @@ runs.
   - [Topic 4 — Shaders](#topic-4--shaders)
   - [Topic 5 — Distributions](#topic-5--distributions)
   - [Topic 6 — Paths](#topic-6--paths)
+  - [Topic 7 — Vector Fields](#topic-7--vector-fields)
 - [Study notebook](#study-notebook) — the full documentation index
 - [Keyboard](#keyboard)
 - [Getting started](#getting-started)
@@ -211,6 +212,27 @@ it finds the valley and climbs nothing.
 
 ![The Topic 6 page in debug view: two roads, three rivers including a tributary, each path's 2D spline above the terrain with drop lines to the ground, and the elevation profile](docs/images/readme-topic-6-paths.png)
 
+### [Topic 7 — Vector Fields](docs/topics/topic-7-vector-fields.md)
+
+Motion without geometry. Eighteen thousand particles, none with any motion of
+its own, each asking one 2D velocity field which way to go: a current left to
+right, vortices that bend it into swirls, slowly drifting curl noise, and
+whatever the mouse stirs in. Every term is divergence-free — checked
+numerically on screen — so particles flow around each other instead of piling
+into sinks, and the trails they leave in a fading half-float buffer are the
+field made visible.
+
+- **Show vector field** — an arrow grid over the dimmed trails, so the
+  particles can be seen doing what the arrows say.
+- **Draggable vortices** — move any vortex by its centre; drag anywhere else to
+  stir, which injects a decaying vortex dipole.
+- **Midpoint integration** — measured against Euler, which spirals a vortex
+  orbit outward by 78% in ten seconds and would empty every core.
+- Controls for particle count, flow speed, current, vortex count, strength and
+  radius, noise, and trail persistence; seeded and resize-safe.
+
+![Topic 7: particle trails flowing left to right and curling around six vortices, blue-white on a dark ground](docs/images/readme-topic-7-flow.jpg)
+
 ## Study notebook
 
 The write-ups are the coursework, not a side effect of it. The full index —
@@ -277,7 +299,8 @@ src/
 │   ├── VoxelPage.tsx         Topic 3 — viewport, sidebar, and CSG state
 │   ├── ShaderPage.tsx        Topic 4 — strategy selector and parameters
 │   ├── DistributionPage.tsx  Topic 5 — layer rules, debug view, probe
-│   └── PathPage.tsx          Topic 6 — path editor and elevation profile
+│   ├── PathPage.tsx          Topic 6 — path editor and elevation profile
+│   └── FlowPage.tsx          Topic 7 — field and particle controls
 ├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
@@ -301,7 +324,7 @@ src/
 │   ├── erosion.ts            Virtual-pipe hydraulic erosion
 │   ├── boids.ts              Fish schooling
 │   └── index.ts              The strategy registry
-├── study/                    Shared by the Topic 5+ studies
+├── study/                    Shared by the Topic 5–7 studies
 │   ├── terrain.ts            Small eroded terrain: height, slope, distance to water
 │   └── study.css             Viewport overlays, segmented picker, swatches
 ├── distributions/            Topic 5
@@ -313,6 +336,10 @@ src/
 │   ├── road.ts               Projection, grade, cut and fill
 │   ├── river.ts              Downhill trace, descending profile, carve
 │   └── PathViewport.tsx      Terrain, ribbons, draggable handles, debug projection
+├── flow/                     Topic 7
+│   ├── field.ts              Current, vortices, curl noise, stirs; the divergence check
+│   ├── particles.ts          Typed-array particles, midpoint step, segment writer
+│   └── FlowViewport.tsx      Accumulation buffer, arrow and handle overlays, pointer
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── Workspace.tsx             Three resizable columns: library, canvas, inspector
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
@@ -338,7 +365,8 @@ src/
 │   ├── voxelConfig.ts        Topic 3's saved shape
 │   ├── shaderConfig.ts       Topic 4's saved shape
 │   ├── distributionConfig.ts Topic 5's saved shape
-│   └── pathConfig.ts         Topic 6's saved shape
+│   ├── pathConfig.ts         Topic 6's saved shape
+│   └── flowConfig.ts         Topic 7's saved shape
 ├── project/                  The Project section — separate from the topics, not a topic itself
 │   ├── ProjectLayout.tsx     Reading shell: measured column, generous margins, own scroller
 │   ├── ProjectOverview.tsx   What is being built, which systems, how far each is wired in
@@ -359,7 +387,8 @@ docs/
 │   ├── topic-3-voxels.md
 │   ├── topic-4-shaders.md
 │   ├── topic-5-distributions.md
-│   └── topic-6-paths.md
+│   ├── topic-6-paths.md
+│   └── topic-7-vector-fields.md
 ├── analysis/                 Measurement and comparison reports
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
