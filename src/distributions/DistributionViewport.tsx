@@ -94,7 +94,9 @@ export function DistributionViewport({
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(VIEWPORT_BACKGROUND)
     studyLights(scene)
-    const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 100)
+    // Aspect and aim set at creation, so a hover before the first frame
+    // probes through the camera the user is actually looking through.
+    const camera = new THREE.PerspectiveCamera(40, container.clientWidth / Math.max(container.clientHeight, 1), 0.05, 100)
     camera.position.set(0, 8.6, 11.8)
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
@@ -102,6 +104,8 @@ export function DistributionViewport({
     controls.maxPolarAngle = Math.PI * 0.47
     controls.minDistance = 2
     controls.maxDistance = 24
+    controls.update()
+    camera.updateMatrixWorld()
     const gate = createCameraGate()
 
     const instanced = MESHES.map((spec) => {

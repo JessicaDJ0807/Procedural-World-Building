@@ -5,9 +5,9 @@
  * what the defaults are, how to validate a document, how to summarise it in one
  * line — are supplied per topic and everything else is written once.
  */
-export type TopicId = ShowcaseTopic | 'distributions'
+export type TopicId = ShowcaseTopic | 'distributions' | 'paths'
 
-export const TOPIC_IDS: TopicId[] = ['objects', 'maps', 'voxels', 'shaders', 'distributions']
+export const TOPIC_IDS: TopicId[] = ['objects', 'maps', 'voxels', 'shaders', 'distributions', 'paths']
 
 /**
  * The topics the showcase worlds were written for.

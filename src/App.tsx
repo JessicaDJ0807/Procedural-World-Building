@@ -3,6 +3,7 @@ import { AuthBar } from './AuthBar'
 import { NoisePage } from './pages/NoisePage'
 import { ObjectViewerPage } from './pages/ObjectViewerPage'
 import { DistributionPage } from './pages/DistributionPage'
+import { PathPage } from './pages/PathPage'
 import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
 import { ExplorePage } from './explore/ExplorePage'
@@ -29,6 +30,7 @@ const PLAYGROUND_PAGES: Record<PlaygroundId, () => ReactElement> = {
   voxels: () => <VoxelPage />,
   shaders: () => <ShaderPage />,
   distributions: () => <DistributionPage />,
+  paths: () => <PathPage />,
 }
 
 const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => ReactElement> = {

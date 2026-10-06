@@ -143,3 +143,54 @@
   background: var(--accent-subtle);
   color: var(--text-primary);
 }
+
+.study-profile {
+  right: 12px;
+  bottom: 12px;
+}
+
+.profile-title {
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.study-profile svg {
+  display: block;
+}
+
+.profile-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font-size: 11.5px;
+}
+
+.key-line {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  vertical-align: middle;
+  background: #949aa3;
+}
+
+.key-line.is-dashed {
+  background: repeating-linear-gradient(90deg, #949aa3 0 3px, transparent 3px 5px);
+}
+
+/* The Topic 6 path picker: the segmented look, but wrapping, because the
+   number of paths changes. */
+.path-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.path-list .segmented-option {
+  flex: 1 1 45%;
+}

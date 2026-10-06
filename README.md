@@ -22,6 +22,7 @@ runs.
   - [Topic 3 — Voxels](#topic-3--voxels)
   - [Topic 4 — Shaders](#topic-4--shaders)
   - [Topic 5 — Distributions](#topic-5--distributions)
+  - [Topic 6 — Paths](#topic-6--paths)
 - [Study notebook](#study-notebook) — the full documentation index
 - [Keyboard](#keyboard)
 - [Getting started](#getting-started)
@@ -185,6 +186,31 @@ bushes are always the layer closest to water.
 
 ![The Topic 5 page: trees, bushes and rocks around a lake, with the hover probe showing why each can or cannot grow at one point](docs/images/readme-topic-5-distributions.png)
 
+### [Topic 6 — Paths](docs/topics/topic-6-paths.md)
+
+How lines and terrain shape each other. Roads and rivers — up to four of each —
+on the same ground, all drawn as a 2D spline first and given height second, and
+opposite in who gives way. The **road** takes its heights from the terrain, smooths them into a
+grade, then cuts and fills the corridor to meet it: on the default route the
+steepest stretch falls from 73% on the ground to 26% on the road. The **river**
+lets the terrain choose its route, tracing downhill from a source with a water
+surface that only descends and a channel that only cuts. Held to its guides it
+climbs 0.41 units of ridge and has to trench 0.55 deep; let the terrain lead and
+it finds the valley and climbs nothing.
+
+- **Draggable control points** — the path and the ground it changes rebuild as
+  you drag; add or remove points, roads and rivers.
+- **Paths that meet** — rivers carve in order, so a later one can join an
+  earlier one's channel as a tributary; roads grade last, filling channels as
+  causeways and meeting each other at junctions.
+- **Debug view** — the 2D spline on a map plane above the terrain, drop lines to
+  its projected points, the centreline it was built to, and each path's
+  footprint tinted on the ground.
+- **Elevation profile** — the ground under the spline against the road grade or
+  the water surface and bed.
+
+![The Topic 6 page in debug view: two roads, three rivers including a tributary, each path's 2D spline above the terrain with drop lines to the ground, and the elevation profile](docs/images/readme-topic-6-paths.png)
+
 ## Study notebook
 
 The write-ups are the coursework, not a side effect of it. The full index —
@@ -250,7 +276,8 @@ src/
 │   ├── NoisePage.tsx         Topic 2 — viewport, sidebar, and noise state
 │   ├── VoxelPage.tsx         Topic 3 — viewport, sidebar, and CSG state
 │   ├── ShaderPage.tsx        Topic 4 — strategy selector and parameters
-│   └── DistributionPage.tsx  Topic 5 — layer rules, debug view, probe
+│   ├── DistributionPage.tsx  Topic 5 — layer rules, debug view, probe
+│   └── PathPage.tsx          Topic 6 — path editor and elevation profile
 ├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
@@ -281,6 +308,11 @@ src/
 │   ├── rules.ts              The factors, the three layers, their defaults
 │   ├── scatter.ts            Jittered candidates, acceptance, per-instance variation
 │   └── DistributionViewport.tsx  Terrain, instanced assets, masks, hover probe
+├── paths/                    Topic 6
+│   ├── spline.ts             2D Catmull–Rom at even arc length, corridor stamp, smoothing
+│   ├── road.ts               Projection, grade, cut and fill
+│   ├── river.ts              Downhill trace, descending profile, carve
+│   └── PathViewport.tsx      Terrain, ribbons, draggable handles, debug projection
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── Workspace.tsx             Three resizable columns: library, canvas, inspector
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
@@ -305,7 +337,8 @@ src/
 │   ├── noiseConfig.ts        Topic 2's saved shape
 │   ├── voxelConfig.ts        Topic 3's saved shape
 │   ├── shaderConfig.ts       Topic 4's saved shape
-│   └── distributionConfig.ts Topic 5's saved shape
+│   ├── distributionConfig.ts Topic 5's saved shape
+│   └── pathConfig.ts         Topic 6's saved shape
 ├── project/                  The Project section — separate from the topics, not a topic itself
 │   ├── ProjectLayout.tsx     Reading shell: measured column, generous margins, own scroller
 │   ├── ProjectOverview.tsx   What is being built, which systems, how far each is wired in
@@ -325,7 +358,8 @@ docs/
 │   ├── topic-2-maps.md
 │   ├── topic-3-voxels.md
 │   ├── topic-4-shaders.md
-│   └── topic-5-distributions.md
+│   ├── topic-5-distributions.md
+│   └── topic-6-paths.md
 ├── analysis/                 Measurement and comparison reports
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
