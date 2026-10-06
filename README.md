@@ -21,6 +21,7 @@ runs.
   - [Topic 2 — Maps](#topic-2--maps)
   - [Topic 3 — Voxels](#topic-3--voxels)
   - [Topic 4 — Shaders](#topic-4--shaders)
+  - [Topic 5 — Distributions](#topic-5--distributions)
 - [Study notebook](#study-notebook) — the full documentation index
 - [Keyboard](#keyboard)
 - [Getting started](#getting-started)
@@ -161,6 +162,29 @@ field views, which are maps rather than photographs.
 
 ![The Topic 4 page: a matte eroded terrain on a dark ground, with the strategy selector and parameters in the sidebar](docs/images/readme-topic-4-shaders.png)
 
+### [Topic 5 — Distributions](docs/topics/topic-5-distributions.md)
+
+Where things appear. Trees, bushes and rocks are scattered over a small eroded
+terrain, each layer by its own rule: a product of soft factors for elevation,
+slope, distance to water and cluster noise, so any one of them can veto a
+point. Trees take the flatter valley floors, bushes crowd the shoreline, rocks
+take the steep rim and whatever vegetation leaves. Measured over four terrains,
+the mean slope under each layer always orders trees < bushes < rocks, and the
+bushes are always the layer closest to water.
+
+- **Rules you can edit** — slope window, elevation band, water influence and
+  clustering per layer, plus a density each.
+- **A probe** — hover the ground and every factor of every rule is printed for
+  that point, so a refusal always says which question refused it.
+- **Debug masks** — paint the terrain with any layer's probability, all three,
+  or the input fields the rules read.
+- **Variation from the ground** — broadleaf trees in the wet lowlands, trees
+  shrinking toward the treeline, rocks larger on steep ground and tilted to it.
+- Seeded and reproducible; five instanced meshes, re-scattered live in a few
+  milliseconds.
+
+![The Topic 5 page: trees, bushes and rocks around a lake, with the hover probe showing why each can or cannot grow at one point](docs/images/readme-topic-5-distributions.png)
+
 ## Study notebook
 
 The write-ups are the coursework, not a side effect of it. The full index —
@@ -225,7 +249,8 @@ src/
 │   ├── ObjectViewerPage.tsx  Topic 1 — viewer and its control panel
 │   ├── NoisePage.tsx         Topic 2 — viewport, sidebar, and noise state
 │   ├── VoxelPage.tsx         Topic 3 — viewport, sidebar, and CSG state
-│   └── ShaderPage.tsx        Topic 4 — strategy selector and parameters
+│   ├── ShaderPage.tsx        Topic 4 — strategy selector and parameters
+│   └── DistributionPage.tsx  Topic 5 — layer rules, debug view, probe
 ├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
@@ -249,6 +274,13 @@ src/
 │   ├── erosion.ts            Virtual-pipe hydraulic erosion
 │   ├── boids.ts              Fish schooling
 │   └── index.ts              The strategy registry
+├── study/                    Shared by the Topic 5+ studies
+│   ├── terrain.ts            Small eroded terrain: height, slope, distance to water
+│   └── study.css             Viewport overlays, segmented picker, swatches
+├── distributions/            Topic 5
+│   ├── rules.ts              The factors, the three layers, their defaults
+│   ├── scatter.ts            Jittered candidates, acceptance, per-instance variation
+│   └── DistributionViewport.tsx  Terrain, instanced assets, masks, hover probe
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── Workspace.tsx             Three resizable columns: library, canvas, inspector
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
@@ -272,8 +304,9 @@ src/
 │   ├── objectConfig.ts       Topic 1's saved shape
 │   ├── noiseConfig.ts        Topic 2's saved shape
 │   ├── voxelConfig.ts        Topic 3's saved shape
-│   └── shaderConfig.ts       Topic 4's saved shape
-├── project/                  The Project section — separate from the topics, not Topic 5
+│   ├── shaderConfig.ts       Topic 4's saved shape
+│   └── distributionConfig.ts Topic 5's saved shape
+├── project/                  The Project section — separate from the topics, not a topic itself
 │   ├── ProjectLayout.tsx     Reading shell: measured column, generous margins, own scroller
 │   ├── ProjectOverview.tsx   What is being built, which systems, how far each is wired in
 │   ├── ProjectDemo.tsx       The integrated world and its nine high-level controls
@@ -291,7 +324,8 @@ docs/
 │   ├── topic-1-objects.md
 │   ├── topic-2-maps.md
 │   ├── topic-3-voxels.md
-│   └── topic-4-shaders.md
+│   ├── topic-4-shaders.md
+│   └── topic-5-distributions.md
 ├── analysis/                 Measurement and comparison reports
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
@@ -337,7 +371,7 @@ serif when it moves.
 **The app has two sections, and they are not peers of each other's pages.**
 Playground is where a technique is taken apart, Project is where the techniques
 are put back together — so they sit on their own row above the topic tabs, and
-the two sets are never shown at once. The project is not Topic 5: topics are
+the two sets are never shown at once. The project is not a topic: topics are
 numbered bodies of coursework, and the project cuts across all of them.
 Navigation is the History API in forty lines rather than a router, because seven
 static destinations use almost none of what a router is for — measured at

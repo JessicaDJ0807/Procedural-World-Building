@@ -1,4 +1,4 @@
-import { TOPIC_IDS, type TopicId } from '../config/spec'
+import { SHOWCASE_TOPICS, type ShowcaseTopic } from '../config/spec'
 import { listConfigurations, saveConfiguration } from '../firebase/configs'
 import { SPECS, validateAll } from './validate'
 import { SHOWCASE_WORLDS, settingsFor } from './worlds'
@@ -6,7 +6,7 @@ import { SHOWCASE_WORLDS, settingsFor } from './worlds'
 export type SeedOutcome = {
   created: number
   skipped: number
-  failures: { world: string; topic: TopicId; reason: string }[]
+  failures: { world: string; topic: ShowcaseTopic; reason: string }[]
 }
 
 /**
@@ -59,14 +59,14 @@ export async function seedShowcaseWorlds(
 
   // One listing per topic, not one per document: the names a topic already
   // holds are the same for all five worlds.
-  const existing: Partial<Record<TopicId, Set<string>>> = {}
-  for (const topic of TOPIC_IDS) {
+  const existing: Partial<Record<ShowcaseTopic, Set<string>>> = {}
+  for (const topic of SHOWCASE_TOPICS) {
     const configs = await listConfigurations(uid, SPECS[topic])
     existing[topic] = new Set(configs.map((config) => config.name))
   }
 
   for (const world of SHOWCASE_WORLDS) {
-    for (const topic of TOPIC_IDS) {
+    for (const topic of SHOWCASE_TOPICS) {
       if (existing[topic]?.has(world.name)) {
         outcome.skipped++
         continue

@@ -89,7 +89,7 @@ Don't modify or fold away earlier topics.
 
 **Topics go in the Playground.** The app has two top-level sections — Playground
 for taking a technique apart, Project for putting them back together. New
-coursework is a topic in the Playground; the Project is not Topic 5 and does not
+coursework is a topic in the Playground; the Project is not a topic and does not
 get numbered pages. See `docs/project/app-structure.md`.
 
 ## Before you say it works

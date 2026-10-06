@@ -130,8 +130,8 @@ Within that, controls are placed by what they change, not by topic:
 | Right sidebar | How is this made? | Mesher, octaves, erosion, shader strategy |
 | View popover | How am I looking at it? | Palette, spin, wireframe, sampling bounds |
 
-The View button is a floating eye in the viewport's top-right, identical on all
-four topics, opening a compact popover. It lives inside the canvas column
+The View button is a floating eye in the viewport's top-right, identical on every
+topic, opening a compact popover. It lives inside the canvas column
 rather than the sidebar, so it stays anchored when a divider is dragged and
 opening it resizes nothing — measured: the canvas is the same width open and
 closed.

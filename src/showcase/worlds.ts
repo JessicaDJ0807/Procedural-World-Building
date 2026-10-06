@@ -3,7 +3,7 @@ import { defaultObjectSettings, type ObjectSettings } from '../config/objectConf
 import { defaultShaderSettings, type ShaderSettings } from '../config/shaderConfig'
 import { defaultSettings as defaultVoxelSettings, type StoredNode, type VoxelSettings } from '../config/voxelConfig'
 import { defaultParamsFor, getShapingOp, type ShapingName } from '../noise'
-import type { TopicId } from '../config/spec'
+import type { ShowcaseTopic } from '../config/spec'
 
 /**
  * A gallery of what the four topics can do, as saved worlds.
@@ -47,7 +47,7 @@ export type ShowcaseWorld = {
   name: string
   blurb: string
   /** What to look at on each topic once the world is loaded. */
-  showcases: Record<TopicId, string>
+  showcases: Record<ShowcaseTopic, string>
   objects: ObjectSettings
   maps: NoiseSettings
   voxels: VoxelSettings
@@ -492,7 +492,7 @@ export const SHOWCASE_WORLDS: ShowcaseWorld[] = [
 ]
 
 /** The settings a world carries for one topic, for the seeder to write. */
-export function settingsFor(world: ShowcaseWorld, topic: TopicId): unknown {
+export function settingsFor(world: ShowcaseWorld, topic: ShowcaseTopic): unknown {
   switch (topic) {
     case 'objects':
       return world.objects

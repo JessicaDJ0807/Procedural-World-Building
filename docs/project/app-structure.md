@@ -19,7 +19,7 @@ holds the two halves apart was written rather than installed.
 
 The app has two top-level destinations.
 
-**Playground** holds the four topics. Each one takes a single technique apart
+**Playground** holds the topics. Each one takes a single technique apart
 and exposes every parameter it has, because on those pages the parameter space
 *is* the subject — you cannot learn what carry capacity does without being able
 to set it somewhere destructive.
@@ -34,7 +34,7 @@ Project pages are read rather than driven, so they get a measured column,
 generous margins, and type large enough to present from. Putting them at the
 same navigation level would have implied they were the same kind of thing.
 
-**The project is not Topic 5.** Topics are bodies of coursework and they are
+**The project is not a topic.** Topics are bodies of coursework and they are
 numbered; the project cuts across all of them and is numbered by nothing. It
 gets its own section rather than a fifth tab.
 
@@ -45,7 +45,7 @@ Two rows in the header:
 ```
 Procedural World Building    [ Playground | Project ]              [ auth ]
 ──────────────────────────────────────────────────────────────────────────
-Topic 1 Objects   Topic 2 Maps   Topic 3 Voxels   Topic 4 Shaders
+Topic 1 Objects   Topic 2 Maps   Topic 3 Voxels   Topic 4 Shaders   Topic 5 …
 ```
 
 The section row is a pill group — weight and a filled background, because these

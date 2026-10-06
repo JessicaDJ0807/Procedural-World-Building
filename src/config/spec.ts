@@ -5,9 +5,22 @@
  * what the defaults are, how to validate a document, how to summarise it in one
  * line — are supplied per topic and everything else is written once.
  */
-export type TopicId = 'objects' | 'maps' | 'voxels' | 'shaders'
+export type TopicId = ShowcaseTopic | 'distributions'
 
-export const TOPIC_IDS: TopicId[] = ['objects', 'maps', 'voxels', 'shaders']
+export const TOPIC_IDS: TopicId[] = ['objects', 'maps', 'voxels', 'shaders', 'distributions']
+
+/**
+ * The topics the showcase worlds were written for.
+ *
+ * A showcase world is one design expressed through each of the first four
+ * topics, and the seeder writes one document per world per topic. Later topics
+ * save and load like any other, but have no showcase settings — so the seeder
+ * walks this list, not TOPIC_IDS, rather than writing an empty world into a
+ * topic it was never designed for.
+ */
+export type ShowcaseTopic = 'objects' | 'maps' | 'voxels' | 'shaders'
+
+export const SHOWCASE_TOPICS: ShowcaseTopic[] = ['objects', 'maps', 'voxels', 'shaders']
 
 export type ConfigSpec<S> = {
   topic: TopicId

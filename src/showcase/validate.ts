@@ -2,7 +2,7 @@ import { noiseSpec } from '../config/noiseConfig'
 import { objectSpec } from '../config/objectConfig'
 import { shaderSpec } from '../config/shaderConfig'
 import { voxelSpec } from '../config/voxelConfig'
-import { TOPIC_IDS, type ConfigSpec, type TopicId } from '../config/spec'
+import { SHOWCASE_TOPICS, TOPIC_IDS, type ConfigSpec, type ShowcaseTopic } from '../config/spec'
 import { settingsFor, SHOWCASE_WORLDS, type ShowcaseWorld } from './worlds'
 
 /**
@@ -14,7 +14,7 @@ import { settingsFor, SHOWCASE_WORLDS, type ShowcaseWorld } from './worlds'
  * does not bundle for Node from this project's browser build.
  */
 /** Paired with the four `ConfigSpec`s, so a document is written by its own contract. */
-export const SPECS: Record<TopicId, ConfigSpec<never>> = {
+export const SPECS: Record<ShowcaseTopic, ConfigSpec<never>> = {
   objects: objectSpec as unknown as ConfigSpec<never>,
   maps: noiseSpec as unknown as ConfigSpec<never>,
   voxels: voxelSpec as unknown as ConfigSpec<never>,
@@ -23,12 +23,12 @@ export const SPECS: Record<TopicId, ConfigSpec<never>> = {
 
 /**
  * Firestore's rules require a non-empty name of at most 120 characters, a topic
- * from the allowed four, and a settings map. Checked here rather than left to
+ * from the allowed list, and a settings map. Checked here rather than left to
  * the write, because a rejection surfaces as `permission-denied`, which reads
  * identically to not being signed in and would send anyone debugging it to the
  * wrong place entirely.
  */
-export function validate(world: ShowcaseWorld, topic: TopicId): string | null {
+export function validate(world: ShowcaseWorld, topic: ShowcaseTopic): string | null {
   if (!world.name || world.name.length === 0) return 'name is empty'
   if (world.name.length > 120) return `name is ${world.name.length} characters, over the 120 limit`
   if (!TOPIC_IDS.includes(topic)) return `topic ${topic} is not one the rules allow`
@@ -70,10 +70,10 @@ function findInvalid(value: unknown, path = 'settings'): string | null {
 }
 
 /** Every world against every topic, before anything is written. */
-export function validateAll(): { world: string; topic: TopicId; reason: string }[] {
-  const problems: { world: string; topic: TopicId; reason: string }[] = []
+export function validateAll(): { world: string; topic: ShowcaseTopic; reason: string }[] {
+  const problems: { world: string; topic: ShowcaseTopic; reason: string }[] = []
   for (const world of SHOWCASE_WORLDS) {
-    for (const topic of TOPIC_IDS) {
+    for (const topic of SHOWCASE_TOPICS) {
       const reason = validate(world, topic)
       if (reason) problems.push({ world: world.name, topic, reason })
     }

@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { AuthBar } from './AuthBar'
 import { NoisePage } from './pages/NoisePage'
 import { ObjectViewerPage } from './pages/ObjectViewerPage'
+import { DistributionPage } from './pages/DistributionPage'
 import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
 import { ExplorePage } from './explore/ExplorePage'
@@ -27,6 +28,7 @@ const PLAYGROUND_PAGES: Record<PlaygroundId, () => ReactElement> = {
   maps: () => <NoisePage />,
   voxels: () => <VoxelPage />,
   shaders: () => <ShaderPage />,
+  distributions: () => <DistributionPage />,
 }
 
 const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => ReactElement> = {
@@ -91,7 +93,7 @@ function App() {
         }))
       : PROJECT.map((entry) => ({
           route: { section: 'project', page: entry.id } as Route,
-          // Project pages carry no topic number — the project is not Topic 5.
+          // Project pages carry no topic number — the project is not a topic.
           label: undefined as string | undefined,
           title: entry.title,
           hint: entry.blurb,
