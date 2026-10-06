@@ -99,7 +99,7 @@ const STAGES: Stage[] = [
   {
     from: 'Surface shading',
     to: 'Appearance and atmosphere',
-    what: 'Six fragment shaders over one fixed terrain, with geometry, light and camera held still so the strategies can actually be compared. Plus a lighting model built for a dark ground, Fresnel, and distance haze.',
+    what: 'Eight fragment shaders over one fixed terrain, with geometry, light and camera held still so the strategies can actually be compared. Plus a lighting model built for a dark ground, Fresnel, and distance haze.',
     contribution:
       'Not wired into the demo yet — the one gap on this page. The strategies live inside a full-screen GPU pipeline built around that one fixed terrain, so they cannot be pointed at a different mesh; using them here means lifting the material out of the pipeline rather than calling it. Until then the demo renders with the standard material from Topic 1.',
     finding:

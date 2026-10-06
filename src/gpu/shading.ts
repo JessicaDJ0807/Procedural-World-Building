@@ -11,7 +11,7 @@ const GRID = 192
 const WORLD = 3
 
 /**
- * One surface, shaded six ways.
+ * One surface, shaded eight ways.
  *
  * The geometry never changes between strategies — that is the whole design.
  * Everything you see differ is the last shader in the chain, so the comparison
@@ -68,6 +68,9 @@ const PRELUDE = /* glsl */ `
   uniform float uNoiseAmount;
   uniform float uFresnel;
   uniform float uHaze;
+  uniform float uLevel;
+  uniform float uBands;
+  uniform float uContours;
 
   ${GLSL_DUSK}
 
@@ -198,19 +201,232 @@ const STRATEGIES: { key: string; label: string; hint: string; body: string }[] =
       gl_FragColor = vec4(recede(colour, uHaze), 1.0);
     `,
   },
+  {
+    key: 'water',
+    label: 'Animated water',
+    hint: 'A second surface at the waterline, shaded from what lies under it. Depth is read from the same height texture the terrain uses, so the water knows where it is shallow without being told: it thins to the ground at the shore, darkens over the valleys, and breaks into foam where depth reaches zero. The waves are four moving sines whose slopes bend the normal — the geometry is a flat quad and never moves.',
+    // The ground is All together, darkened and cooled with depth below the
+    // waterline. Without this the terrain seen through shallow water is the
+    // same colour as dry ground, and the shore reads as glass laid on top.
+    body: /* glsl */ `
+      vec3 n = normalize(vNormal);
+      vec3 viewDir = normalize(uCamera - vWorld);
+      vec3 albedo = texture2D(uRamp, vec2(vHeight, 0.5)).rgb;
+      float bare = smoothstep(0.24, 0.58, steepness(n));
+      albedo = mix(albedo, STEEP, bare * 0.85);
+      float wet = smoothstep(uLevel + 0.025, uLevel, vHeight);
+      albedo *= 1.0 - wet * 0.28;
+      vec3 colour = shade(albedo, n, viewDir);
+      gl_FragColor = vec4(recede(colour, uHaze), 1.0);
+    `,
+  },
+  {
+    key: 'stylized',
+    label: 'Stylized / contour',
+    hint: 'Every continuous quantity quantised. Elevation is snapped to a few flat bands, the light to three tones, slope to a hard switch, and contour lines are drawn at even heights using the screen-space derivative of elevation so they stay one pixel wide at any distance. Same mesh, same light — it reads as a map rather than a place.',
+    body: /* glsl */ `
+      vec3 n = normalize(vNormal);
+      float bands = max(uBands, 2.0);
+      float stepped = (floor(vHeight * bands) + 0.5) / bands;
+      vec3 albedo = texture2D(uRamp, vec2(stepped, 0.5)).rgb;
+      albedo = mix(albedo, STEEP, step(0.42, steepness(n)) * 0.8);
+
+      // Three tones — shadow, mid, lit — instead of a gradient.
+      float wrapped = dot(n, uLight) * 0.5 + 0.5;
+      float tone = floor(wrapped * 3.0) / 2.0;
+      vec3 colour = albedo * mix(DUSK_SHADOW * 1.15, DUSK_KEY, clamp(tone, 0.0, 1.0) * 0.8);
+
+      // fwidth is how far elevation changes across one pixel, so dividing by
+      // it gives the distance to the nearest contour in pixels. A fixed
+      // threshold in height units instead would draw hairlines on steep
+      // ground and smears on the flats.
+      if (uContours > 0.5) {
+        float c = vHeight * uContours;
+        float px = abs(fract(c - 0.5) - 0.5) / max(fwidth(c), 1e-4);
+        float major = step(0.5, mod(floor(c + 0.5), 5.0)) < 0.5 ? 1.6 : 1.0;
+        float ink = 1.0 - clamp(px / major, 0.0, 1.0);
+        colour = mix(colour, DUSK_BG, ink * 0.75);
+      }
+      gl_FragColor = vec4(colour, 1.0);
+    `,
+  },
 ]
+
+/** The water surface for the Animated water strategy: a flat quad at the waterline. */
+const WATER_VERTEX = /* glsl */ `
+  uniform float uLevel;
+  uniform float uRelief;
+  varying vec2 vUv;
+  varying vec3 vWorld;
+  void main() {
+    vUv = uv;
+    vec3 raised = position + vec3(0.0, 0.0, uLevel * uRelief);
+    vWorld = (modelMatrix * vec4(raised, 1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(raised, 1.0);
+  }
+`
+
+const WATER_FRAGMENT = /* glsl */ `
+  precision highp float;
+  uniform sampler2D uHeight;
+  uniform float uLevel;
+  uniform float uRelief;
+  uniform float uTime;
+  uniform float uWaves;
+  uniform float uFoam;
+  uniform vec3 uLight;
+  uniform vec3 uCamera;
+  varying vec2 vUv;
+  varying vec3 vWorld;
+
+  ${GLSL_DUSK}
+
+  const vec3 SHALLOW = vec3(${(DUSK.softBlue >> 16 & 255) / 255}, ${(DUSK.softBlue >> 8 & 255) / 255}, ${(DUSK.softBlue & 255) / 255});
+  const vec3 DEEP = vec3(0.17, 0.22, 0.29);
+
+  /**
+   * Slope of four travelling sines, summed analytically.
+   *
+   * The derivative is written out rather than taken by finite differences,
+   * so the normal is exact and costs four cosines. Directions and wavelengths
+   * are deliberately unrelated so the sum never visibly repeats.
+   */
+  vec2 waveSlope(vec2 p, float t) {
+    vec2 slope = vec2(0.0);
+    vec2 dirs[4];
+    dirs[0] = normalize(vec2(1.0, 0.35));
+    dirs[1] = normalize(vec2(-0.6, 1.0));
+    dirs[2] = normalize(vec2(0.2, -1.0));
+    dirs[3] = normalize(vec2(-1.0, -0.45));
+    float k[4];
+    k[0] = 9.0; k[1] = 14.0; k[2] = 23.0; k[3] = 37.0;
+    for (int i = 0; i < 4; i++) {
+      // Deep-water dispersion: speed grows with wavelength, so the long
+      // swells overtake the chop instead of the whole sheet sliding.
+      float omega = sqrt(9.8 * k[i]) * 0.35;
+      float amp = 0.9 / k[i];
+      slope += dirs[i] * k[i] * amp * cos(dot(dirs[i], p) * k[i] - omega * t);
+    }
+    return slope;
+  }
+
+  float hash(vec2 p) {
+    p = fract(p * vec2(233.34, 851.73));
+    p += dot(p, p + 23.45);
+    return fract(p.x * p.y);
+  }
+
+  float noise(vec2 x) {
+    vec2 i = floor(x);
+    vec2 f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+               mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+  }
+
+  void main() {
+    float ground = texture2D(uHeight, vUv).r;
+    float depth = (uLevel - ground) * uRelief;
+    if (depth <= 0.0) discard;
+
+    vec2 slope = waveSlope(vWorld.xz, uTime) * uWaves * 0.12;
+    vec3 n = normalize(vec3(-slope.x, 1.0, -slope.y));
+    vec3 viewDir = normalize(uCamera - vWorld);
+
+    // Depth in world units; 0.06 is about a fifth of the default relief, which
+    // is where the bed stops showing through.
+    float murk = smoothstep(0.0, 0.06, depth);
+    vec3 body = mix(SHALLOW, DEEP, murk) * duskLight(n, uLight);
+
+    // Schlick's Fresnel: water looking straight down is transparent, at a
+    // grazing angle it is a mirror of the sky. That one term is most of what
+    // makes a flat plane read as a liquid.
+    float fresnel = 0.02 + 0.98 * pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 5.0);
+    vec3 colour = mix(body, DUSK_SKY * 0.95, fresnel * 0.8);
+
+    // Water is the one surface allowed a real highlight — the dusk sheen is
+    // capped at 0.035 because on terrain a glint reads as varnish, and on
+    // water its absence reads as plastic.
+    vec3 halfway = normalize(uLight + viewDir);
+    colour += DUSK_KEY * pow(max(dot(n, halfway), 0.0), 90.0) * 0.35;
+
+    // Foam where the water runs out, broken up by drifting noise so it laps
+    // rather than sitting as a solid outline of the contour.
+    float shore = 1.0 - smoothstep(0.0, 0.012 * uFoam + 1e-4, depth);
+    float lace = noise(vWorld.xz * 38.0 + vec2(uTime * 0.6, -uTime * 0.4));
+    float foam = shore * smoothstep(0.35, 0.75, lace + shore * 0.4);
+    colour = mix(colour, vec3(0.86, 0.85, 0.82), foam * 0.85);
+
+    float alpha = mix(0.35, 0.93, murk);
+    alpha = max(alpha, fresnel);
+    gl_FragColor = vec4(colour, max(alpha, foam));
+  }
+`
+
+/** Index of the strategy the page opens on — the full stack, not the newest addition. */
+const DEFAULT_STRATEGY = STRATEGIES.findIndex((s) => s.key === 'combined')
+const WATER_STRATEGY = STRATEGIES.findIndex((s) => s.key === 'water')
 
 const PARAMS: ParamSpec[] = [
   {
     key: 'strategy',
     label: 'Strategy',
-    info: 'Which fragment shader draws the surface. The geometry, the light and the camera are identical across all six — everything that changes is the answer to "what colour is this pixel?".',
+    info: 'Which fragment shader draws the surface. The geometry, the light and the camera are identical across all eight — everything that changes is the answer to "what colour is this pixel?".',
     min: 0,
     max: STRATEGIES.length - 1,
     step: 1,
-    value: STRATEGIES.length - 1,
+    // By index, and new strategies are appended, so a saved world that picked
+    // strategy 5 still means All together.
+    value: DEFAULT_STRATEGY,
     format: (v) => STRATEGIES[Math.round(v)]?.label ?? '',
-    options: STRATEGIES.map((s, index) => ({ value: index, label: s.label })),
+    options: STRATEGIES.map((s, index) => ({ value: index, label: s.label, hint: s.hint })),
+  },
+  {
+    key: 'waterLevel',
+    label: 'Water level',
+    info: 'Where the waterline sits, as a fraction of the terrain height. Used by Animated water, which reports underneath how much of the surface that floods. The terrain is not changed — water is a second surface, and depth is read per pixel from the height texture.',
+    min: 0,
+    max: 0.8,
+    step: 0.01,
+    value: 0.3,
+  },
+  {
+    key: 'waves',
+    label: 'Waves',
+    info: 'How steeply the four travelling sines tilt the water normal. Zero is a mirror-flat plane; the geometry never moves at any setting — only the normal does, which is what the light and the Fresnel term respond to.',
+    min: 0,
+    max: 2,
+    step: 0.01,
+    value: 0.8,
+  },
+  {
+    key: 'foam',
+    label: 'Shore foam',
+    info: 'Width of the foam band where water depth approaches zero. Depth is known per pixel, so the foam follows the true shoreline at any water level with no authored mask.',
+    min: 0,
+    max: 3,
+    step: 0.05,
+    value: 1,
+  },
+  {
+    key: 'bands',
+    label: 'Elevation bands',
+    info: 'How many flat colour steps elevation is snapped to in the Stylized strategy. Low counts read as a poster; around twelve the steps start to read as a gradient again.',
+    min: 2,
+    max: 16,
+    step: 1,
+    value: 6,
+    format: (v) => v.toFixed(0),
+  },
+  {
+    key: 'contours',
+    label: 'Contour lines',
+    info: 'How many contour intervals span the full height range in the Stylized strategy; every fifth line is drawn heavier. Zero turns them off.',
+    min: 0,
+    max: 60,
+    step: 1,
+    value: 24,
+    format: (v) => (v === 0 ? 'off' : v.toFixed(0)),
   },
   {
     key: 'relief',
@@ -361,6 +577,13 @@ export function createShading(): Simulation {
   let active = -1
   let turntable = 0
   let buildMs = 0
+  let water: THREE.Mesh | null = null
+  let heights: Float32Array | null = null
+  // Coverage is recounted only when the level moves: 36,864 compares is
+  // nothing, but there is no reason to do it sixty times a second either.
+  let coverageLevel = -1
+  let coverage = 0
+  let lastDraw = 0
   // Set from OrbitControls.update(), which reports whether it moved the
   // camera. Damping keeps moving it for a second or so after the pointer is
   // released, and the loop has to stay awake for all of it.
@@ -379,7 +602,7 @@ export function createShading(): Simulation {
     id: 'shading',
     label: 'Surface shading',
     blurb:
-      'One eroded terrain, six fragment shaders. The geometry, the light and the camera never change — only the shader that decides what colour a pixel is.',
+      'One eroded terrain, eight fragment shaders. The geometry, the light and the camera never change — only the shader that decides what colour a pixel is.',
     params: PARAMS,
     // Nothing accumulates here — the terrain is built once and held.
     accumulates: false,
@@ -444,7 +667,15 @@ export function createShading(): Simulation {
         uNoiseAmount: { value: 0.22 },
         uFresnel: { value: 0.3 },
         uHaze: { value: 0.35 },
+        uLevel: { value: 0.3 },
+        uTime: { value: 0 },
+        uWaves: { value: 0.8 },
+        uFoam: { value: 1 },
+        uBands: { value: 6 },
+        uContours: { value: 24 },
       }
+      heights = new Float32Array(GRID * GRID)
+      for (let i = 0; i < heights.length; i++) heights[i] = terrain.data[i * 4]
       selectRamp(0)
 
       for (const strategy of STRATEGIES) {
@@ -462,6 +693,23 @@ export function createShading(): Simulation {
       surface.frustumCulled = false
       surface.rotation.x = -Math.PI / 2
       scene.add(surface)
+
+      // A child of the surface, so it turns with the turntable and shares its
+      // frame: the quad's uv is the height texture's uv, which is how a water
+      // pixel finds the ground directly beneath it.
+      water = new THREE.Mesh(
+        new THREE.PlaneGeometry(WORLD, WORLD, 1, 1),
+        new THREE.ShaderMaterial({
+          vertexShader: WATER_VERTEX,
+          fragmentShader: WATER_FRAGMENT,
+          uniforms,
+          transparent: true,
+          depthWrite: false,
+        }),
+      )
+      water.frustumCulled = false
+      water.visible = false
+      surface.add(water)
 
       const start = defaults(PARAMS)
       active = Math.round(start.strategy)
@@ -507,6 +755,29 @@ export function createShading(): Simulation {
       uniforms.uNoiseAmount.value = param(params, PARAMS, 'noiseAmount')
       uniforms.uFresnel.value = param(params, PARAMS, 'fresnel')
       uniforms.uHaze.value = param(params, PARAMS, 'haze')
+      uniforms.uLevel.value = param(params, PARAMS, 'waterLevel')
+      uniforms.uWaves.value = param(params, PARAMS, 'waves')
+      uniforms.uFoam.value = param(params, PARAMS, 'foam')
+      uniforms.uBands.value = param(params, PARAMS, 'bands')
+      uniforms.uContours.value = param(params, PARAMS, 'contours')
+
+      // Wall-clock time rather than a frame count, so the waves move at the
+      // same speed whether the loop is at its 60 fps cap or struggling. The
+      // gap is clamped so waking from idle does not jump the sea forward.
+      const now = performance.now()
+      const dt = lastDraw === 0 ? 0 : Math.min((now - lastDraw) / 1000, 0.1)
+      lastDraw = now
+      const showWater = active === WATER_STRATEGY
+      if (showWater) uniforms.uTime.value += dt
+      if (water) water.visible = showWater
+
+      const level = param(params, PARAMS, 'waterLevel')
+      if (heights && level !== coverageLevel) {
+        coverageLevel = level
+        let under = 0
+        for (const h of heights) if (h < level) under++
+        coverage = under / heights.length
+      }
 
       const azimuth = (param(params, PARAMS, 'azimuth') * Math.PI) / 180
       const elevation = (param(params, PARAMS, 'elevation') * Math.PI) / 180
@@ -527,7 +798,12 @@ export function createShading(): Simulation {
     },
 
     animating(params) {
-      return param(params, PARAMS, 'spin') !== 0 || cameraMoving
+      // Water is the one strategy that changes with time and nothing else.
+      const flowing =
+        Math.round(param(params, PARAMS, 'strategy')) === WATER_STRATEGY &&
+        param(params, PARAMS, 'waves') > 0
+      if (!flowing) lastDraw = 0
+      return param(params, PARAMS, 'spin') !== 0 || cameraMoving || flowing
     },
 
     resize(width, height) {
@@ -539,6 +815,9 @@ export function createShading(): Simulation {
       return [
         { label: 'surface', value: `${GRID}² = ${(GRID * GRID).toLocaleString()} vertices` },
         { label: 'strategy', value: STRATEGIES[active]?.label ?? '' },
+        ...(active === WATER_STRATEGY
+          ? [{ label: 'under water', value: `${(coverage * 100).toFixed(1)}% of the surface` }]
+          : []),
         { label: 'terrain built in', value: `${buildMs.toFixed(0)} ms` },
       ]
     },
@@ -550,6 +829,10 @@ export function createShading(): Simulation {
       materials.length = 0
       heightTexture?.dispose()
       ramp?.dispose()
+      water?.geometry.dispose()
+      ;(water?.material as THREE.Material | undefined)?.dispose()
+      water = null
+      heights = null
       surface = null
       controls = null
     },

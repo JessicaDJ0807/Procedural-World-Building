@@ -12,7 +12,7 @@ colour a surface is, then to decide what the surface *does*.
 ## Contents
 
 - [Visual language](#visual-language) — two registers, and what was wrong with the first attempt
-- [Surface shading](#surface-shading) — one terrain, six fragment shaders
+- [Surface shading](#surface-shading) — one terrain, eight fragment shaders
 - [The machine](#the-machine) — what the four simulations have in common
 - [Water ripples](#water-ripples) — the wave equation, and a measured stability limit
 - [Reaction–diffusion](#reactiondiffusion) — two chemicals, and the patterns behind coral
@@ -81,9 +81,10 @@ avoid.
 
 ## Surface shading
 
-Six fragment shaders over one surface. The geometry, the light and the camera
-are identical in all six — everything that differs is the answer to "what
-colour is this pixel?".
+Eight fragment shaders over one surface. The geometry, the light and the camera
+are identical in all eight — everything that differs is the answer to "what
+colour is this pixel?". Choosing a strategy prints its explanation under the
+selector, so a switch in class says what changed as well as showing it.
 
 The terrain is not simulated here. It is built once at startup by **Topic 2's
 own droplet erosion**, run over a six-octave fBm stack at 192², and then held
@@ -105,6 +106,20 @@ interesting; erosion puts real ridges and valley walls in it. The surface is
 | --- | --- |
 | ![Fresnel](../images/topic-4-shading-fresnel.jpg) | ![Combined](../images/topic-4-shading-combined.jpg) |
 | Grazing faces sink *toward* the background rather than picking up sky colour, and distance fades the surface into it. Inverted from the usual additive rim on purpose: against a dark ground, adding light at the silhouette reads as a light source however faint it is, and puts the whole image back into sci-fi territory. Here the edge recedes instead, which is the same technique doing the opposite job. | Every technique layered in the order they are normally applied — elevation, then slope, then noise, then lighting, then rim and haze. Each of the five above is this with one term removed. |
+
+| Animated water | Stylized / contour |
+| --- | --- |
+| ![Animated water](../images/topic-4-shading-water.jpg) | ![Stylized](../images/topic-4-shading-stylized.jpg) |
+| A second surface — one flat quad — at the waterline, shaded from what is under it. The water reads the same height texture as the terrain, so depth is known per pixel: shallow water thins to the bed, deep water goes to slate, and foam forms wherever depth reaches zero, at any water level, with no authored shoreline. The waves are four travelling sines whose *slopes* bend the normal; the quad itself never moves. Schlick's Fresnel does most of the work — transparent looking down, a mirror of the sky at a grazing angle. The sidebar reports how much of the surface the chosen level floods: 27.4% at the default 0.30. | Every continuous quantity quantised: elevation snapped to flat bands, the light to three tones, slope to a hard switch. Contour lines are drawn by dividing distance-to-the-nearest-contour by `fwidth` of elevation, which converts it to pixels — so a line is one pixel wide on a cliff and on a plain alike, where a threshold in height units would draw hairlines on the steep ground and smears on the flat. Same mesh, same light; it reads as a map. |
+
+**What each new strategy is for in the project.** Water is the first strategy
+that needs *time* — it is the reason the shading study can now be animating
+while nothing is simulated — and it is the one the explorable worlds need
+most: their lakes and rivers are flat planes, and depth-from-heightfield is
+exactly the information those planes do not currently use. The contour
+strategy is a debugging view as much as a style: banded elevation makes a
+terracing bug or a seam between chunks visible at a glance, where a smooth
+ramp hides it.
 
 **Relief is a uniform, not geometry.** The vertex shader samples the height
 texture and derives the normal from its neighbours, so the surface can be
@@ -333,6 +348,23 @@ be compile-time constant, so the school size cannot be a uniform. The velocity
 shader is **rebuilt** whenever the count changes.
 
 ## Notes
+
+**Two strategies were appended, not inserted.** The strategy is stored by
+index in a saved world, so slotting water in beside height would have quietly
+turned every saved "All together" into something else. The new two sit at
+indices 6 and 7 and the default is looked up by key.
+
+**The water is the one surface allowed a real highlight.** The dusk sheen is
+capped at 0.035 because on terrain a glint reads as varnish. On water its
+*absence* reads as plastic, so the water gets `pow(n·h, 90) × 0.35` — tighter
+and brighter than the terrain's, and confined to the one material that should
+have it.
+
+**The stats froze on a switch.** The viewport reported once per half-second
+window, and a still strategy draws a single frame and goes idle, so the window
+never closed: switching from Animated water to Stylized left the sidebar
+naming water. The last frame before idling now reports too, carrying the
+previous frame rate over rather than quoting one frame as a measurement.
 
 **Play and Step are disabled on the shading study.** It declares
 `accumulates: false` — its terrain is built once at startup and held — so there

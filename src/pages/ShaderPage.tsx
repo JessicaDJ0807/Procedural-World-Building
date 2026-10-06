@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { ConfigPanel } from '../ConfigPanel'
 import { InfoTip } from '../InfoTip'
 import { ShaderViewport } from '../ShaderViewport'
@@ -82,22 +82,28 @@ export function ShaderPage() {
 
   const renderControl = (spec: ParamSpec) => {
     if (spec.options) {
+      // A strategy switch is only legible if the page says what changed, so an
+      // option that carries its own explanation shows it under the selector.
+      const chosen = spec.options.find((option) => option.value === params[spec.key])
       return (
-        <label className="control" key={spec.key}>
-          <span className="control-label">
-            <InfoTip text={spec.info}>{spec.label}</InfoTip>
-          </span>
-          <select
-            value={String(params[spec.key])}
-            onChange={(event) => setParam(spec.key, Number(event.target.value))}
-          >
-            {spec.options.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Fragment key={spec.key}>
+          <label className="control">
+            <span className="control-label">
+              <InfoTip text={spec.info}>{spec.label}</InfoTip>
+            </span>
+            <select
+              value={String(params[spec.key])}
+              onChange={(event) => setParam(spec.key, Number(event.target.value))}
+            >
+              {spec.options.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {chosen?.hint && <p className="hint">{chosen.hint}</p>}
+        </Fragment>
       )
     }
     return (

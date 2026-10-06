@@ -70,6 +70,8 @@ export function ShaderViewport({
     let frames = 0
     let since = performance.now()
     let cost = 0
+    let lastFps = 0
+    let lastMs = 0
 
     const loop = startRenderLoop(() => {
       const sim = simRef.current
@@ -83,24 +85,29 @@ export function ShaderViewport({
       sim.draw(renderer, paramsRef.current)
       cost += performance.now() - started
 
-      frames += 1
-      const now = performance.now()
-      if (now - since > 500) {
-        reportRef.current({
-          stats: sim.stats(),
-          fps: (frames * 1000) / (now - since),
-          ms: cost / frames,
-        })
-        frames = 0
-        cost = 0
-        since = now
-      }
-
       // Keep going while the simulation is accumulating state, or while the
       // view is still moving on its own. Both false means this was the last
       // frame until something wakes the loop.
       const stepping = advance && (sim.accumulates ?? true)
-      return stepping || (sim.animating?.(paramsRef.current) ?? false)
+      const moving = stepping || (sim.animating?.(paramsRef.current) ?? false)
+
+      frames += 1
+      const now = performance.now()
+      if (now - since > 500) {
+        lastFps = (frames * 1000) / (now - since)
+        lastMs = cost / frames
+        reportRef.current({ stats: sim.stats(), fps: lastFps, ms: lastMs })
+        frames = 0
+        cost = 0
+        since = now
+      } else if (!moving) {
+        // The last frame before idling reports too. Otherwise a switch from a
+        // moving strategy to a still one left the sidebar naming the old one,
+        // because the half-second window never closed. The rate is carried
+        // over: one frame is not a measurement of anything.
+        reportRef.current({ stats: sim.stats(), fps: lastFps, ms: lastMs })
+      }
+      return moving
     })
     loopRef.current = loop
     const stopWaking = wakeOnInput(loop)

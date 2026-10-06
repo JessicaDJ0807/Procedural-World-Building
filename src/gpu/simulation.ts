@@ -12,7 +12,7 @@ export type ParamSpec = {
   /** How the value reads next to its label. Defaults to two decimals. */
   format?: (value: number) => string
   /** Present when the value is a choice rather than a range. */
-  options?: { value: number; label: string }[]
+  options?: { value: number; label: string; hint?: string }[]
   /**
    * Belongs in the viewport's View popover rather than the sidebar: it changes
    * how the result is looked at, not what the simulation computes. Rare on

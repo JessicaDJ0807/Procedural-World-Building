@@ -67,7 +67,7 @@ const SYSTEMS: System[] = [
     topic: 'Topic 4',
     role: 'Decides how the surface looks once its shape is settled.',
     parts: [
-      'six fragment-shader strategies over one fixed terrain',
+      'eight fragment-shader strategies over one fixed terrain',
       'a lighting model built for a dark ground',
       'Fresnel and distance haze',
       'four GPU simulations: ripples, reaction–diffusion, erosion, schooling',
@@ -209,7 +209,7 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
           composition of Topics 2 and 3 on one world.
         </p>
         <p>
-          The shading study is the honest gap. Its six strategies live inside a
+          The shading study is the honest gap. Its eight strategies live inside a
           full-screen GPU pipeline built around one fixed terrain, so they cannot
           simply be pointed at a different mesh; wiring them in means lifting the
           material out of that pipeline rather than calling it. That is the next piece

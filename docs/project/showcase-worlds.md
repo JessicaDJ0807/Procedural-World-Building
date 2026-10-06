@@ -156,7 +156,7 @@ roughness. A lava glow is the **Slate — ember** ramp in Shaders, not a lit
 object.
 
 **Topic 4's terrain is fixed, by design.** The shading study holds geometry,
-light and camera still so the six strategies can be compared against each other.
+light and camera still so the eight strategies can be compared against each other.
 Shader presets change appearance; none of them changes a landform.
 
 ## Adding one

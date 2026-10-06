@@ -202,7 +202,7 @@ in. The saved-world infrastructure would carry project worlds with no new
 machinery whenever that is wanted — see
 [Firebase setup](firebase-setup.md).
 
-**Shader integration is not faked.** Topic 4's six strategies live inside a
+**Shader integration is not faked.** Topic 4's eight strategies live inside a
 full-screen GPU pipeline built around one fixed terrain, so they cannot be
 pointed at a different mesh. Wiring them in means lifting the material out of
 that pipeline rather than calling it. Until that happens, the demo renders with

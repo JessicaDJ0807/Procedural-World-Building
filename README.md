@@ -134,11 +134,12 @@ handed finished geometry to the graphics card; this topic moves the work itself
 into a shader — first to decide what colour a surface is, then to decide what
 the surface *does*.
 
-- **Surface shading** — one eroded terrain, six fragment shaders. The geometry,
+- **Surface shading** — one eroded terrain, eight fragment shaders. The geometry,
   the light and the camera never change, so the only thing that differs between
   them is the answer to "what colour is this pixel?": matte diffuse, a
   height palette, a slope-driven material, procedural noise, Fresnel and
-  atmosphere, and all five layered. The terrain is carved by Topic 2's own
+  atmosphere, all five layered, animated water that reads its own depth from
+  the heightfield, and a stylized contour map. The terrain is carved by Topic 2's own
   droplet erosion, so the two topics share a landscape.
 - **Water ripples** — the wave equation on a 512² grid. Its stability limit is
   measured rather than quoted: C = 0.500 stays bounded, C = 0.510 reaches a peak
