@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { atIndex, clampToBends, ribbonGeometry, smoothCentreline } from '../ribbon'
-import { BANK_OVERLAP, type River } from './river'
+import { BANK_HEIGHT, BANK_OVERLAP, BANK_WIDTH, SHELF_DEPTH, type River } from './river'
 import type { WorldSpec } from './worlds'
 
 /**
@@ -207,7 +207,50 @@ export function createRiverSurface(river: River, spec: WorldSpec): Water | null 
   })
   geometry.setAttribute('aLateral', new THREE.BufferAttribute(lateral, 1))
 
-  const uniforms = { uTime: { value: 0 } }
+  /*
+   * Depth, without reading the terrain.
+   *
+   * Under the water the carve does not consult the land at all: the ground is
+   * a fixed function of distance from the centreline — flat bed across the
+   * middle 40%, shelving to SHELF_DEPTH under the surface at the channel's
+   * edge, then the wet bank climbing to BANK_HEIGHT above it over BANK_WIDTH.
+   * So the shader can evaluate the same cross-section per pixel from two
+   * numbers per vertex, the channel's half-width and how deep its bed is,
+   * and get the true depth with no depth texture and no extra pass. Measured
+   * against the carved terrain itself in the Explore chapter.
+   */
+  const half = new Float32Array(samples.length * 2)
+  const deep = new Float32Array(samples.length * 2)
+  const channel = nodes.map((n) => n.width)
+  const bed = nodes.map((n) => n.water - n.bed)
+  samples.forEach((_, i) => {
+    const w = atIndex(channel, index[i])
+    const d = atIndex(bed, index[i])
+    half[i * 2] = half[i * 2 + 1] = w
+    deep[i * 2] = deep[i * 2 + 1] = d
+  })
+  geometry.setAttribute('aHalf', new THREE.BufferAttribute(half, 1))
+  geometry.setAttribute('aDeep', new THREE.BufferAttribute(deep, 1))
+
+  /*
+   * Three stops of absorption, none lighter than the world's water colour —
+   * depth makes water darker and more saturated, never whiter.
+   *
+   *   very shallow  desaturated green-blue, mostly transparent (the bed shows)
+   *   medium        the world's own teal
+   *   deep          a darker blue-green
+   *
+   * The first version lifted the shallows toward a pale green, and with
+   * transparency on top the river read as milky gel.
+   */
+  const body = new THREE.Color(config.color)
+  const uniforms = {
+    uTime: { value: 0 },
+    uShallow: { value: body.clone().lerp(new THREE.Color('#55705f'), 0.55) },
+    uMid: { value: body.clone() },
+    uDeep: { value: body.clone().lerp(new THREE.Color('#123842'), 0.65) },
+    uSky: { value: new THREE.Color(spec.sky) },
+  }
   const material = new THREE.MeshStandardMaterial({
     color: config.color,
     transparent: config.opacity < 1,
@@ -222,24 +265,59 @@ export function createRiverSurface(river: River, spec: WorldSpec): Water | null 
   material.defines = { USE_UV: '' }
 
   material.onBeforeCompile = (shader) => {
-    shader.uniforms.uTime = uniforms.uTime
+    Object.assign(shader.uniforms, uniforms)
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\n attribute float aLateral;\n varying float vLateral;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n vLateral = aLateral;')
+      .replace(
+        '#include <common>',
+        `#include <common>
+         attribute float aLateral;
+         attribute float aHalf;
+         attribute float aDeep;
+         varying float vLateral;
+         varying float vHalf;
+         varying float vDeep;`,
+      )
+      .replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\n vLateral = aLateral;\n vHalf = aHalf;\n vDeep = aDeep;',
+      )
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
-        `#include <common>\n uniform float uTime;\n varying float vLateral;\n ${GLSL_NOISE}`,
+        `#include <common>
+         uniform float uTime;
+         uniform vec3 uShallow;
+         uniform vec3 uMid;
+         uniform vec3 uDeep;
+         uniform vec3 uSky;
+         varying float vLateral;
+         varying float vHalf;
+         varying float vDeep;
+         ${GLSL_NOISE}
+
+         // The carve's cross-section, evaluated here: depth below the surface
+         // at a distance from the centreline. Negative past the shoreline.
+         float riverDepth(float lateral, float halfWidth, float bedDepth) {
+           float l = abs(lateral);
+           if (l <= halfWidth) {
+             float t = smoothstep(0.0, 1.0, (l - halfWidth * 0.4) / (halfWidth * 0.6));
+             return mix(bedDepth, ${SHELF_DEPTH.toFixed(3)}, t);
+           }
+           float t = smoothstep(0.0, 1.0, (l - halfWidth) / ${BANK_WIDTH.toFixed(3)});
+           return mix(${SHELF_DEPTH.toFixed(3)}, -${BANK_HEIGHT.toFixed(3)}, t);
+         }`,
       )
       .replace(
         '#include <normal_fragment_begin>',
         `#include <normal_fragment_begin>
          {
-           // World units both ways: vLateral across, vUv.y downstream. Broad,
-           // roughly round ripples 5–10 units across, drifting with the flow.
+           // World units both ways: vLateral across, vUv.y downstream. Small
+           // irregular ripples, about 1.5–3 units — many faint reflections
+           // rather than the 5–10-unit swells before, which caught the light
+           // as broad glossy patches and made the surface look swollen.
            vec2 p = vec2(vLateral, vUv.y);
-           vec2 flow = vec2(p.x * 0.10, p.y * 0.07 - uTime * 0.30);
-           vec2 flowB = vec2(p.x * 0.19, p.y * 0.13 - uTime * 0.48);
+           vec2 flow = vec2(p.x * 0.38, p.y * 0.30 - uTime * 0.55);
+           vec2 flowB = vec2(p.x * 0.71 + 3.1, p.y * 0.56 - uTime * 0.85);
            float e = 0.6;
            float gx =
              (wNoise(flow + vec2(e, 0.0)) - wNoise(flow - vec2(e, 0.0))) * 0.65 +
@@ -250,24 +328,59 @@ export function createRiverSurface(river: River, spec: WorldSpec): Water | null 
            // Damped toward the banks: the middle of a river moves and its edges
            // do not, and a ripple that runs into the bank reads as a mistake.
            float mid = 1.0 - abs(vUv.x * 2.0 - 1.0);
-           normal = normalize(normal + vec3(-gx, 0.0, -gz) * 0.9 * smoothstep(0.0, 0.45, mid));
+           // Faded with screen-space density: where a ripple shrinks below a
+           // few pixels it would only shimmer, so far water is calmer.
+           float near = 1.0 - smoothstep(0.15, 0.6, fwidth(flowB.y));
+           normal = normalize(normal + vec3(-gx, 0.0, -gz) * 0.35 * near * smoothstep(0.0, 0.45, mid));
          }`,
       )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
          {
-           // Long, soft bands along the course, about 16 units across and 45
-           // along, so they read as current. They were 10 across and 2 along —
-           // short bright bars across the flow, dense enough to read as a
-           // texture from above.
-           float streak = wNoise(vec2(vLateral * 0.06, vUv.y * 0.022 - uTime * 0.18));
+           // Depth is the water surface minus the carved bed at this pixel,
+           // from the carve's own cross-section. Absorption, not distance:
+           // colour and opacity follow 1 − e^(−depth/k), which rises fast over
+           // the first metre and flattens — so the shelf reads as shallow and
+           // the channel as deep, with no visible band between.
+           float depth = riverDepth(vLateral, vHalf, vDeep);
+           float a1 = 1.0 - exp(-max(depth, 0.0) / 0.8);
+           float a2 = 1.0 - exp(-max(depth, 0.0) / 4.0);
+           diffuseColor.rgb = mix(mix(uShallow, uMid, a1), uDeep, a2);
+           // Clear over the shallows, near-opaque in the middle.
+           diffuseColor.a *= mix(0.22, 1.0, a1 * 0.45 + a2 * 0.55);
+
+           // A faint current, small and broken: short dashes along the flow,
+           // a few units long, at a couple of percent. The 16 × 45-unit bands
+           // before were larger than the river is wide in places.
+           float dash = wNoise(vec2(vLateral * 0.45, vUv.y * 0.12 - uTime * 0.6));
            float mid = 1.0 - abs(vUv.x * 2.0 - 1.0);
-           diffuseColor.rgb += smoothstep(0.62, 0.95, streak) * 0.035 * mid;
+           diffuseColor.rgb += smoothstep(0.72, 0.95, dash) * 0.018 * mid;
+
+           // Past the shoreline the strip runs on under the bank. Fading it
+           // out there makes the water's edge the computed shoreline, not the
+           // end of a mesh, even where the depth test would not hide it.
+           diffuseColor.a *= smoothstep(-0.12, 0.02, depth);
          }`,
       )
+      .replace(
+        '#include <opaque_fragment>',
+        `{
+           // Schlick's Fresnel against the sky: clear looking down, a mirror of
+           // the sky at a grazing angle. The scene has no environment map, so
+           // without this a still surface at a distance has nothing to reflect.
+           float facing = clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);
+           float fresnel = 0.02 + 0.98 * pow(1.0 - facing, 5.0);
+           // Capped well short of a mirror: at 0.55 the low ground-level view
+           // reflected nearly all sky and the river lost its colour, and the
+           // ripple normals turned into bright patches from above.
+           outgoingLight = mix(outgoingLight, uSky, fresnel * 0.2);
+           diffuseColor.a = max(diffuseColor.a, fresnel * 0.5 * step(0.001, diffuseColor.a));
+         }
+         #include <opaque_fragment>`,
+      )
   }
-  material.customProgramCacheKey = () => 'explore-river-v2'
+  material.customProgramCacheKey = () => 'explore-river-v4'
 
   const mesh = new THREE.Mesh(geometry, material)
   mesh.renderOrder = 1

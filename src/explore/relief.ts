@@ -50,16 +50,38 @@ export type ReliefOptions = {
    * The backdrop samples the same height function as the chunk ring, so in the
    * near field the two surfaces are coincident and z-fight — a shimmer across
    * the whole ground, which is far more noticeable than anything the backdrop
-   * adds. Sinking it means the detailed ring always wins where both exist. A
-   * height-field can only be sunk *into* hidden ground, never pushed through
-   * it, so this cannot make the backdrop poke up through the floor. At the 400
+   * adds. Sinking it means the detailed ring wins where both exist. At the 400
    * units where the ring ends, a 3-unit step subtends 0.4° and is invisible.
+   *
+   * It does *not* keep the backdrop under the ground everywhere, which this
+   * comment used to claim. A sunk vertex is under the ground, but a triangle
+   * between vertices is a straight line between them — and a river channel is
+   * narrower than one 32.5-unit cell, so a triangle with corners on both banks
+   * bridged the channel as a flat slab. Measured, it stood above the carved
+   * riverbed at 24% of the points under Verdant's water, by up to 6.6 units,
+   * and showed through the water as a dark wedge. See `belowGround`.
    */
   drop?: number
+  /**
+   * Near the river, place each vertex at the lowest ground within one cell of
+   * it, instead of the ground at the vertex.
+   *
+   * Every point of a triangle lies within one cell of each of its three
+   * corners, so if each corner is no higher than the lowest ground in that
+   * reach, the whole triangle is no higher than the ground beneath it — the
+   * bridge over the channel becomes impossible rather than merely unlikely.
+   * The minimum is sampled on a 9×9 grid, 8 units apart, which is finer than
+   * the flat middle of the narrowest channel. Only for the backdrop: the
+   * overview *is* the terrain at its scale and must not be lowered.
+   */
+  belowGround?: boolean
 }
 
+/** Samples per side of the window `belowGround` takes its minimum over. */
+const ENVELOPE_SAMPLES = 9
+
 export function buildRelief(spec: WorldSpec, options: ReliefOptions): Relief {
-  const { extent, resolution, drop = 0 } = options
+  const { extent, resolution, drop = 0, belowGround = false } = options
   const built = createTerrain(spec.terrain, spec.river)
   const height = built.height
   // The same classification the ground uses, so the pale band on the horizon is
@@ -90,8 +112,21 @@ export function buildRelief(spec: WorldSpec, options: ReliefOptions): Relief {
       const g = (j + 1) * m + (i + 1)
       const y = grid[g]
       const o = (j * n + i) * 3
-      positions[o] = origin + i * step
-      positions[o + 1] = y - drop
+      const vx = origin + i * step
+      const vz = origin + j * step
+      let floor = y
+      // Only where the river's carve can reach a triangle touching this vertex.
+      if (belowGround && built.river?.at(vx, vz, built.river.spec.influence + step * 1.5)) {
+        for (let b = 0; b < ENVELOPE_SAMPLES; b++) {
+          const sz = vz - step + (2 * step * b) / (ENVELOPE_SAMPLES - 1)
+          for (let a = 0; a < ENVELOPE_SAMPLES; a++) {
+            const h = height(vx - step + (2 * step * a) / (ENVELOPE_SAMPLES - 1), sz)
+            if (h < floor) floor = h
+          }
+        }
+      }
+      positions[o] = vx
+      positions[o + 1] = floor - drop
       positions[o + 2] = origin + j * step
 
       const dx = (grid[g + 1] - grid[g - 1]) * inv

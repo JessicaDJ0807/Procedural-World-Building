@@ -172,10 +172,26 @@ allowed to clamp.
 
 **It is sunk 3 units.** It samples the same height function as the ring, so in
 the near field the two surfaces are coincident and z-fight across the whole
-ground — far more noticeable than anything the backdrop adds. A height field can
-only be sunk into hidden ground, never pushed up through it, so this cannot make
-the backdrop poke through the floor. At the 400 units where the ring ends, a
-3-unit step subtends 0.4°.
+ground — far more noticeable than anything the backdrop adds. At the 400 units
+where the ring ends, a 3-unit step subtends 0.4°.
+
+**Near the river it is also lowered to the ground beneath it.** This paragraph
+used to claim that sinking a height field cannot make it poke through the floor.
+That holds at its vertices and not between them: a triangle is a straight line
+between its corners, and the river channel is narrower than one 32.5-unit cell,
+so a triangle with a corner on each bank bridged the channel as a flat slanted
+slab. Measured, it stood above the carved riverbed at 24.3% of the points under
+the water, by up to 6.6 units, and through the transparent water it read as a
+dark wedge — a report of a broken river mesh, when the water strip passed every
+check (no flipped sides, no crossing edges, no long or degenerate triangles, no
+non-adjacent indices). Painting the backdrop magenta for one frame showed it.
+
+So within reach of the river each backdrop vertex takes the lowest ground in a
+9×9 sample window one cell either side of it. Every point of a triangle lies
+within one cell of each of its corners, so the whole triangle is then no higher
+than the ground beneath it: 0 of 25,746 points under the water, and 0 of 99,306
+within 160 units of the river. The backdrop now builds in 330 ms instead of 47,
+once per world entry, behind the curtain.
 
 `buildRelief` is shared with the overview, which wants the same thing from the
 other direction: the same height function sampled coarsely over far more ground
@@ -344,7 +360,41 @@ single elevation that is right for it. It follows the course with a light
 across, and is the channel's own width plus 5 units — so its edge runs under
 bank already about 0.3 above the water, and the shoreline seen is where the bank
 meets the water, not the end of a mesh. Past that shoreline a wet-mud margin is
-solid for 4 units and gone by 8.5 on every reach. See [Notes](#notes) for the
+solid for 4 units and gone by 8.5 on every reach.
+
+**Depth in the shader.** The water knows how deep it is at every pixel without
+reading the terrain. Under the water the carve ignores the land: the ground is a
+fixed function of distance from the centreline — flat bed across the middle
+40%, shelving to 0.35 under the surface at the channel edge, then the wet bank
+climbing to 0.9 above it. So each vertex carries two more numbers, the
+channel's half-width and its bed depth (7.3–11.2 units), and the fragment
+shader evaluates that same cross-section. Checked against the carved terrain at
+50,266 points across the water: median error 0.014 units, p90 0.18, and 0.3% of
+points disagreeing about whether there is water there at all — at the tightest
+bends, where the water's lightly smoothed centreline sits off the carve's
+segments.
+
+Depth — the water surface minus the carved bed at that pixel, not distance
+from the edge — drives absorption. Colour runs through three stops, none
+lighter than the world's water colour: a desaturated green-blue over the
+shallows, the world's own teal, and a darker blue-green in the channel, blended
+on 1 − e^(−depth/k) so it changes fast over the first unit of depth and then
+flattens. Opacity follows the same curve, from about a fifth over the shallows
+to the full 0.9 in the middle, so the bed shows through the edges. Past the
+shoreline the alpha fades out, so the water's edge is the computed shoreline,
+not the end of the strip. Schlick's Fresnel mixes in the sky colour at grazing
+angles, at 0.2 — the scene has no environment map to reflect.
+
+The first pass read as glue, and it was several choices stacking. Metalness
+was 0.32: water is a dielectric, and a partly metallic surface with depth
+transparency over it looks like a resin coating. The shallows were lifted
+toward pale green, so the edges went milky. The ripples were 5–10 units across
+with the normal tilted at 0.9, which caught the light as broad soft glossy
+patches and made the surface look swollen; the current streaks were bands
+16 × 45 units, wider than the river in places; and a foam band drew a pale
+line along both banks. Now: metalness 0, roughness 0.3; ripples 1.5–3 units at
+0.35, faded where they would shrink below a few pixels; the current a few faint
+dashes at 0.018; no foam. See [Notes](#notes) for the
 versions this replaced.
 
 **Flow needs no uniform.** The ribbon is laid out with `v` running downstream, so

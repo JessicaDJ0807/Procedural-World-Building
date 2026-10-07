@@ -187,6 +187,7 @@ export function ExploreViewport({ world, onTelemetry, onLockChange, requestLockR
       extent: BACKDROP_EXTENT,
       resolution: BACKDROP_RESOLUTION,
       drop: 3,
+      belowGround: true,
     })
     scene.add(backdrop.mesh)
 

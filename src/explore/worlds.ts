@@ -636,10 +636,11 @@ export const WORLDS: WorldSpec[] = [
     // highlight is what reads as water, and a rough matte surface has no
     // highlight to move. Partly transparent so the classified bed shows
     // through and the river has depth rather than one flat tone.
-    // Highlights eased (metalness 0.42, roughness 0.14 originally), so the
-    // glints break up the surface without competing with the shoreline or
-    // reading as varnish from above.
-    water: { color: '#3f7f8c', opacity: 0.72, metalness: 0.32, roughness: 0.26 },
+    // Water is a dielectric: metalness 0. At 0.32 (0.42 before that) the
+    // surface behaved like a partly metallic coating, which with depth-driven
+    // transparency read as resin rather than water. Opacity is the deepest
+    // water's; the shader lowers it toward the shallows.
+    water: { color: '#3f7f8c', opacity: 0.9, metalness: 0, roughness: 0.3 },
     sun: { azimuth: 118, elevation: 38, color: '#fff0d2', intensity: 2.2 },
     fill: 0.6,
     ambient: { color: '#9cae8a', intensity: 1.05 },
