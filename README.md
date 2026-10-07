@@ -42,10 +42,11 @@ the project asks what happens when they all have to agree on the same ground.
 Three pages, none of them a topic — the project cuts across all of them and is
 numbered by nothing:
 
-- **Overview** — the concept. The three worlds with their reference images,
-  each labelled with what it informs; the one pipeline that produces all
-  three; and the order the layers are being built in, with an honest status
-  on each.
+- **Overview** — the concept, in the first person. Why the three worlds differ
+  by environmental condition rather than palette, each world with its
+  reference images and what it is meant to explore, a possible direction —
+  islands a player travels between — the one pipeline that produces all three,
+  and the order the layers are being built in.
 - **Explore** — the worlds themselves, walkable in the browser. Chunked terrain
   from a hashed height function, landmarks that are terms in that function
   rather than placed meshes, scatter that answers to the ground, and a river
@@ -55,7 +56,7 @@ numbered by nothing:
 - **Progress** — the process. Each Playground topic, what Explore actually uses
   of it today, what it contributes, and what is not there yet.
 
-![The Project Overview: the three worlds side by side, each with a hero reference image, a one-line description, three goals and two labelled supporting references](docs/images/readme-project-overview.jpg)
+![The Project Overview: the three worlds side by side, each with a hero reference image, a short statement of intent, and two labelled supporting references](docs/images/readme-project-overview.jpg)
 
 The worlds are one system, not three scenes. Every difference between them is
 a number in a world spec; the terrain builder, the scatter and the renderer are

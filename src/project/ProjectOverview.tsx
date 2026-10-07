@@ -13,8 +13,8 @@ type Reference = {
 type World = {
   id: 'volcanic' | 'frozen' | 'verdant'
   name: string
-  line: string
-  goals: string[]
+  /** In the first person: what this world is for, and what it is meant to explore. */
+  intent: string
   hero: Reference
   supporting: [Reference, Reference]
 }
@@ -32,12 +32,8 @@ const WORLDS: World[] = [
   {
     id: 'volcanic',
     name: 'Volcanic Caldera',
-    line: 'A ridged caldera, with lava draining down from its crater.',
-    goals: [
-      'A volcano that dominates the horizon',
-      'Lava that runs in channels, not scattered pools',
-      'Dark rock and a warm, ember-lit atmosphere',
-    ],
+    intent:
+      'I want this world to feel unstable and hostile. The landscape should be shaped by heat: steep ridges, lava channels, dark rock, smoke, and sparse vegetation. I’m especially interested in making lava behave like part of the terrain rather than just a glowing texture.',
     hero: {
       src: '/inspiration/volcanic/volcanic_2.jpg',
       role: 'Landscape',
@@ -62,12 +58,8 @@ const WORLDS: World[] = [
   {
     id: 'frozen',
     name: 'Frozen Archipelago',
-    line: 'Terraced islands rising out of a cold, flooded sea.',
-    goals: [
-      'Islands shaped as stepped ice shelves',
-      'Ice meeting open water at the coast',
-      'Floating ice and a pale, hazy horizon',
-    ],
+    intent:
+      'This world is about cold, water, and fragmentation. I want to explore islands, ice sheets, frozen coastlines, and floating ice, with a much quieter and more open feeling than the volcanic world.',
     hero: {
       src: '/inspiration/frozen/frozen_1.jpg',
       role: 'Landscape',
@@ -92,12 +84,8 @@ const WORLDS: World[] = [
   {
     id: 'verdant',
     name: 'Verdant Valley',
-    line: 'A river valley, where vegetation follows the water.',
-    goals: [
-      'A river that finds its own way downhill',
-      'Trees and plants placed by water and slope',
-      'Stylized low-poly detail, then settlements',
-    ],
+    intent:
+      'This is the most habitable of the three worlds. I want rivers to influence where vegetation and settlements appear, so the landscape feels like an ecosystem rather than a randomly decorated terrain.',
     hero: {
       src: '/inspiration/verdant/verdant_2.jpg',
       role: 'Landscape and ecology',
@@ -212,7 +200,25 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
     <ProjectLayout
       wide
       title="Three worlds, one generator"
-      lede="A procedural world generator that grows three distinct environments — volcanic, frozen and verdant — from one shared system, built up a layer at a time."
+      lede={
+        <>
+          <p>
+            I wanted the three worlds to feel different for more than just their color
+            palettes. Each one represents a different environmental condition: heat, cold,
+            and a more temperate, livable landscape.
+          </p>
+          <p>
+            I’m interested in how those conditions can affect the terrain itself, the
+            materials, water, vegetation, object placement, and eventually even the way a
+            player moves through the world.
+          </p>
+          <p>
+            For now, I’m building them one layer at a time, starting with the landscape.
+            Later, I want to explore how the worlds could connect through travel,
+            collection, or small puzzles.
+          </p>
+        </>
+      }
       aside={
         <div className="project-actions">
           <button type="button" className="project-button is-primary" onClick={explore}>
@@ -239,12 +245,7 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
 
               <div className="board-body">
                 <h3 className="board-name">{world.name}</h3>
-                <p className="board-line">{world.line}</p>
-                <ul className="board-goals">
-                  {world.goals.map((goal) => (
-                    <li key={goal}>{goal}</li>
-                  ))}
-                </ul>
+                <p className="board-intent">{world.intent}</p>
               </div>
 
               <div className="board-refs">
@@ -264,6 +265,16 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
         <p className="project-credit">
           Reference images are other artists' work, collected as inspiration and credited
           under each — not output of this project.
+        </p>
+      </section>
+
+      <section className="project-section project-direction" aria-labelledby="direction-heading">
+        <h2 id="direction-heading">Possible direction</h2>
+        <p>
+          Eventually, these worlds could become separate islands that the player travels
+          between. Their different climates and resources could create reasons to move back
+          and forth, collect materials, or solve puzzles that depend on more than one
+          environment.
         </p>
       </section>
 
@@ -323,12 +334,6 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
         </ol>
       </section>
 
-      <section className="project-section project-closing">
-        <p>Walk all three, in the browser.</p>
-        <button type="button" className="project-button is-primary" onClick={explore}>
-          Explore the worlds
-        </button>
-      </section>
     </ProjectLayout>
   )
 }

@@ -119,20 +119,25 @@ Three pages, each with one job:
 
 A presentation board rather than a reading column — the one page that uses
 `ProjectLayout`'s wide variant, because three worlds side by side at an 880px
-measure shrink to thumbnails.
+measure shrink to thumbnails. It opens in the first person: why the worlds
+differ by environmental condition — heat, cold, a livable middle — rather than
+by palette, and that they are built a layer at a time.
 
-Each world is a hero reference image, a one-line description, three goals and
-two smaller references, and every image is labelled with what it informs —
+Each world is a hero reference image, a short statement of what the world is
+for and what it explores, and two smaller references; every image is labelled
+with what it informs —
 *Landscape*, *Atmosphere*, *Lava behaviour* — because a wall of mood images
 says nothing about what is being built. Colour identifies a world only as an
-accent line on its hero image, its caption and its goal markers; the UI stays
+accent line on its hero image and its caption; the UI stays
 neutral. Captions sit under the images, never on them: the references are busy
 enough that no text over them would be reliably readable.
 
 Below the board, **one pipeline, three worlds**: the five stages down the side,
 the three worlds across, and in each cell what that stage actually does in that
 world today, read off the specs in `src/explore/worlds.ts`. It is the page's
-central claim made checkable. Then **built in layers**, with each layer marked
+central claim made checkable. Before it, **possible direction**: the worlds as
+islands a player travels between, with climates and resources that give reasons
+to cross. Then **built in layers**, with each layer marked
 *In place*, *In progress* or *Next* by what Explore does today.
 
 The reference images live in `public/inspiration/<world>/` so the app and the

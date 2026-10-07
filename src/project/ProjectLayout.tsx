@@ -3,8 +3,8 @@ import './project.css'
 
 type ProjectLayoutProps = {
   title: string
-  /** One line under the title. The page's own argument for existing. */
-  lede: string
+  /** Under the title: the page's own argument for existing. A line, or a few paragraphs. */
+  lede: ReactNode
   /**
    * A wider page, for a board of images rather than a column of prose. The
    * Overview lays three worlds side by side, which a reading measure of 880px
@@ -36,7 +36,7 @@ export function ProjectLayout({ title, lede, wide = false, aside, children }: Pr
       <div className={`project-page${wide ? ' is-wide' : ''}`}>
         <header className="project-head">
           <h1 className="project-title">{title}</h1>
-          <p className="project-lede">{lede}</p>
+          {typeof lede === 'string' ? <p className="project-lede">{lede}</p> : <div className="project-lede">{lede}</div>}
           {aside}
         </header>
         {children}

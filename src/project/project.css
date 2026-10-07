@@ -64,7 +64,8 @@
   font-size: 40px;
 }
 
-/* A subtitle, so it reads as one line of context rather than a first paragraph. */
+/* A subtitle, so it reads as context rather than a first paragraph. On the
+   Overview it is a short personal statement of several paragraphs. */
 .project-lede {
   max-width: 64ch;
   margin: 0;
@@ -73,8 +74,26 @@
   line-height: 1.55;
 }
 
+.project-lede p {
+  margin: 0 0 14px;
+}
+
+.project-lede p:last-child {
+  margin-bottom: 0;
+}
+
 .project-section {
   margin: 64px 0 0;
+}
+
+/* One idea, set apart from the board above it by a rule rather than a box. */
+.project-direction {
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.project-direction p {
+  font-size: 16px;
 }
 
 .project-section h2 {
@@ -255,35 +274,11 @@
   letter-spacing: -0.01em;
 }
 
-.board-line {
-  margin: 0 0 14px !important;
+.board-intent {
+  margin: 0 0 22px !important;
   color: var(--text-secondary);
   font-size: 15px;
-}
-
-.board-goals {
-  margin: 0 0 20px;
-  padding: 0;
-  list-style: none;
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.board-goals li {
-  position: relative;
-  padding-left: 16px;
-  margin-bottom: 6px;
-}
-
-.board-goals li::before {
-  content: '';
-  position: absolute;
-  top: 0.62em;
-  left: 2px;
-  width: 6px;
-  height: 1.5px;
-  background: var(--world-accent);
+  line-height: 1.65;
 }
 
 /* Two references under each world, labelled with what they inform. */
@@ -424,21 +419,6 @@
 
 .layer-status.is-next {
   color: var(--text-muted);
-}
-
-.project-closing {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
-  padding-top: 32px;
-  border-top: 1px solid var(--border);
-}
-
-.project-closing p {
-  margin: 0 !important;
-  color: var(--text-primary) !important;
-  font-size: 18px;
 }
 
 /* ---- Status ---- */
