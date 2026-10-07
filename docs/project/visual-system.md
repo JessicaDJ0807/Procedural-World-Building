@@ -132,7 +132,7 @@ what the browser actually rendered found twelve failing styles.
 One family for the whole product: `--font-sans`, a system stack, declared on
 `body` so that every `font: inherit` in the two stylesheets resolves to it.
 
-One exception, and it is content rather than chrome: Topic 2's Lab prints its
+One exception, and it is content rather than chrome: Topic 2's Noise tab prints its
 pipeline as pseudocode, and pseudocode's indentation is meaning — a loop body
 only reads as one if it lines up. That block alone uses `--font-code`, a system
 monospace stack. Metrics, labels and controls never do.

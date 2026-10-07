@@ -99,23 +99,27 @@ and material controls lit by a generated `RoomEnvironment` cubemap.
 
 ### [Topic 2 — Maps](docs/topics/topic-2-maps.md)
 
-Noise turned into ground, in two views.
+Noise turned into ground, in two stages: *noise → shape → simulate*.
 
-The **Lab** opens first and shows one idea: *noise → modify noise → use it as a
-map*. Pick white, Perlin or cellular noise, stack octaves, fold them ridged or
-billowed, terrace or power-curve the result, warp the lookup, mask an island,
-flood it — and see the noise map and the terrain it makes side by side, a
-profile cut through both, and the pseudocode the controls amount to with the
-live numbers in it. Eight presets, from Baseline to Mountains to Cells, are each
-the same pipeline with different switches.
+The **Noise** tab opens first and shows one idea: *noise → modify noise → use it as a
+map*. Stack up to four noise layers — white, Perlin or cellular, each with its
+own octaves and its own ridged or billow fold — and blend them by add,
+subtract, multiply or max. Then terrace or power-curve the result, warp the
+lookup, mask an island, flood it — and see the noise map and the terrain it
+makes side by side, a profile cut through both, and the pseudocode the controls
+amount to with the live numbers in it. Eight presets, from Baseline to
+Mountains to Cells, are each the same pipeline with different switches.
 
-![Topic 2 — the Lab on the Islands preset: noise map, terrain tile with a sea, a profile cut along the dashed row, and the pipeline pseudocode](docs/images/readme-topic-2-lab.png)
+![Topic 2 — the Noise tab on the Mountains preset: two noise layers, a broad one masking a ridged one, with the map, terrain, profile and pipeline pseudocode](docs/images/readme-topic-2-noise.png)
 
-The **Workbench** is a field of values in `[0, 1]`, built and then
-progressively shaped:
+**Simulate** runs processes on the Noise tab's field — the automaton and erosion,
+the operations that need neighbours and time. Behind it, as the **Original
+generator**, is the layered value-noise stack Topic 2 began with, kept with its
+volume and planet modes because the chapter's measurements and the showcase
+worlds were built on it:
 
 - **Layers** — a stack of value-noise fields, composited bottom-up with nine
-  blend modes. Opens on a six-octave fBm stack, which measures at a Hurst
+  blend modes. Defaults to a six-octave fBm stack, which measures at a Hurst
   exponent of 0.75 with R² 0.990 — inside the band real topography occupies.
 - **Warp** — looks the field up at coordinates displaced by another noise
   field, so strata fold and ridges curve.
@@ -318,9 +322,9 @@ src/
 ├── LayerPanel.tsx            Layer stack editor (Topic 2)
 ├── pages/
 │   ├── ObjectViewerPage.tsx  Topic 1 — viewer and its control panel
-│   ├── MapsPage.tsx          Topic 2 — the Lab | Workbench switch
-│   ├── NoiseLabPage.tsx      Topic 2 Lab — map, terrain, profile, pipeline, presets
-│   ├── NoisePage.tsx         Topic 2 Workbench — viewport, sidebar, and noise state
+│   ├── MapsPage.tsx          Topic 2 — the Noise | Simulate switch, and the shared Noise-tab state
+│   ├── NoiseLabPage.tsx      Topic 2 Noise tab — map, terrain, profile, pipeline, presets
+│   ├── NoisePage.tsx         Topic 2 Simulate — automata, erosion, and the original generator
 │   ├── VoxelPage.tsx         Topic 3 — viewport, sidebar, and CSG state
 │   ├── ShaderPage.tsx        Topic 4 — strategy selector and parameters
 │   ├── DistributionPage.tsx  Topic 5 — layer rules, debug view, probe
@@ -352,8 +356,8 @@ src/
 ├── study/                    Shared by the Topic 5–7 studies
 │   ├── terrain.ts            Small eroded terrain: height, slope, distance to water
 │   └── study.css             Viewport overlays, segmented picker, swatches
-├── maplab/                   Topic 2's Lab
-│   ├── noiseLab.ts           White, Perlin and cellular noise; the pipeline; its pseudocode; presets
+├── maplab/                   Topic 2's Noise tab
+│   ├── noiseLab.ts           White, Perlin and cellular noise; layers and blends; the pipeline; its pseudocode; presets
 │   ├── LabMap.tsx            The noise map, with the profile row
 │   ├── LabProfile.tsx        The row cut through the terrain
 │   └── maplab.css            The two-view bench, presets, the pseudocode block

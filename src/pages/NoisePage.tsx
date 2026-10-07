@@ -17,7 +17,9 @@ import {
   noiseSpec,
   type NoiseSettings,
   type StoredLayer,
+  type TerrainSource,
 } from '../config/noiseConfig'
+import { LAB_RESOLUTION, type LabField, type LabSettings } from '../maplab/noiseLab'
 import { VIZ_ACCENT } from '../theme'
 import {
   CONTINUOUS,
@@ -110,10 +112,31 @@ const createFbmStack = (octaves: number, persistence: number, maxFrequency: numb
 const INITIAL = defaultNoiseSettings()
 const INITIAL_LAYERS: NoiseLayer[] = withLayerIds(INITIAL.layers)
 
-/** `switcher` is Topic 2's Lab | Workbench control, placed at the top of the sidebar. */
-export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
-  const [mode, setMode] = useState<GeometryMode>(INITIAL.mode)
-  const [resolution, setResolution] = useState(INITIAL.resolution)
+type NoisePageProps = {
+  /** Topic 2's Noise | Simulate control, placed at the top of the sidebar. */
+  switcher?: ReactNode
+  /** The Noise tab's settings and field — the default ground for everything here. */
+  lab: LabSettings
+  labField: LabField
+  /** A loaded world carries Noise-tab settings, and they belong to the Noise tab. */
+  onLabLoad: (lab: LabSettings) => void
+}
+
+/**
+ * Topic 2's Simulate tab: what happens to a field over time — the automaton and
+ * erosion. Before the Noise tab existed this was the whole page, and it still holds
+ * the original layer-stack generator as its second source.
+ */
+export function NoisePage({ switcher, lab, labField, onLabLoad }: NoisePageProps) {
+  const [source, setSource] = useState<TerrainSource>(INITIAL.source)
+  const fromLab = source === 'lab'
+  // The stored choices, kept while the Noise tab is the source so that switching
+  // back to the stack restores them. The Noise tab's field is 2D and fixed at 128², so
+  // it overrides both.
+  const [stackMode, setMode] = useState<GeometryMode>(INITIAL.mode)
+  const [stackResolution, setResolution] = useState(INITIAL.resolution)
+  const mode: GeometryMode = fromLab ? 'surface' : stackMode
+  const resolution = fromLab ? LAB_RESOLUTION : stackResolution
   // Averaging six octaves shrinks the variance, so the stack's relief is about
   // 0.40 against the old pair's 0.71. Display scaling costs nothing, so the
   // height makes it back up rather than the spread pushing values into a clamp.
@@ -176,6 +199,16 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
     if (nextDimensions !== dimensions) setSurvive(DEFAULT_SURVIVE[nextDimensions])
   }
 
+  const selectSource = (next: TerrainSource) => {
+    // A stack left in volume or planet mode is 3D; the Noise tab's field is 2D, so the
+    // survival rule has to follow the change of neighbourhood here too.
+    const nextDimensions: 2 | 3 = next === 'lab' || stackMode === 'surface' ? 2 : 3
+    setSource(next)
+    if (nextDimensions !== dimensions) setSurvive(DEFAULT_SURVIVE[nextDimensions])
+    setGeneration(0)
+    setPlaying(false)
+  }
+
   const updateLayer = (id: string, patch: Partial<NoiseLayer>) =>
     setLayers((current) => current.map((l) => (l.id === id ? { ...l, ...patch } : l)))
 
@@ -203,18 +236,22 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
     setExpandedId(layer.id)
   }
 
+  // The stack is only sampled when it is the source: six octaves at 32³ is
+  // about 5 ms that the Noise tab's field would then throw away on every layer edit.
   const composite = useMemo(
-    () => compositeLayers(resolution, dimensions, layers),
-    [resolution, dimensions, layers],
+    () => (fromLab ? labField.values : compositeLayers(resolution, dimensions, layers)),
+    [fromLab, labField, resolution, dimensions, layers],
   )
   // Warping sits between compositing and the automaton: it moves where the
   // noise puts its features, which is a question about the field rather than
   // about the rule applied to it.
+  // The Noise tab has its own warp, already applied; warping its field again here
+  // would be a second, hidden one.
   const warped = useMemo(
-    () => warpField(composite, resolution, dimensions, {
+    () => (fromLab ? composite : warpField(composite, resolution, dimensions, {
       amount: warpAmount, frequency: warpFrequency, seed: warpSeed,
-    }),
-    [composite, resolution, dimensions, warpAmount, warpFrequency, warpSeed],
+    })),
+    [fromLab, composite, resolution, dimensions, warpAmount, warpFrequency, warpSeed],
   )
   // Re-run from the composite every time rather than mutating a running state:
   // a generation count is then just a number, so editing a layer mid-run stays
@@ -238,9 +275,10 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
     canErode && erosion && erosion.source === automata.field ? erosion : null
   const terrain = activeErosion ? activeErosion.height : automata.field
 
+  // Per-point shaping belongs to the Noise tab, which has already done it.
   const field = useMemo(
-    () => applyShaping(terrain, outputShaping, outputParams),
-    [terrain, outputShaping, outputParams],
+    () => (fromLab ? terrain : applyShaping(terrain, outputShaping, outputParams)),
+    [fromLab, terrain, outputShaping, outputParams],
   )
   // Fitting stretches the colouring only — geometry still uses the raw value,
   // so a fitted ramp never changes the shape of the terrain.
@@ -337,7 +375,7 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
 
   const settings = useMemo<NoiseSettings>(
     () => ({
-      mode, resolution, heightScale, relief, slice, spin, wireframe, tint, paletteName, bands,
+      source, lab, mode: stackMode, resolution: stackResolution, heightScale, relief, slice, spin, wireframe, tint, paletteName, bands,
       fitRamp, presetName, erosionParams, density, erosionSeed, showCutFill, caThreshold, survive,
       warpAmount, warpFrequency, warpSeed, talus, talusStrength, thermalPasses, octaves,
       persistence, outputShapingName, outputParams,
@@ -348,7 +386,7 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
         return { ...rest, shapingParams: { ...rest.shapingParams } }
       }),
     }),
-    [mode, resolution, heightScale, relief, slice, spin, wireframe, tint, paletteName, bands,
+    [source, lab, stackMode, stackResolution, heightScale, relief, slice, spin, wireframe, tint, paletteName, bands,
      fitRamp, presetName, erosionParams, density, erosionSeed, showCutFill, caThreshold, survive,
      warpAmount, warpFrequency, warpSeed, talus, talusStrength, thermalPasses, octaves,
      persistence, layers, outputShapingName, outputParams],
@@ -360,6 +398,8 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
    * transient, and the parameters that produce them are what was stored.
    */
   const applySettings = (next: NoiseSettings) => {
+    setSource(next.source)
+    onLabLoad(next.lab)
     setMode(next.mode)
     setResolution(next.resolution)
     setHeightScale(next.heightScale)
@@ -492,6 +532,12 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
       inspector={
         <aside className="control-sidebar" aria-label="Noise controls">
         {switcher}
+        <p className="hint maps-ground-hint">
+          {fromLab
+            ? `Running on the Noise tab’s field — ${lab.layers.filter((l) => l.enabled).length} noise layer${lab.layers.filter((l) => l.enabled).length === 1 ? '' : 's'}, ${LAB_RESOLUTION}². Shape it in the Noise tab, then run it here.`
+            : 'Running on the original generator — the layered value-noise stack this page began with. Switch back under Original generator, at the bottom.'}
+        </p>
+
         <h2>Source map</h2>
         <NoiseMapPreview
           resolution={resolution}
@@ -512,6 +558,13 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
           )}
         </p>
 
+        {fromLab ? (
+          <p className="hint">
+            A height field at {LAB_RESOLUTION}², raised by the Noise tab’s amplitude (×{lab.amplitude.toFixed(2)})
+            {lab.seaLevel > 0 && `, with its sea at ${lab.seaLevel.toFixed(2)}`}. Volume and planet
+            need a 3D field, which only the layer stack makes.
+          </p>
+        ) : (<>
         <ControlSection title={"Geometry"} info={"What shape the field becomes and how finely it is sampled. Colour moved to the View panel over the viewport; resolution is here because it changes the field, not just the picture."}>
 
           <label className="control">
@@ -668,6 +721,7 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
             </>
           )}
         </ControlSection>
+        </>)}
 
         <ControlSection title={"Automata"} info={"A neighbour rule applied repeatedly. Where shaping is per-cell f(x), this is f(x, neighbours) — which is what turns speckled noise into connected landmasses."}>
 
@@ -907,6 +961,7 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
 
         </ControlSection>
 
+        {!fromLab && (
         <ControlSection title={"Output"} info={"A final remap of the finished field, applied after everything else. Shaping here reshapes the terrain you see without touching any layer."}>
 
           <label className="control">
@@ -947,6 +1002,25 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
           })}
 
         </ControlSection>
+        )}
+
+        <ControlSection
+          title={"Original generator"}
+          info={"The layered value-noise stack Topic 2 began with, kept for the record: every erosion and automaton measurement in the chapter was taken on it, the showcase worlds were built from it, and only it makes the 3D field that volume and planet need. Stacking noise is the Noise tab’s job now."}
+          defaultOpen={false}
+        >
+          <label className="control control-toggle">
+            <span className="control-label">Use the layer stack</span>
+            <input
+              type="checkbox"
+              checked={!fromLab}
+              onChange={(event) => selectSource(event.target.checked ? 'stack' : 'lab')}
+            />
+          </label>
+          <p className="hint">
+            Brings back its Geometry, Layers, Warp and Output controls, including the volume and planet modes. A world saved before the Noise tab existed opens with this on.
+          </p>
+        </ControlSection>
 
         <p className="hint">Drag to orbit, scroll to zoom, right-drag to pan.</p>
         </aside>
@@ -956,12 +1030,13 @@ export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
         mode={mode}
         resolution={resolution}
         field={field}
-        heightScale={mode === 'planet' ? relief : heightScale}
+        heightScale={fromLab ? lab.amplitude : mode === 'planet' ? relief : heightScale}
         selected={inRange ? { ...inRange, z: sliceZ } : null}
         ramp={ramp}
         overlay={overlay}
         spin={spin}
         wireframe={wireframe}
+        water={fromLab ? lab.seaLevel : 0}
       />
     </Workspace>
   )

@@ -12,12 +12,35 @@ import { EROSION_PARAM_SPECS, EROSION_PRESETS, getPreset, type ErosionParams } f
 import { PALETTES, type PaletteName } from '../palette'
 import { CONTINUOUS } from '../palette'
 import { VIZ_ACCENT } from '../theme'
+import {
+  DEFAULT_LAB,
+  LAB_MAX_AMPLITUDE,
+  MAX_LAB_LAYERS,
+  createLabLayer,
+  type CellularMode,
+  type LabBlend,
+  type LabFold,
+  type LabLayer,
+  type LabSettings,
+  type LabShaping,
+  type NoiseType,
+} from '../maplab/noiseLab'
 import { bool, hex, int, isRecord, num, params as parseParams, pick, type ConfigSpec } from './spec'
 
 /** A layer as stored: the live layer without its id, which is a React key. */
 export type StoredLayer = Omit<NoiseLayer, 'id'>
 
+/**
+ * Where the Simulate tab's ground comes from. `lab` is the field the Noise tab
+ * built; `stack` is the layered value-noise generator Topic 2 started with,
+ * kept so that every measurement in the chapter can still be reproduced.
+ */
+export type TerrainSource = 'lab' | 'stack'
+
 export type NoiseSettings = {
+  source: TerrainSource
+  /** The Noise tab's settings, stored with the world so a lab-sourced world reloads as the same ground. */
+  lab: LabSettings
   mode: GeometryMode
   resolution: number
   heightScale: number
@@ -93,6 +116,8 @@ export function fbmStack(
 export function defaultNoiseSettings(): NoiseSettings {
   const preset = getPreset(DEFAULT_PRESET)
   return {
+    source: 'lab',
+    lab: { ...DEFAULT_LAB, layers: DEFAULT_LAB.layers.map((l) => ({ ...l })) },
     mode: 'surface',
     resolution: DEFAULT_NOISE_RESOLUTION,
     heightScale: 1.4,
@@ -125,6 +150,76 @@ export function defaultNoiseSettings(): NoiseSettings {
     layers: fbmStack(DEFAULT_OCTAVES, DEFAULT_PERSISTENCE, DEFAULT_NOISE_RESOLUTION),
     outputShapingName: 'none',
     outputParams: {},
+  }
+}
+
+const NOISE_TYPES: NoiseType[] = ['white', 'perlin', 'cellular']
+const CELLULAR_MODES: CellularMode[] = ['distance', 'edges']
+const LAB_FOLDS: LabFold[] = ['none', 'ridged', 'billow']
+const LAB_BLENDS: LabBlend[] = ['add', 'subtract', 'multiply', 'max']
+const LAB_SHAPINGS: LabShaping[] = ['none', 'terrace', 'power']
+
+/** One Noise-tab layer, clamped to the ranges its own controls allow. */
+function parseLabLayer(raw: Record<string, unknown>, fallbackSeed: number, fold: unknown = raw.fold): LabLayer {
+  const d = createLabLayer()
+  return {
+    id: typeof raw.id === 'string' && raw.id ? raw.id.slice(0, 64) : d.id,
+    enabled: bool(raw.enabled, true),
+    noise: pick<NoiseType>(raw.noise, NOISE_TYPES, d.noise),
+    cellular: pick<CellularMode>(raw.cellular, CELLULAR_MODES, d.cellular),
+    frequency: num(raw.frequency, 0.5, 12, d.frequency),
+    octaves: int(raw.octaves, 1, 8, d.octaves),
+    persistence: num(raw.persistence, 0.2, 0.9, d.persistence),
+    lacunarity: num(raw.lacunarity, 1.5, 3, d.lacunarity),
+    fold: pick<LabFold>(fold, LAB_FOLDS, d.fold),
+    ridgeSharpness: num(raw.ridgeSharpness, 1, 4, d.ridgeSharpness),
+    blend: pick<LabBlend>(raw.blend, LAB_BLENDS, d.blend),
+    weight: num(raw.weight, 0, 1, d.weight),
+    seed: int(raw.seed, 0, 999, fallbackSeed),
+  }
+}
+
+/**
+ * The Noise tab's settings, clamped to the ranges its own controls allow.
+ *
+ * Also reads the shape the Noise tab had before it could stack — one noise, with
+ * ridged and billow sharing a single Shaping control with terrace and power.
+ * That becomes one layer, the fold moving onto it and terrace or power
+ * staying global, which is exactly the field it produced.
+ */
+function parseLab(raw: unknown): LabSettings {
+  const d = DEFAULT_LAB
+  if (!isRecord(raw)) return { ...d, layers: d.layers.map((l) => ({ ...l })) }
+
+  let layers: LabLayer[]
+  let shaping: unknown = raw.shaping
+  if (Array.isArray(raw.layers)) {
+    layers = raw.layers
+      .filter(isRecord)
+      .slice(0, MAX_LAB_LAYERS)
+      .map((layer, i) => parseLabLayer(layer, i))
+  } else {
+    const legacyFold = raw.shaping === 'ridged' || raw.shaping === 'billow' ? raw.shaping : 'none'
+    if (legacyFold !== 'none') shaping = 'none'
+    // The flat shape's `seed` is the field seed, not a layer offset — read as
+    // one, a converted world would load as different terrain under its name.
+    layers = [parseLabLayer({ ...raw, seed: 0 }, 0, legacyFold)]
+  }
+  if (layers.length === 0) layers = d.layers.map((l) => ({ ...l }))
+
+  return {
+    seed: int(raw.seed, 0, 99999, d.seed),
+    layers,
+    shaping: pick<LabShaping>(shaping, LAB_SHAPINGS, d.shaping),
+    amplitude: num(raw.amplitude, 0.05, LAB_MAX_AMPLITUDE, d.amplitude),
+    terraceSteps: int(raw.terraceSteps, 2, 16, d.terraceSteps),
+    powerExponent: num(raw.powerExponent, 0.25, 4, d.powerExponent),
+    warp: bool(raw.warp, d.warp),
+    warpStrength: num(raw.warpStrength, 0, 0.5, d.warpStrength),
+    warpScale: num(raw.warpScale, 0.5, 8, d.warpScale),
+    island: bool(raw.island, d.island),
+    islandFalloff: num(raw.islandFalloff, 0.2, 2, d.islandFalloff),
+    seaLevel: num(raw.seaLevel, 0, 0.8, d.seaLevel),
   }
 }
 
@@ -201,6 +296,11 @@ function parse(raw: unknown): { settings: NoiseSettings; repairs: string[] } {
 
   return {
     settings: {
+      // Every world saved before the Noise tab existed was built from the layer
+      // stack, so a document with no source is one — defaulting it to the Noise tab
+      // would load a different terrain under the old name.
+      source: raw.source === 'lab' ? 'lab' : 'stack',
+      lab: parseLab(raw.lab),
       mode: pick<GeometryMode>(raw.mode, MODES, d.mode),
       resolution,
       heightScale: num(raw.heightScale, 0, 4, d.heightScale),
@@ -219,7 +319,9 @@ function parse(raw: unknown): { settings: NoiseSettings; repairs: string[] } {
       showCutFill: bool(raw.showCutFill, d.showCutFill),
       caThreshold: num(raw.caThreshold, 0, 1, d.caThreshold),
       survive: int(raw.survive, 0, 26, d.survive),
-      warpAmount: num(raw.warpAmount, 0, 1, d.warpAmount),
+      // In cells, 0–40, as the slider is. This clamped to 1 until the Noise tab
+      // work: a world saved at 16 cells of warp reloaded at 1.
+      warpAmount: num(raw.warpAmount, 0, 40, d.warpAmount),
       warpFrequency: num(raw.warpFrequency, 0.5, 32, d.warpFrequency),
       warpSeed: int(raw.warpSeed, 0, 1e6, d.warpSeed),
       talus: num(raw.talus, 0, 1, d.talus),
@@ -241,6 +343,10 @@ export const noiseSpec: ConfigSpec<NoiseSettings> = {
   defaults: defaultNoiseSettings,
   parse,
   summary: (s) => {
+    if (s.source === 'lab') {
+      const on = s.lab.layers.filter((l) => l.enabled)
+      return `Noise · ${on.length === 1 ? on[0].noise : `${on.length} noise layers`} · ${s.lab.shaping === 'none' ? 'unshaped' : s.lab.shaping}`
+    }
     const enabled = s.layers.filter((l) => l.enabled).length
     return `${enabled} layers · ${s.resolution}² · ${s.mode}`
   },

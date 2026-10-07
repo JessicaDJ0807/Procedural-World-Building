@@ -31,12 +31,12 @@ type NoiseViewportProps = {
   wireframe: boolean
   /**
    * Sea level in field units, drawn as a flat plane at that height. Surface
-   * mode only; omitted or 0 draws no water. Only the Lab passes it — the
-   * workbench's low ground is coloured by the ramp instead.
+   * mode only; omitted or 0 draws no water. Only the Noise tab’s field has a sea level —
+   * the layer stack's low ground is coloured by the ramp instead.
    */
   water?: number
   /**
-   * Camera distance relative to the default framing. The Lab draws the tile in
+   * Camera distance relative to the default framing. The Noise tab draws the tile in
    * a square pane rather than a wide viewport, where the default leaves it
    * filling about half the width.
    */

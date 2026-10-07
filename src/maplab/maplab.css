@@ -1,4 +1,4 @@
-/* Topic 2's Lab: two views of one field side by side, with the profile and the
+/* Topic 2's Noise tab: two views of one field side by side, with the profile and the
    pipeline under them. The bench scrolls rather than shrinking the views — a
    map too small to read defeats the comparison it exists for. */
 
@@ -205,9 +205,9 @@
   padding-inline: 12px;
 }
 
-/* ---- Lab | Workbench ---- */
+/* ---- Noise | Simulate ---- */
 
-/* Both views stay mounted, so switching back finds the workbench where it was
+/* Simulate stays mounted once opened, so switching back finds it where it was
    left — an erosion run is minutes of accumulated state. */
 .maps-view {
   height: 100%;
@@ -219,4 +219,118 @@
 
 .maps-switch {
   margin-bottom: 14px;
+}
+
+/* The line naming what Simulate runs on sits above the source map's heading,
+   which carries no top margin of its own. */
+.control-sidebar .maps-ground-hint {
+  margin-bottom: 18px;
+}
+
+/* ---- Noise layers ---- */
+
+.lab-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.lab-layer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.lab-layer.is-selected {
+  border-color: var(--accent-line);
+  background: var(--accent-subtle);
+}
+
+.lab-layer.is-off .lab-layer-name {
+  color: var(--text-disabled);
+}
+
+.lab-layer input[type='checkbox'] {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.lab-layer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 3px 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lab-layer.is-selected .lab-layer-name {
+  color: var(--text-primary);
+}
+
+.lab-layer-index {
+  color: var(--text-muted);
+  font-weight: var(--weight-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-layer-tools {
+  display: flex;
+  flex: none;
+}
+
+.lab-layer-tools button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.lab-layer-tools button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.lab-layer-tools button:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+/* A step below a section title: Fold and Blend sit inside the layer editor. */
+.lab-subhead {
+  margin: 14px 0 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+/* A description above a slider needs room before the slider's label. */
+.control-sidebar .lab-hint {
+  margin-bottom: 12px;
 }

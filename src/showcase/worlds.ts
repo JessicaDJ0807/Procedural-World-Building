@@ -68,6 +68,9 @@ const objects = (over: Partial<ObjectSettings>): ObjectSettings => ({
 
 const maps = (over: Partial<NoiseSettings>): NoiseSettings => ({
   ...defaultNoiseSettings(),
+  // Written for the layer stack, before the Lab existed. The default source is
+  // now the Lab, so these have to name theirs.
+  source: 'stack',
   ...over,
 })
 
