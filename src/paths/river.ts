@@ -1,5 +1,6 @@
 import { sampleField, type StudyTerrain } from '../study/terrain'
-import { atParam, corridor, sampleSpline, smoothstep, withTangents, type P2, type Sample } from './spline'
+import { atParam, corridor, smoothstep, withTangents, type P2, type Sample } from './spline'
+import { smoothCentreline } from '../ribbon'
 
 /**
  * A river: here the terrain mostly decides, and the spline mostly obeys.
@@ -48,6 +49,16 @@ export type RiverResult = {
 }
 
 const MIN_FALL = 0.012 // world units of fall per world unit of run
+/**
+ * World units over which the traced course is smoothed (Gaussian sigma).
+ *
+ * Measured over 420 traced rivers — five terrains, four routes, terrain
+ * influence 0 to 1 in steps of 0.05 — counting quads of the water strip that
+ * fold: 0.10 left 19 rivers folding, 0.15 left 13, 0.25 left none, and 0.40
+ * left 12 again, because smoothing that hard pulls a short course away from
+ * its own turns. Not "more is better"; this is the value that measured clean.
+ */
+const RIVER_SMOOTHING = 0.25
 
 /** Downhill direction from a central difference two cells wide. */
 function downhill(t: StudyTerrain, h: Float32Array, x: number, z: number): [number, number, number] {
@@ -141,13 +152,29 @@ export function buildRiver(
   params: RiverParams,
   channels: Float32Array | null = null,
 ): RiverResult {
-  const { traced, ending } = traceRiver(terrain, height, points, params.influence, channels)
-  // The trace is one point per step and carries every wobble of the inertia
-  // filter; a spline through every sixth point keeps its course and drops the
-  // jitter.
-  const keys = traced.filter((_, i) => i % 6 === 0 || i === traced.length - 1)
-  const samples = keys.length >= 2 ? sampleSpline(keys, terrain.cell * 0.75) : withTangents(traced)
+  const trace = traceRiver(terrain, height, points, params.influence, channels)
+  const { ending } = trace
   const field = { res: terrain.res, size: terrain.size }
+  // A river that ends in a basin spent its last sixty steps circling the
+  // bottom looking for a way out. That loop is not river — it is the search
+  // giving up — and drawn, it is a channel and a strip that cross themselves.
+  // The course ends at the lowest point it reached.
+  let traced = trace.traced
+  if (ending === 'pit') {
+    let lowest = 0
+    for (let i = 1; i < traced.length; i++) {
+      if (sampleField(field, height, traced[i].x, traced[i].z) < sampleField(field, height, traced[lowest].x, traced[lowest].z)) lowest = i
+    }
+    traced = traced.slice(0, lowest + 1)
+  }
+  // The trace is one point per step and carries every wobble of the inertia
+  // filter. It is Gaussian-smoothed rather than fitted with a spline through
+  // every sixth point, which is what this did first: an interpolating spline
+  // has to pass through each key, and where the last key landed almost on top
+  // of the one before, it made a cusp — the strip folded at the mouth of 35 of
+  // 420 traced rivers. The channel is carved along these same samples, so the
+  // water and its bed share one centreline.
+  const samples = traced.length >= 2 ? smoothCentreline(traced, terrain.cell * 0.75, RIVER_SMOOTHING).samples : withTangents(traced)
   const raw = samples.map((p) => sampleField(field, height, p.x, p.z))
 
   const surface: number[] = []

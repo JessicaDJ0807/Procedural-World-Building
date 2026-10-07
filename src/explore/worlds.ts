@@ -105,7 +105,10 @@ export type WorldSpec = {
     rockFrom: number
     rockTo: number
     shore: string
-    /** Units either side of the waterline the shore colour reaches. */
+    /**
+     * How far the shore colour reaches: units either side of the waterline
+     * for a sea; for a river, units past the channel's edge, measured across.
+     */
     shoreBand: number
     tintScale: number
     tintAmount: number
@@ -508,12 +511,18 @@ export const WORLDS: WorldSpec[] = [
       // Long enough to leave the region rather than stopping in the middle of
       // it, which reads as unfinished.
       nodes: 215,
-      // 0.016 per unit over a ~3,400-unit course is about 54 units of fall —
-      // visibly downhill without reading as a waterslide.
-      gradient: 0.016,
+      // The least the water may fall per unit, not how much it falls. At 0.016
+      // the water was forced down faster than its valley descends, ended up
+      // below the valley floor, and the carve dug a trench to reach it — 25
+      // units under the land at the bank. At 0.004 it still never rises, and
+      // where the valley falls the water falls with it.
+      gradient: 0.004,
       depth: 9,
       width: 20,
-      influence: 78,
+      // Reach of the carve. The release is as long as its rise needs for a ~10°
+      // slope, so high banks need room: at 78 the release was a fixed run and
+      // climbed out at 22° median through land that had been 5°.
+      influence: 130,
       descentBias: 1,
       // Raised once the mountains arrived: with strong regional relief the
       // route needs holding to its bearing or it wanders into a basin.
@@ -546,12 +555,16 @@ export const WORLDS: WorldSpec[] = [
         name: 'shallow water',
         // Lighter and a touch greener where it shelves, which is the cue that
         // tells you the middle is deep without anything having to be drawn.
-        color: '#5e9c93',
+        // Muted from #5e9c93 once the channel shelved up under the water's
+        // edge everywhere: at full strength the shelf read as a cyan rim.
+        color: '#56837b',
         mask: (s) => band(s.depth, 0.1, 2.6, 1.3),
       },
       {
         name: 'river bank',
-        color: '#b89a6c',
+        // Wet mud rather than dry sand: the bank is now a real band on every
+        // stretch, and the old #b89a6c read as a bright beach beside the water.
+        color: '#8f7d62',
         // Tan mud and gravel at the waterline. Widened from a 2.2-unit band,
         // which on these valley sides was 0.7% of the world and invisible.
         mask: (s) => (s.depth > 0.5 ? 0 : s.shore * 2.6),
@@ -596,10 +609,10 @@ export const WORLDS: WorldSpec[] = [
       rockFrom: 0.95,
       rockTo: 0.66,
       shore: '#b89a6c',
-      // 14, not 8. The carve leaves a steep bank, so the rock band competes for
-      // the same ground; at 8 the tan margin survived in a strip about four
-      // units wide and read as nothing at all.
-      shoreBand: 14,
+      // For a river world this is horizontal: units past the channel's edge.
+      // The mud is solid to about 0.6 of it — some 4 units past the visible
+      // shoreline, which sits ~3.5 out — and gone by 12.
+      shoreBand: 12,
       tintScale: 0.0016,
       tintAmount: 0.4,
     },
@@ -623,7 +636,10 @@ export const WORLDS: WorldSpec[] = [
     // highlight is what reads as water, and a rough matte surface has no
     // highlight to move. Partly transparent so the classified bed shows
     // through and the river has depth rather than one flat tone.
-    water: { color: '#3f7f8c', opacity: 0.72, metalness: 0.42, roughness: 0.14 },
+    // Highlights eased (metalness 0.42, roughness 0.14 originally), so the
+    // glints break up the surface without competing with the shoreline or
+    // reading as varnish from above.
+    water: { color: '#3f7f8c', opacity: 0.72, metalness: 0.32, roughness: 0.26 },
     sun: { azimuth: 118, elevation: 38, color: '#fff0d2', intensity: 2.2 },
     fill: 0.6,
     ambient: { color: '#9cae8a', intensity: 1.05 },
@@ -728,7 +744,15 @@ export const WORLDS: WorldSpec[] = [
      * tall 33 away, nothing wider than 7 degrees anywhere in frame, and a
      * skyline of 7.94 degrees carrying 104 units of relief after fog.
      */
-    spawn: { x: 616, z: -200, yaw: -2.36, pitch: -0.07, lift: 0 },
+    // Re-solved twice since the river was rebuilt. The original spawn,
+    // (616, −200) at yaw −2.36, looked at water that had ballooned toward it;
+    // once the river became a fixed-width channel it saw none. When the course
+    // was then relaxed into its valley the channel moved, and the spawn chosen
+    // for the fixed-width river saw 1 water point. Each search scores water
+    // visible past terrain *and* trees — nearest prop over 2.5 units tall at
+    // least 15 away, nothing wider than 10° in frame. This spot sees 63, with
+    // the nearest prop 61 units away.
+    spawn: { x: 876, z: -276, yaw: -0.7, pitch: -0.07, lift: 0 },
   },
 ]
 

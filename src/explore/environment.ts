@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { River } from './river'
+import { BANK_OVERLAP, type River } from './river'
 import { valueNoise } from './terrain'
 import type { WorldSpec } from './worlds'
 
@@ -87,23 +87,32 @@ export function createEnvironment(
     if (river) {
       const hit = river.at(x, z)
       if (hit) {
-        depth = Math.max(0, hit.node.water - h)
+        // Under the river only within its reach. Past the wet bank, ground
+        // lower than the water is land that happens to lie lower — hillside
+        // falling away from the source, where the river starts on the highest
+        // ground around — and counting it as depth painted it as riverbed with
+        // no water over it.
+        const inRiver = hit.lateral <= hit.node.width + BANK_OVERLAP
+        depth = inRiver ? Math.max(0, hit.node.water - h) : 0
         above = h - hit.node.water
         /*
-         * Height above the local water surface, not lateral distance.
+         * Distance past the channel's edge, for a river — and zero underwater.
          *
-         * Lateral was wrong, and the cross-section said so: the carved bank
-         * rises gradually, so a point a few units outside the channel edge is
-         * still well below the water. Everywhere `shore` was high the ground
-         * was underwater, and by the time it surfaced `shore` had decayed to
-         * zero — the tan band existed in the list and never once appeared.
-         *
-         * Measured against this node's own water height, so it still follows
-         * the river downhill rather than ringing a global elevation.
+         * This was height above the water for a while, and for good reason at
+         * the time: the old carve's bank rose so gradually that ground several
+         * units outside the channel edge was still underwater, so a lateral
+         * band lay on the riverbed and never appeared. The channel is now
+         * carved around the water, and past its edge the ground is above the
+         * surface by construction. Height then became the wrong measure the
+         * other way: the new wet bank stays within 0.9 of the water for 10
+         * units and the release climbs at about 10°, so a height band of 14
+         * spread mud a median 48 units from the water — and even a band of 3
+         * spread it 18. Measured horizontally, the margin is the same width
+         * on every reach.
          */
         const aboveWater = h - hit.node.water
-        shore =
-          aboveWater < 0 || shoreBand <= 0 ? 0 : Math.max(0, 1 - aboveWater / shoreBand)
+        const past = Math.max(0, hit.lateral - hit.node.width)
+        shore = aboveWater < 0 || shoreBand <= 0 ? 0 : Math.max(0, 1 - past / shoreBand)
       } else {
         depth = 0
         above = 40

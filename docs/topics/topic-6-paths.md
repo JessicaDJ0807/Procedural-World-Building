@@ -71,8 +71,10 @@ distance and a *fractional* sample index, so the path's height and width can be
 interpolated at exactly the point it is nearest to. Asking every vertex about
 every segment would be 16,641 × ~180 ≈ 3 million tests; the boxes cut it to the
 corridor. A full rebuild — every path, then the terrain normals — takes a
-median 2.9 ms in Node with the default two roads and two rivers, and 4.8 ms with
-four of each: fast enough to rebuild on every frame of a drag.
+median 3.6 ms in Node with the default two roads and two rivers, and 5.4 ms with
+four of each: fast enough to rebuild on every frame of a drag. (Measured on a
+busy machine; an earlier run of the same build, before the river smoothing
+described in the Notes, gave 2.9 and 4.8 ms.)
 
 ## The road
 
@@ -134,9 +136,12 @@ weighted by **terrain influence**. An inertia filter (60% of the old heading
 each step) stops it turning on a point; without it a pure-downhill trace
 zig-zags across every valley floor it meets. The trace ends in the lake, off
 the edge of the map, or — if it has gone sixty steps without finding lower
-ground while the terrain is in charge — in a basin with no outlet. The traced
-points are then thinned to every sixth and run through the same spline as the
-road, which keeps the course and drops the jitter.
+ground while the terrain is in charge — in a basin with no outlet, in which
+case the course is cut back to the lowest point it reached, because the sixty
+steps of circling are the search giving up, not river. The trace is then
+Gaussian-smoothed over 0.25 units, which keeps the course and drops the jitter;
+the channel is carved along the smoothed samples and the water strip is built
+on them, so bed and surface share one centreline (see [Notes](#notes)).
 
 **Two rules make it a river rather than a road with water in it:**
 
@@ -156,12 +161,13 @@ what makes terrain influence measurable:
 
 | Terrain influence | Length | Ground climbed | Deepest cut |
 | --- | --- | --- | --- |
-| 0 — obey the guides | 6.13 | 0.407 | 0.547 |
-| 0.3 | 6.24 | 0.393 | 0.547 |
-| 0.5 | 7.19 | 0.343 | 0.492 |
-| 0.6 | 4.02 | 0 | 0.170 |
-| 0.7 (default) | 3.80 | 0 | 0.146 |
-| 1 — ignore the guides | 3.91 | 0 | 0.150 |
+| 0 — obey the guides | 6.12 | 0.412 | 0.549 |
+| 0.3 | 6.23 | 0.393 | 0.545 |
+| 0.4 | 6.33 | 0.413 | 0.548 |
+| 0.5 | 7.12 | 0.332 | 0.492 |
+| 0.6 | 4.00 | 0 | 0.163 |
+| 0.7 (default) | 3.78 | 0 | 0.146 |
+| 1 — ignore the guides | 3.87 | 0 | 0.153 |
 
 | Obeying the guides (influence 0) | Following the terrain (influence 0.7) |
 | --- | --- |
@@ -207,8 +213,8 @@ River 3's source was found rather than placed by eye: five candidate sources
 were traced against the two default rivers, and of those one reached the lake,
 three ended in basins with no outlet, and one joined. Measured with all four of
 each, every river ends where it is meant to — Rivers 1, 2 and 4 in the lake,
-River 3 in River 1 — none climbs more than 0.001 units of ground, and the four
-roads cut 0.149–0.324 units³ each.
+River 3 in River 1 — none climbs more than 0.002 units of ground, and the four
+roads cut 0.149–0.326 units³ each.
 
 ## Seeing the projection
 
@@ -231,6 +237,35 @@ the road, dots above the line are rises that were cut, dots below are dips that
 were filled.
 
 ## Notes
+
+**The water strip folded, and so did the river's own centreline.** A strip is
+the centreline offset sideways by the half-width, and an offset curve has a
+cusp wherever the offset is larger than the radius of the bend: the inner edge
+runs backwards and the quads fold into bow-ties. Counted over 420 traced rivers
+— five terrains, four routes, terrain influence 0 to 1 in steps of 0.05 — the
+worst had 109 folded quads. Two things were wrong, and one fix made it worse
+before it made it better:
+
+- Clamping the half-width to 80% of the local bend radius alone still left the
+  worst case at 86. Most of the folds were not the strip's: the centreline
+  itself turned back, because the trace was fitted with a spline through every
+  sixth point, and an interpolating spline through a last key that landed
+  almost on top of the one before makes a cusp at the mouth. And a river that
+  ended in a basin was drawn circling it.
+- So the trace is now Gaussian-smoothed rather than spline-fitted, a basin
+  ending is cut back to its lowest point, and the smoothing pads its ends by
+  point reflection so the samples next to the source and the mouth are smoothed
+  too. The first version shrank the window there instead; six rivers still
+  folded, five of them within four quads of an end, and the padding cleared
+  all six.
+
+The smoothing width was swept, and it is not "more is better": 0.10 units left
+19 of the 420 rivers folding, 0.15 left 13, **0.25 left none**, and 0.40 left 12
+again, because smoothing that hard pulls a short course off its own turns. At
+0.25 no vertex needed the repair in `src/ribbon.ts` either — the strip-builder
+holds an edge vertex in place rather than let it step backwards, which is the
+guarantee for centrelines this sweep did not try. The river's numbers moved by
+at most a few hundredths: the influence table above is re-measured.
 
 **One road and one river became lists.** The first version held exactly one of
 each, with the active path stored as a bare kind. Saved worlds from then are

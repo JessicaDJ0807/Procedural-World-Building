@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import type { River } from './river'
+import { atIndex, clampToBends, ribbonGeometry, smoothCentreline } from '../ribbon'
+import { BANK_OVERLAP, type River } from './river'
 import type { WorldSpec } from './worlds'
 
 /**
@@ -174,53 +175,37 @@ export function createRiverSurface(river: River, spec: WorldSpec): Water | null 
   const config = spec.water
   if (!config) return null
 
+  // The river's own centreline and its own width — the same numbers the
+  // channel was carved from, so the water sits in its bed by construction
+  // rather than by searching the terrain for where the bank happens to be.
+  // The nodes already lie on a smoothed course; an 8-unit smoothing only rounds
+  // the corners a 20-unit polyline still has, moving the line well under a
+  // unit from the segments the channel was carved along.
   const nodes = river.nodes
-  const count = nodes.length
-  const positions = new Float32Array(count * 2 * 3)
-  const uvs = new Float32Array(count * 2 * 2)
-  const indices = new Uint32Array((count - 1) * 6)
-
-  for (let i = 0; i < count; i++) {
-    const n = nodes[i]
-    // Normal to the tangent, in plan. The ribbon is flat across its width:
-    // a river's surface is level from bank to bank even where the bed is not.
-    const nx = -n.tz
-    const nz = n.tx
-    // Slightly wider than the channel, so the water meets the bank rather than
-    // leaving a sliver of bed showing along both edges.
-    const half = n.width * 1.04
-
-    const o = i * 6
-    positions[o] = n.x - nx * half
-    positions[o + 1] = n.water
-    positions[o + 2] = n.z - nz * half
-    positions[o + 3] = n.x + nx * half
-    positions[o + 4] = n.water
-    positions[o + 5] = n.z + nz * half
-
-    const u = i * 4
-    uvs[u] = 0
-    uvs[u + 1] = n.s
-    uvs[u + 2] = 1
-    uvs[u + 3] = n.s
-
-    if (i < count - 1) {
-      const a = i * 2
-      const t = i * 6
-      indices[t] = a
-      indices[t + 1] = a + 1
-      indices[t + 2] = a + 2
-      indices[t + 3] = a + 1
-      indices[t + 4] = a + 3
-      indices[t + 5] = a + 2
-    }
-  }
-
-  const geometry = new THREE.BufferGeometry()
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
-  geometry.setIndex(new THREE.BufferAttribute(indices, 1))
-  geometry.computeVertexNormals()
+  const { samples, index } = smoothCentreline(nodes, 4, 8)
+  const level = index.map((k) => atIndex(nodes.map((n) => n.water), k))
+  const width = nodes.map((n) => n.width + BANK_OVERLAP)
+  // The width already respects the bends — the river sizes its channel to 55%
+  // of the tightest local radius — so the clamp here is only the strip's own
+  // safety net, at 95%. At the strip's default 80% it measured curvature over
+  // a shorter window than the river did, trimmed the water at 19 samples the
+  // channel had already sized, and left the shelf showing past its edge.
+  const halfWidth = clampToBends(samples, index.map((k) => atIndex(width, k)), 0.95)
+  // Flat across: a river's surface is level from bank to bank even where the
+  // bed is not.
+  const geometry = ribbonGeometry(samples, halfWidth, (_x, _z, i) => level[i])
+  // Signed distance from the centreline, in world units, per vertex. The
+  // ripples used to be sampled on uv.x, which runs 0–1 across whatever the
+  // width is — seven and eleven cells across a 12-unit reach and a 30-unit one
+  // alike — so the pattern was pinned to the strip and traced its edges from
+  // above. In world units it has one scale everywhere and no idea where the
+  // edges are.
+  const lateral = new Float32Array(samples.length * 2)
+  halfWidth.forEach((w, i) => {
+    lateral[i * 2] = -w
+    lateral[i * 2 + 1] = w
+  })
+  geometry.setAttribute('aLateral', new THREE.BufferAttribute(lateral, 1))
 
   const uniforms = { uTime: { value: 0 } }
   const material = new THREE.MeshStandardMaterial({
@@ -238,15 +223,23 @@ export function createRiverSurface(river: River, spec: WorldSpec): Water | null 
 
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = uniforms.uTime
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\n attribute float aLateral;\n varying float vLateral;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n vLateral = aLateral;')
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n uniform float uTime;\n ${GLSL_NOISE}`)
+      .replace(
+        '#include <common>',
+        `#include <common>\n uniform float uTime;\n varying float vLateral;\n ${GLSL_NOISE}`,
+      )
       .replace(
         '#include <normal_fragment_begin>',
         `#include <normal_fragment_begin>
          {
-           // vUv.y is distance downstream in world units, vUv.x is across.
-           vec2 flow = vec2(vUv.x * 7.0, vUv.y * 0.22 - uTime * 0.55);
-           vec2 flowB = vec2(vUv.x * 11.0, vUv.y * 0.41 - uTime * 0.82);
+           // World units both ways: vLateral across, vUv.y downstream. Broad,
+           // roughly round ripples 5–10 units across, drifting with the flow.
+           vec2 p = vec2(vLateral, vUv.y);
+           vec2 flow = vec2(p.x * 0.10, p.y * 0.07 - uTime * 0.30);
+           vec2 flowB = vec2(p.x * 0.19, p.y * 0.13 - uTime * 0.48);
            float e = 0.6;
            float gx =
              (wNoise(flow + vec2(e, 0.0)) - wNoise(flow - vec2(e, 0.0))) * 0.65 +
@@ -257,21 +250,24 @@ export function createRiverSurface(river: River, spec: WorldSpec): Water | null 
            // Damped toward the banks: the middle of a river moves and its edges
            // do not, and a ripple that runs into the bank reads as a mistake.
            float mid = 1.0 - abs(vUv.x * 2.0 - 1.0);
-           normal = normalize(normal + vec3(-gx, 0.0, -gz) * 1.5 * smoothstep(0.0, 0.45, mid));
+           normal = normalize(normal + vec3(-gx, 0.0, -gz) * 0.9 * smoothstep(0.0, 0.45, mid));
          }`,
       )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
          {
-           // Streaks stretched along the course, so they read as current.
-           float streak = wNoise(vec2(vUv.x * 4.5, vUv.y * 0.5 - uTime * 0.7));
+           // Long, soft bands along the course, about 16 units across and 45
+           // along, so they read as current. They were 10 across and 2 along —
+           // short bright bars across the flow, dense enough to read as a
+           // texture from above.
+           float streak = wNoise(vec2(vLateral * 0.06, vUv.y * 0.022 - uTime * 0.18));
            float mid = 1.0 - abs(vUv.x * 2.0 - 1.0);
-           diffuseColor.rgb += smoothstep(0.66, 0.99, streak) * 0.09 * mid;
+           diffuseColor.rgb += smoothstep(0.62, 0.95, streak) * 0.035 * mid;
          }`,
       )
   }
-  material.customProgramCacheKey = () => 'explore-river-v1'
+  material.customProgramCacheKey = () => 'explore-river-v2'
 
   const mesh = new THREE.Mesh(geometry, material)
   mesh.renderOrder = 1

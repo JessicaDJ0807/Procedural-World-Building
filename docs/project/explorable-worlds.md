@@ -145,9 +145,10 @@ Dry ground across the play area now runs p1 −6.2, p25 18.3, p50 27.0, p75 36.9
 p90 45.9, p99 126.9, max 171.1. The long tail is the point: the median is still
 valley, and the top percentile is mountain.
 
-The river is unchanged by any of this, as it should be — it is routed before the
-carve and before the damping. 215 nodes, 4,280 units, falls 80.7, no validation
-problems, identical on a second build.
+The river was unchanged by any of this, as it should be — it is routed before
+the carve and before the damping. (It has since been smoothed once and given a
+controlled width, and relaxed into its valley; see [The river](#the-river).
+Now 226 nodes, 4,477 units, falls 65.5, no validation problems.)
 
 ## The backdrop
 
@@ -277,21 +278,74 @@ on how far they turn, and on how far they stray from an overall bearing; a
 low-frequency wander is added afterwards so it meanders rather than running the
 fall line.
 
+**Into the valley.** The bearing holds the route hard (drift 2.6), so on its own
+it crossed the valley instead of following it. A light relaxation fixes that
+without hydrology: ten passes in which every interior node looks ±90 units
+across for the lowest ground (penalised by distance), moves a quarter of the way
+there, and is then pulled halfway toward its neighbours' midpoint; no node
+strays more than 90 units, and the ends never move. "Lowest" means the ground
+the river will actually lie in — the raw height with the mountain mass damped
+as `valleyFloor` will damp it.
+
+**One course.** The relaxed route is Gaussian-smoothed once, over 12 units, and
+resampled every 20 — the largest turn left is 0.79 rad — and *everything* is
+built on that line: the profile, the carve, the banks, the water. Earlier the
+water followed its own smoothing while the channel followed the raw corners,
+which is how they stopped agreeing.
+
 **Profile.** Water elevation against distance downstream, monotonic *by
 construction* rather than checked afterwards: each node takes the lower of a
-fixed drop below the previous node and a fixed depth below the local ground. The
-first guarantees it always falls; the second stops the surface climbing out of
-the ground where the route crosses a rise. Measured: **215 nodes, 4,280 units,
-falling 87.7 — a 2.05% gradient, with no uphill step anywhere.**
+small drop below the previous node and a fixed depth below the valley ground
+there. The first guarantees it always falls; the second keeps it in the ground
+where the course crosses a rise. The drop is a floor, not a rate — 0.004 per
+unit. At 0.016 the water was forced down faster than the valley descends,
+ended up below the valley floor, and the carve dug a trench to reach it.
+Measured: **226 nodes, 4,477 units, from 46.5 at the source to −19.0 at the
+outlet — 1.46% overall, with no uphill step anywhere.**
 
-**Channel.** The bed is the profile less the local depth; terrain is blended
-toward it by lateral distance, flat across the bed, then a bank, then eased back
-to whatever the ground was doing. That easing is the part that matters — cutting
-to a fixed profile and stopping would leave a rim along the whole course.
+**Width comes from the course, not the terrain.** Half-width grows from 80% of
+the spec's at the source to 125% at the mouth, wanders ±12% over about 500
+units, widens up to 12% on bends gentler than a 150-unit radius, is
+Gaussian-smoothed over about five nodes, may change by at most 0.8 units
+between neighbouring nodes, and never exceeds 55% of the tightest bend radius
+within a node's span, less the 5 units the water runs under the bank. That
+bend limit is itself smoothed before anything is clamped to it — clamped to the
+raw per-node limit, the width followed every flicker of curvature in a sawtooth.
+The terrain has no say: the channel is carved to fit the river. Half-widths run
+6.8–28.5, median 19.2, and grow by quarter 18.1 → 18.1 → 18.9 → 21.0; the
+narrowest are the tight bends.
+
+**Channel.** Measured from the nearest point on the course — a segment, not a
+node, or the bank scallops every 20 units — the cross-section is built around
+the water:
+
+```
+      land ─────╮
+                 ╲   release: about 10°, as long as the rise needs
+   wet bank ──────╲___       10 units, rising to 0.9 above the water
+  ~~~~~~~~~~~~~~~~~~~~╲~~~~  water, exactly `width` from the centreline
+    shelf ╲________________  bed, flat across the middle 40%
+```
+
+Under the water the ground is always below it: the bed is flat across the
+middle 40%, then shelves the whole way up to 0.35 under the surface at the
+edge, so the water shallows gradually. A 10-unit wet bank climbs to 0.9 above
+the water — about 5° — and then the release eases to the land over a run as
+long as its rise needs for a ~10° slope, within the carve's 130-unit reach.
+Where the land is lower than the river, a floor just above the water holds over
+most of that release before fading into the land — a long low levee rather than
+a step. Within the channel no point of ground is at or above the water; past
+the bank, none counts as riverbed.
 
 **Water.** A ribbon along the centreline, not a plane. A plane can only be
-level, and this surface is 53 units up at the source and −35 at the outlet;
-there is no single elevation that is right for it.
+level, and this surface falls 65.5 units from source to outlet; there is no
+single elevation that is right for it. It follows the course with a light
+8-unit smoothing that only rounds the 20-unit polyline's corners, is level
+across, and is the channel's own width plus 5 units — so its edge runs under
+bank already about 0.3 above the water, and the shoreline seen is where the bank
+meets the water, not the end of a mesh. Past that shoreline a wet-mud margin is
+solid for 4 units and gone by 8.5 on every reach. See [Notes](#notes) for the
+versions this replaced.
 
 **Flow needs no uniform.** The ribbon is laid out with `v` running downstream, so
 scrolling the ripples along `v` *is* scrolling them along the local tangent. A
@@ -477,6 +531,148 @@ pointer is locked.
 
 ## Notes
 
+**From above the river read as a canal, and the data said why.** With the
+water and the channel fixed, the remaining problem was morphology, measured on
+the course before changing anything:
+
+| | Before | After |
+| --- | --- | --- |
+| Sinuosity over 600-unit reaches, median / max | 1.025 / 1.10 | 1.073 / 1.238 |
+| Longest run within ±4° of one heading | 220 units | 100 units |
+| Nodes where the valley's lowest ground is inside the channel | 41 of 214 | 67 of 226 |
+| Ground removed at the bank edge, median | 24.7 | 12.6 |
+| Land 30 units out, above the water, median | 26.2 | 14.1 |
+| Wet-bank slope (edge +3), median | 20.4° | 8.4° |
+| Release slope (+15), median — the land there was ~5° | 22.0° | 4.1° |
+| Steepest point per cross-section, median / p90 | 38.6° / 47.4° | 16.6° / 26.6° |
+| Half-width, by quarter downstream | 17.2 → 15.8 → 20.6 → 24.0 | 18.1 → 18.1 → 18.9 → 21.0 |
+| Median width change between nodes | 0.08 | 0.35 |
+
+Nearly straight, nearly constant in width, and sitting in a trench about 25
+units under land that had been gentle: the route crossed its valley rather than
+following it, and the water — forced to fall 0.016 per unit — sat below the
+valley floor wherever the valley fell more slowly. The relaxation, the gentler
+profile floor and the length-scaled release fixed the first and the trench; the
+width terms and the smoothed bend limit fixed the rest.
+
+The first relaxation overshot: reach 140 and 16 passes gave sinuosity up to
+1.78, one 92° bend, and twelve places the validator found the course too close
+to itself — and with the old gradient the longer course dug *deeper*, 33 units.
+Reach 90, ten passes and twice the distance penalty, with the gradient floor
+lowered, gave the numbers above and a clean validator.
+
+The mud band had been 14 units of *height* above the water, set when the bank
+was steep. On the new bank the ground stays within a unit of the water for 10
+units and rises at ~10° after, so 14 spread mud a median 48 units from the
+water, and even 3 spread it 18. For a river it is now horizontal — units past
+the channel's edge — which gives the same margin on every reach.
+
+The water shader read as a stretched texture from above. Its ripples were
+sampled on uv.x, which runs 0–1 across whatever the width is, so there were
+always seven and eleven ripple cells across and the pattern traced the strip's
+edges; the streaks were 10 units across by 2 along — short bright bars across
+the flow. Both are now in world units in both directions (a per-vertex
+`aLateral`), the ripples broader with the normal tilted 0.9 instead of 1.5, the
+streaks long soft bands about 16 × 45 units at 0.035 instead of 0.06, roughness
+0.2 → 0.26. The animation is the same code.
+
+Cost: building the river takes 16 ms instead of 6 (Node), three times per world
+entry; a height lookup near the river is 2.07 µs against 1.98 with the wider
+130-unit reach. Chunk build times above have not been re-measured in the
+browser.
+
+**The river looked like two layers, and it was the water being too narrow.**
+From the bank there seemed to be a teal river and, beside and under it, a
+darker navy one with straight polygonal edges. Traced through the scene, there
+is exactly one water mesh (`createRiverSurface`, opacity 0.72, render order 1)
+and no riverbed mesh; the overview's own water is built only in survey mode and
+hidden on the ground. The backdrop was the first suspect — a second terrain at
+32.5-unit cells, sunk only 3 units — but measured across the water's width it
+stands above the detailed ground at 2.3% of points, by at most 4.8 units, and
+never reaches the water surface.
+
+The cause was a disagreement about how wide the river is. The water covered the
+channel's flat bed plus 4%; the carved bank then climbs gently, and the ground
+stayed below the water level for a median 17.6 units more on each side (p90
+22.4) — on every one of 422 cross-sections. The ground classifier paints
+anything more than 2 units below the water as `deep water`, `#1b3f54`, so that
+strip was navy ground with no water over it, sitting lower than the teal
+surface: a second, darker river, edged by the ribbon on one side and by terrain
+triangles on the other. Painting the band magenta for one frame made it
+unambiguous — bright magenta outside the water, a purple tint under it.
+
+The first fix widened the water to fit: each side walked outward until the
+ground rose above the water level. It removed the navy strip and made the
+river worse. The width now belonged to whatever low ground was nearby —
+half-widths of 14.6 to 123 units, median 45, twice the channel; jumps of 11
+units between cross-sections 4 units apart; left and right up to 3.5× apart —
+and on the bend in front of the old spawn the search ran out of the channel
+into unrelated hollows (81 and 74 units) while the fold clamp held the inside
+at 16–22, so one bank swung through a fan of petal-shaped quads. 72 of 1,171
+quads fanned. It hid a carving problem with a geometry one.
+
+The fix that stuck turned the relationship round: a width chosen from the
+course, a channel carved to that width with a bank that leaves the water, and
+water of the same width — described under [The river](#the-river). Measured
+against the shoreline-search version:
+
+| | Shoreline search | Channel first |
+| --- | --- | --- |
+| Water half-width | 14.6–123, median 45 | 11.4–28.8, median 23.4 |
+| Largest change between samples 4 apart | 11.1 | 0.16 |
+| Fan-shaped quads | 72 | 0 |
+| Folded quads / pinched vertices | 0 / 0 | 0 / 0 |
+| Ground inside the channel at or above the water | — | 0 |
+| Ground painted riverbed outside the water | — | 0 |
+| Water edge vertices over ground below the surface | 89 of 2,344 | 1 of 2,314 |
+
+Two settings were found by measuring. The bend limit first used 75% of the
+radius measured across two nodes either side, which averaged the tightest part
+of a bend away; one quad's outer edge then travelled 13× as far as its inner
+one. It now takes the tightest radius on the dense line within a node's span,
+at 55%, which caps that ratio at about 3.4 (measured max 3.9). And the water
+first ran 2.5 units past the channel, which left 21 edge vertices up to 0.32
+under the water on the inside of bends where its lightly smoothed centreline
+sits a unit off the carve's segments; 3.5 left one.
+
+The environment also stopped counting depth past the bank. 296 points within
+the carve zone still lie below the water level, all in the first ~100 units:
+the river starts on the highest ground in its source box, and the hillside
+falls away beyond the bank. That ground is land that happens to lie lower, and
+counting it as depth had painted it as riverbed.
+
+A height lookup near the river costs 12% more with segments than with nodes
+(2.05 µs against 1.83, Node, 200,000 calls); chunk build times above were
+measured before and have not been re-measured in the browser.
+
+**The river surface folded at its bends.** It was built straight from the
+route's 215 nodes: left and right were the node's tangent turned a quarter,
+offset by the half-width. That half-width reached 33.5 units — widened on bends
+on purpose — while a 1.11 rad turn over a 20-unit step is a bend radius of 18,
+and wherever the offset exceeds the bend radius the inner edge runs backwards
+and the quads fold into bow-ties. Counted: 1 folded quad of 214, and a hard
+corner in the water at every node, visible from the ground as a straight-edged
+wedge where the strip snapped round.
+
+The first fix made it worse. A centripetal Catmull–Rom through the nodes has to
+pass through each one, so it squeezes a 64° turn into a few units right at the
+node — a tighter bend than the polyline had — and folded quads went from 1 to
+21. The ribbon now follows the route Gaussian-smoothed over 12 units instead,
+which spreads each turn out: **0 folded quads of 1,171**, without the edge
+repair in `src/ribbon.ts` having to step in once. A 6-unit window left a fold
+and a 20-unit window strayed 6.14 units from the route; 12 is the setting in
+use. That smoothing has since moved from the water into the river itself, so
+the channel is carved along the same smoothed line (see above).
+
+The same pass found the bend-widening term subtracting raw `atan2` values: a
+heading crossing due west read as a turn of nearly 2π and widened 8 nodes to
+the cap. Wrapped now. Those 8 nodes carve 0.7 units narrower on average (3.6
+at most) — too small to move the figures above, which were measured before.
+
+The flow was already where it belongs: the ripples and streaks are in the
+fragment shader, reading `uv`, and the strip itself never moves. It only needed
+`v` to stay a continuous distance downstream, which the resampled strip keeps.
+
 **The skyline read 0.00° and the terrain was not at fault.** The viewpoint
 solver reported no relief above the eye line from anywhere, through several
 rounds of raising the massif amplitude. Both limits were the instrument's: its
@@ -623,6 +819,23 @@ going: enough flat light to erase the modelling entirely. And the fog ran at
 sky the same hue as the grass so the horizon had nothing to read against. Fill
 is per world now, the fog is half what it was, and the sky is blue rather than
 green.
+
+**The river became a channel and the spawn lost it.** The old spawn,
+(616, −200) at yaw −2.36, looked at the bend whose water had ballooned toward
+the camera; with a fixed-width channel the nearest water is 84 units away
+behind the near hill, and from there 0 of 31 water points in frame were
+visible over the terrain (19 before). Re-aiming alone was not enough — headings
+1.88–2.06 see 63 points over the terrain, but the ground that used to be
+underwater strip is land again and has trees on it, and the screenshot was a
+conifer. So the search was repeated with the scatter in it: water visible past
+terrain *and* props, nearest prop over 2.5 units tall at least 15 away, nothing
+wider than 10° in frame, within 200 units. The original solver's stricter rule
+— nearest prop 25 away, nothing over about 7° — passed one place, and it saw
+no water. The spawn moved to (776, −268) at yaw −2.44: 12 water points
+visible, nearest prop 102 units away. When the course was then relaxed into
+its valley the channel moved again and that spawn saw 1; the same search found
+(876, −276) at yaw −0.70 — 63 water points past terrain and props, nearest prop
+61 units away.
 
 **A spawn also has to be standing in a clearing.** The composition solvers
 scored the landscape and never asked what was growing on it, so the best

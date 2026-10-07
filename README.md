@@ -303,6 +303,7 @@ src/
 ├── routes.ts                 The route model: both destination tables, path ↔ state, useRoute
 ├── Slider.tsx                Labelled range input, shared by both pages
 ├── InfoTip.tsx               Hover explanation, portalled out of the scrolling panel
+├── ribbon.ts                 Strips along a centreline that cannot fold — rivers and roads
 ├── LayerPanel.tsx            Layer stack editor (Topic 2)
 ├── pages/
 │   ├── ObjectViewerPage.tsx  Topic 1 — viewer and its control panel

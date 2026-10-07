@@ -18,6 +18,7 @@ import { MAX_PATHS, MAX_POINTS, PATH_COLOURS, type PathKind, type PathRef, type 
 import { buildRoad, type RoadResult } from './road'
 import { buildRiver, type RiverResult } from './river'
 import type { P2, Sample } from './spline'
+import { clampToBends, ribbonGeometry } from '../ribbon'
 
 export type PathReport = {
   /** The active path's numbers; which half is filled depends on its kind. */
@@ -406,36 +407,17 @@ function clearGroup(group: THREE.Group) {
   }
 }
 
-/** A strip of quads either side of the centreline, at heights the caller chooses. */
+/**
+ * A path's surface, on the shared ribbon builder: the half-width is clamped to
+ * the bend so the strip cannot fold. The trace here is already dense and
+ * smooth, so it is used as it is rather than resampled again.
+ */
 function ribbon(
   samples: Sample[],
   halfWidth: number[],
   heightAt: (x: number, z: number, i: number) => number,
 ): THREE.BufferGeometry {
-  const positions = new Float32Array(samples.length * 2 * 3)
-  const index: number[] = []
-  samples.forEach((p, i) => {
-    // The normal in plan is the tangent turned a quarter.
-    const nx = -p.tz
-    const nz = p.tx
-    const w = halfWidth[i]
-    const lx = p.x + nx * w
-    const lz = p.z + nz * w
-    const rx = p.x - nx * w
-    const rz = p.z - nz * w
-    positions.set([lx, heightAt(lx, lz, i), lz, rx, heightAt(rx, rz, i), rz], i * 6)
-    if (i > 0) {
-      const a = (i - 1) * 2
-      index.push(a, a + 1, a + 2, a + 1, a + 3, a + 2)
-    }
-  })
-  const g = new THREE.BufferGeometry()
-  g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  g.setIndex(index)
-  g.computeVertexNormals()
-  // The winding follows the tangent, so the ribbon materials are double-sided
-  // rather than this reasoning about which way each segment faces.
-  return g
+  return ribbonGeometry(samples, clampToBends(samples, halfWidth), heightAt)
 }
 
 const colour = new THREE.Color()
