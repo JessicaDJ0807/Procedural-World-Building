@@ -143,8 +143,7 @@ body {
    counts — jitter as their glyph widths change. Tabular figures hold the
    column still without bringing in a second font family. */
 .readout,
-.control-value,
-.project-caption {
+.control-value {
   font-variant-numeric: tabular-nums;
 }
 

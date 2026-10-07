@@ -33,46 +33,57 @@ runs.
 
 ## The project
 
-One procedurally generated world, assembled from the techniques the topics take
-apart. The Playground asks how a single technique behaves; the project asks what
-happens when they all have to agree on the same ground.
+Three worlds — **Volcanic Caldera**, **Frozen Archipelago** and **Verdant
+Valley** — grown from one shared procedural system and built up a layer at a
+time: terrain, then water, lava and ice, then surface materials, procedural
+placement, and atmosphere. The Playground asks how a single technique behaves;
+the project asks what happens when they all have to agree on the same ground.
 
 Three pages, none of them a topic — the project cuts across all of them and is
 numbered by nothing:
 
-- **Overview** — what is being built, which systems build it, and how far each
-  one is actually wired in. Its hero is a live viewport running the demo's own
-  generator, not a captured image.
-- **Demo** — the integrated world, with nine controls where Topic 2 has thirty.
-  Two views of the same heightfield: a surface, and the same field read as a
-  solid with a tunnel network cut out of it.
-- **Explore** — three worlds you can fly around in, generated from one system.
-  Chunked terrain from a hashed height function, landmarks that are terms in
-  that function rather than placed meshes, and scatter that answers to the
-  ground. <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to walk the terrain,
+- **Overview** — the concept. The three worlds with their reference images,
+  each labelled with what it informs; the one pipeline that produces all
+  three; and the order the layers are being built in, with an honest status
+  on each.
+- **Explore** — the worlds themselves, walkable in the browser. Chunked terrain
+  from a hashed height function, landmarks that are terms in that function
+  rather than placed meshes, scatter that answers to the ground, and a river
+  traced downhill. <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to walk,
   <kbd>R</kbd>/<kbd>F</kbd> to fly and <kbd>G</kbd> to land, and <kbd>M</kbd> for
   an overview of the whole world with a pin where you were standing.
-- **Progress** — technique to contribution, in dependency order rather than
-  chronological, with the measurement each study produced.
+- **Progress** — the process. Each Playground topic, what Explore actually uses
+  of it today, what it contributes, and what is not there yet.
 
-![The Project Demo: built-in worlds on the left, the integrated terrain in the middle, nine high-level controls on the right](docs/images/readme-project-demo.png)
+![The Project Overview: the three worlds side by side, each with a hero reference image, a one-line description, three goals and two labelled supporting references](docs/images/readme-project-overview.jpg)
 
-The demo's two views are the same world, not two worlds. One heightfield is
-generated — fBm stack, domain warp, droplet erosion, thermal collapse, sea level
-— and the caves view turns that same array into a signed distance function and
-subtracts a gyroid network from it with Topic 3's CSG, meshed back to triangles
-with surface nets. Moving a terrain dial moves both. At the defaults that is
-128² cells and 4,915 droplets in about 18 ms; the cave scenario meshes 118,092
-triangles in about 13 ms at 72³.
+The worlds are one system, not three scenes. Every difference between them is
+a number in a world spec; the terrain builder, the scatter and the renderer are
+the same code:
 
-Two things are deliberately **not** integrated yet, and both pages say so rather
-than implying otherwise: Topic 4's surface shading, which lives inside a
-full-screen GPU pipeline built around one fixed terrain and has to be lifted out
-of it rather than called, and its GPU erosion simulation.
+![One pipeline, three worlds: terrain, environment, surface, placement and atmosphere, and what each stage does in each world](docs/images/readme-project-pipeline.png)
+
+Reference images in [`public/inspiration/`](public/inspiration/) are other
+artists' work, collected as inspiration — not output of this project. They are
+served from `public/` so the app and this README use the same files, and each is
+credited under its image on the Overview:
+
+| World | Image | Used for | Source |
+| --- | --- | --- | --- |
+| Volcanic | `volcanic_2.jpg` | Landscape | [Chandler Whalen, ArtStation](https://cdnb.artstation.com/p/assets/images/images/024/858/779/large/chandler-whalen-volcanic-02.jpg?1583772124) |
+| Volcanic | `volcanic_3.jpg` | Atmosphere | [Chandler Whalen, ArtStation](https://cdna.artstation.com/p/assets/images/images/024/858/788/large/chandler-whalen-volcanic-03.jpg?1583772145) |
+| Volcanic | `volcanic_1.jpg` | Lava behaviour | [Tribes of Midgard](https://www.tribesofmidgard.com/wp-content/uploads/2022/08/Volcanic_Biome_1920x1080.jpg) |
+| Frozen | `frozen_1.jpg` | Landscape | [KK Design, Unreal Engine forums](https://forums.unrealengine.com/t/kk-design-scifi-arctic-biome/2673463) |
+| Frozen | `frozen_2.jpeg` | Ice and water | [KK Design, Unreal Engine forums](https://forums.unrealengine.com/t/kk-design-scifi-arctic-biome/2673463) |
+| Frozen | `frozen_3.jpg` | Floating ice | [IT Happy Studios](https://ithappystudios.com/wp-content/uploads/2025/06/4-ice-submarine-arctic-platformer-environment-scaled.webp) |
+| Verdant | `verdant_2.jpg` | Landscape and ecology | [Palia, via Nintendo Everything](https://nintendoeverything.com/palia-free-to-play-adventure-sim-announced-for-switch/) |
+| Verdant | `verdant_3.jpg` | Low-poly detail | Facebook — [image link](https://scontent-lga3-2.xx.fbcdn.net/v/t39.30808-6/677785598_1611527590110550_8246218706645560836_n.jpg?stp=dst-jpg_tt6&cstp=mx1920x1080&ctp=s1920x1080&_nc_cat=107&ccb=1-7&_nc_sid=aa7b47&_nc_ohc=dswjiWvXcKQQ7kNvwFxAsTT&_nc_oc=AdpjhOfVI2ygb3_rPXTmDo669u1eIu4dT8WqXmeOMGkES8_iRUGgly9fobO8jrJ3-gg&_nc_zt=23&_nc_ht=scontent-lga3-2.xx&_nc_gid=CvxG64LT9d3XRks3sStf7Q&_nc_ss=7b2a8&oh=00_AQP_qzFqU7rH3o8m-W6jwiLe1oQDqsrXWPbS0tHb5hIXBA&oe=6ACBB2E2) (expires; original post to be added) |
+| Verdant | `verdant_1.jpeg` | Architecture | [Tiny Glade, via r/pcgaming](https://www.reddit.com/r/pcgaming/comments/1ftzmdm/tiny_glade_players_are_remaking_fantasy_worlds_in/) |
 
 See [`docs/project/app-structure.md`](docs/project/app-structure.md) for how the
-two sections are divided, what the demo reuses, and why the navigation was
-written rather than installed.
+two sections are divided and why the navigation was written rather than
+installed, and [`docs/project/explorable-worlds.md`](docs/project/explorable-worlds.md)
+for how the worlds are built.
 
 ## Topics
 
@@ -264,7 +275,7 @@ with a description of what each document covers — is in
 | `H` | Hide every panel and give the whole window to the object. Press again to bring them back |
 | `Esc` | Always restores the panels, never hides them |
 
-Focus mode works on every topic and on the Project Demo — it hides both
+Focus mode works on every topic and on Explore — it hides both
 navigation rows, both side panels and the dividers between them, leaving the
 viewport the whole window. `Esc` only
 ever restores, which is what makes hiding the UI safe to try, and a small
@@ -387,12 +398,9 @@ src/
 │   ├── pathConfig.ts         Topic 6's saved shape
 │   └── flowConfig.ts         Topic 7's saved shape
 ├── project/                  The Project section — separate from the topics, not a topic itself
-│   ├── ProjectLayout.tsx     Reading shell: measured column, generous margins, own scroller
-│   ├── ProjectOverview.tsx   What is being built, which systems, how far each is wired in
-│   ├── ProjectDemo.tsx       The integrated world and its nine high-level controls
-│   ├── ProjectProgress.tsx   Technique → contribution, in dependency order
-│   ├── world.ts              Generation orchestration — composes Topics 2 and 3, copies neither
-│   ├── useWorld.ts           Deferred generation, and a ramp fitted per view
+│   ├── ProjectLayout.tsx     Reading shell: measured column (or wide board), own scroller
+│   ├── ProjectOverview.tsx   The three worlds, their references, the pipeline, the layers
+│   ├── ProjectProgress.tsx   Each topic → what Explore uses → what it contributes
 │   └── project.css           The Project section's own styling
 ├── firebase/                 App init, auth context and provider, Firestore, Storage
 ├── App.css                   Shell, panel, and canvas styling
@@ -419,6 +427,9 @@ docs/
 │   ├── firebase-setup.md
 │   └── firebase-integration-report.md
 └── images/                   Screenshots, captured from the running app
+
+public/
+└── inspiration/              Reference images per world, shown on Project Overview
 
 firestore.rules               Owner-scoped Firestore access rules
 storage.rules                 Owner-scoped Storage access rules

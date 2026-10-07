@@ -8,7 +8,6 @@ import { FlowPage } from './pages/FlowPage'
 import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
 import { ExplorePage } from './explore/ExplorePage'
-import { ProjectDemo } from './project/ProjectDemo'
 import { ProjectOverview } from './project/ProjectOverview'
 import { ProjectProgress } from './project/ProjectProgress'
 import {
@@ -37,7 +36,6 @@ const PLAYGROUND_PAGES: Record<PlaygroundId, () => ReactElement> = {
 
 const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => ReactElement> = {
   overview: (navigate) => <ProjectOverview navigate={navigate} />,
-  demo: () => <ProjectDemo />,
   explore: () => <ExplorePage />,
   progress: (navigate) => <ProjectProgress navigate={navigate} />,
 }

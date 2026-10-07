@@ -1,16 +1,23 @@
 /*
  * The Project area's own stylesheet.
  *
- * Same design system as the Playground — the dark warm ground from theme.ts,
- * the same blue accent, the same system font stack — but spent differently. A
+ * Same design system as the Playground — the neutral dark ground, the same
+ * blue accent, the same system font stack — but spent differently. A
  * Playground topic is dense because every pixel near the viewport is worth a
- * control. These pages are read, so they get a measured column, air between
- * sections, and type large enough to present from.
+ * control. These pages are presented, so they get air between sections, images
+ * that carry the argument, and type large enough to present from.
  *
  * Separate from App.css deliberately: the separation of Project from Playground
- * is the point of the change, and one 1,100-line stylesheet absorbing both
- * would have hidden it.
+ * is the point, and one stylesheet absorbing both would hide it.
  */
+
+/* Each world's identity, used sparingly: an accent line, a label, nothing
+   tinted. Muted so they sit on the neutral ground rather than glow from it. */
+.project-scroll {
+  --world-volcanic: #d27a52;
+  --world-frozen: #86b2d4;
+  --world-verdant: #94ad7d;
+}
 
 /* ---- Reading shell ---- */
 
@@ -34,34 +41,44 @@
   padding: 56px 32px 96px;
 }
 
+/* The Overview is a board of three worlds side by side; at a reading measure
+   they would shrink to thumbnails. */
+.project-page.is-wide {
+  max-width: 1240px;
+  padding-top: 64px;
+}
+
 .project-head {
-  margin-bottom: 36px;
+  margin-bottom: 40px;
 }
 
 .project-title {
-  margin: 0 0 12px;
-  font-size: 32px;
+  margin: 0 0 14px;
+  font-size: 34px;
   font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.015em;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
-/* Wider measure than the body and a lighter colour: it is a subtitle, so it
-   should read as one line of context rather than as the first paragraph. */
+.is-wide .project-title {
+  font-size: 40px;
+}
+
+/* A subtitle, so it reads as one line of context rather than a first paragraph. */
 .project-lede {
-  max-width: 68ch;
+  max-width: 64ch;
   margin: 0;
   color: var(--text-secondary);
-  font-size: 17px;
-  line-height: 1.6;
+  font-size: 18px;
+  line-height: 1.55;
 }
 
 .project-section {
-  margin: 48px 0 0;
+  margin: 64px 0 0;
 }
 
 .project-section h2 {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   font-size: 13px;
   font-weight: var(--label-weight);
   letter-spacing: var(--label-tracking);
@@ -77,42 +94,18 @@
 
 .project-note {
   max-width: 72ch;
-  margin: 0 0 20px;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-/* ---- Hero ---- */
-
-.project-hero {
   margin: 0 0 24px;
-}
-
-/* A fixed height rather than an aspect ratio: the viewport inside measures its
-   container on mount, and a ratio that resolves after layout gives it a zero
-   height to build a camera from.
- *
- * `display: flex` is load-bearing, not tidiness. `.noise-viewport` sizes itself
- * with `flex: 1` because in the Playground it is always a flex child, so in a
- * plain block it has no height at all and the canvas mounted at 814×0 — a
- * silent failure that typechecks, lints and builds clean. Caught by looking at
- * the page rather than at the diff. */
-.project-hero-view {
-  display: flex;
-  overflow: hidden;
-  /* 480 rather than something shorter because the camera's field of view is
-     vertical: the terrain's apparent size tracks this number and nothing else,
-     so a short wide box renders a small object in a lot of empty ground. */
-  height: 560px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--viewport-bg);
-}
-
-.project-caption {
-  margin: 10px 0 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 15px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* ---- Buttons ---- */
@@ -121,14 +114,14 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin: 24px 0 0;
+  margin: 28px 0 0;
 }
 
 .project-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 16px;
+  padding: 10px 18px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface-2);
@@ -161,118 +154,357 @@
   font-size: 13px;
 }
 
-.project-button-note {
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: var(--label-weight);
-  letter-spacing: var(--label-tracking);
-  text-transform: uppercase;
-}
+/* ---- Overview: the three worlds ---- */
 
-/* A button that reads as a link, because it navigates rather than acting. */
-.project-inline-link {
-  padding: 0;
-  border: 0;
-  border-bottom: 1px solid var(--accent-line);
-  background: none;
-  color: var(--accent-strong);
-  font: inherit;
-  cursor: pointer;
-}
-
-.project-inline-link:hover {
-  border-bottom-color: var(--accent-strong);
-  color: var(--accent-strong);
-}
-
-/* ---- Systems grid ---- */
-
-.project-grid {
+.board {
   display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.project-card {
+.board-world {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-hover);
+  min-width: 0;
 }
 
-.project-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.project-card h3 {
+/* Images carry the card, so there is no box around it — just the image, the
+   text under it, and the references. */
+.board-hero,
+.board-ref {
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
 }
 
-.project-card-topic {
+.board-hero img,
+.board-ref img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.board-hero img {
+  aspect-ratio: 16 / 10;
+  /* The world's accent, as a single line along the top of its main image. */
+  border-top: 3px solid var(--world-accent, var(--border-strong));
+}
+
+.board-ref img {
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+}
+
+.board-world.is-volcanic {
+  --world-accent: var(--world-volcanic);
+}
+
+.board-world.is-frozen {
+  --world-accent: var(--world-frozen);
+}
+
+.board-world.is-verdant {
+  --world-accent: var(--world-verdant);
+}
+
+/* Captions sit under the image, never on it: the references are busy enough
+   that no text over them would be reliably readable. */
+.board-hero figcaption,
+.board-ref figcaption {
+  margin-top: 7px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: var(--label-weight);
   letter-spacing: var(--label-tracking);
   text-transform: uppercase;
 }
 
-.project-card-role {
-  margin: 0;
+.board-hero figcaption {
+  color: var(--world-accent);
+}
+
+/* The source sits on its own line under the role, in sentence case and
+   lighter, so the label still reads first. */
+.board-credit {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.board-credit:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.board-body {
+  padding: 14px 2px 0;
+}
+
+.board-name {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.board-line {
+  margin: 0 0 14px !important;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.board-goals {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
   color: var(--text-secondary);
   font-size: 14px;
+  line-height: 1.5;
 }
 
-.project-list {
-  margin: 0;
-  padding-left: 18px;
-  color: var(--text-muted);
-  font-size: 13.5px;
-  line-height: 1.6;
+.board-goals li {
+  position: relative;
+  padding-left: 16px;
+  margin-bottom: 6px;
 }
 
-/* The button sits at the card's foot whatever the list length, so a row of
-   cards does not stagger. */
-.project-card .project-button {
+.board-goals li::before {
+  content: '';
+  position: absolute;
+  top: 0.62em;
+  left: 2px;
+  width: 6px;
+  height: 1.5px;
+  background: var(--world-accent);
+}
+
+/* Two references under each world, labelled with what they inform. */
+.board-refs {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
   margin-top: auto;
-  align-self: flex-start;
 }
 
-/* ---- Status pills ---- */
+.project-credit {
+  margin: 20px 0 0 !important;
+  color: var(--text-muted) !important;
+  font-size: 13px;
+}
+
+/* ---- Overview: one pipeline, three worlds ---- */
+
+.pipeline-wrap {
+  overflow-x: auto;
+}
+
+.pipeline {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+
+.pipeline th,
+.pipeline td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.pipeline thead th {
+  padding-top: 0;
+  font-size: 13px;
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.pipeline thead th.is-volcanic {
+  color: var(--world-volcanic);
+}
+
+.pipeline thead th.is-frozen {
+  color: var(--world-frozen);
+}
+
+.pipeline thead th.is-verdant {
+  color: var(--world-verdant);
+}
+
+.pipeline tbody th {
+  width: 160px;
+  color: var(--text-primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pipeline td {
+  color: var(--text-secondary);
+}
+
+.pipeline tbody tr:last-child th,
+.pipeline tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.pipeline-step {
+  display: inline-block;
+  width: 22px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* ---- Overview: built in layers ---- */
+
+.layers {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-1);
+}
+
+.layer-index {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.layer-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.layer-detail {
+  margin: 0 !important;
+  color: var(--text-muted) !important;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.layer-status {
+  margin-top: auto;
+  padding-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.layer-status.is-in-place {
+  color: var(--success);
+}
+
+.layer-status.is-in-progress {
+  color: var(--warning);
+}
+
+.layer-status.is-next {
+  color: var(--text-muted);
+}
+
+.project-closing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.project-closing p {
+  margin: 0 !important;
+  color: var(--text-primary) !important;
+  font-size: 18px;
+}
+
+/* ---- Status ---- */
 
 .project-status {
   flex: none;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
 
-.project-status.is-in-the-demo {
+.project-status.is-in-explore {
   background: var(--success-subtle);
   color: var(--success);
 }
 
-.project-status.is-partly-wired {
+.project-status.is-partly {
   background: var(--warning-subtle);
   color: var(--warning);
 }
 
-.project-status.is-not-yet-wired {
+.project-status.is-next {
   background: var(--surface-2);
   color: var(--text-muted);
 }
 
-/* ---- Progress chain ---- */
+/* ---- Progress ---- */
+
+.progress-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: -8px 0 36px;
+  font-size: 14px;
+}
+
+.progress-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.progress-count::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.progress-count.is-in-explore::before {
+  background: var(--success);
+}
+
+.progress-count.is-partly::before {
+  background: var(--warning);
+}
+
+.progress-count.is-next::before {
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1.5px var(--border-strong);
+}
 
 .project-chain {
   margin: 0;
@@ -282,7 +514,7 @@
 
 .project-stage {
   position: relative;
-  padding: 0 0 28px 28px;
+  padding: 0 0 36px 32px;
 }
 
 /* The connecting line, drawn on the item rather than between items so the last
@@ -290,7 +522,7 @@
 .project-stage::before {
   content: '';
   position: absolute;
-  top: 18px;
+  top: 20px;
   bottom: 0;
   left: 5px;
   width: 1px;
@@ -303,154 +535,149 @@
 
 .project-stage-arrow {
   position: absolute;
-  top: 8px;
+  top: 9px;
   left: 0;
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-line);
+  background: var(--success);
 }
 
-/* Pending stages are hollow. The chain still shows them, because leaving them
+.project-stage.is-partly .project-stage-arrow {
+  background: var(--warning);
+}
+
+/* Not-yet stages are hollow. The chain still shows them, because leaving them
    off would make the gap invisible rather than honest. */
-.project-stage.is-pending .project-stage-arrow {
+.project-stage.is-next .project-stage-arrow {
   background: var(--bg);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
+  box-shadow: inset 0 0 0 1.5px var(--border-strong);
+}
+
+.project-stage-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 6px;
 }
 
 .project-stage-title {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
-  margin: 0 0 8px;
-  font-size: 17px;
+  gap: 10px;
+  margin: 0;
+  font-size: 20px;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
-.project-stage-arrow-glyph {
+.project-stage-topic {
   color: var(--text-muted);
-  font-weight: 400;
-}
-
-.project-stage-to {
-  color: var(--accent-strong);
-  font-weight: 500;
-}
-
-.project-stage-what {
-  max-width: 72ch;
-  margin: 0 0 10px;
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.project-stage-contribution,
-.project-stage-finding {
-  max-width: 72ch;
-  margin: 0 0 10px;
-  font-size: 14px;
-}
-
-.project-stage-contribution {
-  color: var(--text-secondary);
-}
-
-/* Findings carry the measurements, so they are set apart from the prose —
-   this is the part of each stage that had to be produced rather than decided. */
-.project-stage-finding {
-  padding: 10px 12px;
-  border-left: 2px solid var(--accent-line);
-  border-radius: 0 7px 7px 0;
-  background: var(--accent-subtle);
-  color: var(--text-secondary);
-  font-size: 13.5px;
-}
-
-.project-stage-label {
-  display: block;
-  margin-bottom: 3px;
-  color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: var(--label-weight);
   letter-spacing: var(--label-tracking);
   text-transform: uppercase;
 }
 
-.project-stage .project-status {
-  display: inline-block;
-  margin: 0 0 10px;
-}
-
-/* ---- Demo: the library panel's scenario list ---- */
-
-/* Matches the saved-worlds list the Playground topics use, so the two read as
-   the same kind of thing — these are just built in rather than stored. */
-.project-scenarios {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin: 0 0 12px;
-  padding: 0;
-  list-style: none;
-}
-
-.project-scenario {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  padding: 7px 9px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: none;
+.project-stage-what {
+  max-width: 72ch;
+  margin: 0 0 14px;
   color: var(--text-secondary);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
+  font-size: 15px;
 }
 
-.project-scenario:hover {
-  background: var(--surface-hover);
+.project-stage-facts {
+  display: grid;
+  gap: 10px;
+  max-width: 72ch;
+  margin: 0 0 14px;
 }
 
-.project-scenario.is-active {
-  border-color: var(--accent-line);
-  background: var(--accent-subtle);
+.project-stage-facts > div {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  gap: 12px;
 }
 
-.project-scenario-name {
-  overflow: hidden;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.project-scenario-summary {
+.project-stage-facts dt {
+  padding-top: 2px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 11.5px;
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
 }
 
-/* Reuses the readout's own colour language: this is the one line in it that is
-   a caveat rather than a number. */
-.project-stale {
-  color: var(--warning);
+.project-stage-facts dd {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14.5px;
 }
 
-/* ---- Narrow windows ---- */
+.next-steps {
+  max-width: 72ch;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-secondary);
+}
 
-@media (max-width: 640px) {
-  .project-page {
+.next-steps li {
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+/* ---- Narrower windows ---- */
+
+/* Three across stops working below a laptop's width; the references stay as a
+   pair under each world rather than becoming a third column of their own. */
+@media (max-width: 1080px) {
+  .board {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .board-world {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 0 24px;
+  }
+
+  .board-hero {
+    grid-row: span 2;
+  }
+
+  .board-body {
+    padding-top: 0;
+  }
+
+  .layers {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .project-page,
+  .project-page.is-wide {
     padding: 36px 20px 72px;
   }
 
-  .project-title {
-    font-size: 26px;
+  .project-title,
+  .is-wide .project-title {
+    font-size: 28px;
   }
 
-  .project-hero-view {
-    height: 260px;
+  .board-world {
+    display: flex;
+  }
+
+  .board-body {
+    padding-top: 14px;
+  }
+
+  .project-stage-facts > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
   }
 }

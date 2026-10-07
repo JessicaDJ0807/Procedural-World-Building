@@ -1,229 +1,343 @@
-import { NoiseViewport } from '../NoiseViewport'
 import { ProjectLayout } from './ProjectLayout'
-import { useWorld } from './useWorld'
-import { defaultWorld } from './world'
 import type { Route } from '../routes'
 
-type System = {
-  name: string
-  topic: string
-  /** Where it sits in the pipeline, in one line. */
+type Reference = {
+  src: string
+  /** What the reference informs — the reason it is on the board at all. */
   role: string
-  /** What it actually contributes, named concretely enough to be checkable. */
-  parts: string[]
-  state: 'in the demo' | 'partly wired' | 'not yet wired'
-  to: Route
+  alt: string
+  /** Who made it, and where it was found. These are other artists' images. */
+  credit: { name: string; href: string }
+}
+
+type World = {
+  id: 'volcanic' | 'frozen' | 'verdant'
+  name: string
+  line: string
+  goals: string[]
+  hero: Reference
+  supporting: [Reference, Reference]
 }
 
 /**
- * The four systems, and how much of each is really in the demo.
+ * The three worlds as a presentation board.
  *
- * The `state` field is the point of this table. It would be easy to list four
- * techniques and imply all four are integrated; three are, to different
- * depths, and the shading study is not. Saying so is more useful than the
- * version that reads better.
+ * Each reference carries the job it does — landscape, atmosphere, lava
+ * behaviour — because a wall of mood images says nothing about what is being
+ * built. The labels are the argument; the images are the evidence for it.
+ *
+ * Paths are into `public/`, so the same files serve the app and the README.
  */
-const SYSTEMS: System[] = [
+const WORLDS: World[] = [
   {
-    name: 'Objects',
-    topic: 'Topic 1',
-    role: 'The foundation everything else draws on.',
-    parts: [
-      'the render loop, which separates advancing state from presenting it',
-      'the standard material model and runtime-generated environment lighting',
-      'camera gating, so a still scene stops submitting frames',
+    id: 'volcanic',
+    name: 'Volcanic Caldera',
+    line: 'A ridged caldera, with lava draining down from its crater.',
+    goals: [
+      'A volcano that dominates the horizon',
+      'Lava that runs in channels, not scattered pools',
+      'Dark rock and a warm, ember-lit atmosphere',
     ],
-    state: 'in the demo',
-    to: { section: 'playground', page: 'objects' },
+    hero: {
+      src: '/inspiration/volcanic/volcanic_2.jpg',
+      role: 'Landscape',
+      alt: 'A smoking volcano above dark rock cliffs, with lava falls pouring into a glowing lava lake.',
+      credit: { name: 'Chandler Whalen, ArtStation', href: 'https://cdnb.artstation.com/p/assets/images/images/024/858/779/large/chandler-whalen-volcanic-02.jpg?1583772124' },
+    },
+    supporting: [
+      {
+        src: '/inspiration/volcanic/volcanic_3.jpg',
+        role: 'Atmosphere',
+        alt: 'A dark rocky path at night lit by drifting embers and a glowing red stone.',
+      credit: { name: 'Chandler Whalen, ArtStation', href: 'https://cdna.artstation.com/p/assets/images/images/024/858/788/large/chandler-whalen-volcanic-03.jpg?1583772145' },
+      },
+      {
+        src: '/inspiration/volcanic/volcanic_1.jpg',
+        role: 'Lava behaviour',
+        alt: 'Top-down view of bright lava flows spreading across cracked black basalt under smoke.',
+      credit: { name: 'Tribes of Midgard', href: 'https://www.tribesofmidgard.com/wp-content/uploads/2022/08/Volcanic_Biome_1920x1080.jpg' },
+      },
+    ],
   },
   {
-    name: 'Maps',
-    topic: 'Topic 2',
-    role: 'Generates the terrain. Every other system reads what this produces.',
-    parts: [
-      'a six-octave fBm stack, composited layer by layer',
-      'domain warp, which bends the stack sideways before anything erodes it',
-      'droplet hydraulic erosion — the step that turns noise into landforms',
-      'thermal collapse, which fails any slope past the talus angle',
-      'hypsometric colour ramps interpolated in OKLab',
+    id: 'frozen',
+    name: 'Frozen Archipelago',
+    line: 'Terraced islands rising out of a cold, flooded sea.',
+    goals: [
+      'Islands shaped as stepped ice shelves',
+      'Ice meeting open water at the coast',
+      'Floating ice and a pale, hazy horizon',
     ],
-    state: 'in the demo',
-    to: { section: 'playground', page: 'maps' },
+    hero: {
+      src: '/inspiration/frozen/frozen_1.jpg',
+      role: 'Landscape',
+      alt: 'A snowy plain with a huge slab of blue ice and frosted blue and red alien plants.',
+      credit: { name: 'KK Design, Unreal Engine forums', href: 'https://forums.unrealengine.com/t/kk-design-scifi-arctic-biome/2673463' },
+    },
+    supporting: [
+      {
+        src: '/inspiration/frozen/frozen_2.jpeg',
+        role: 'Ice and water',
+        alt: 'An ice cave opening onto still blue water, with icicles hanging from the roof.',
+      credit: { name: 'KK Design, Unreal Engine forums', href: 'https://forums.unrealengine.com/t/kk-design-scifi-arctic-biome/2673463' },
+      },
+      {
+        src: '/inspiration/frozen/frozen_3.jpg',
+        role: 'Floating ice',
+        alt: 'Broken ice sheets floating on deep blue water, seen from above.',
+      credit: { name: 'IT Happy Studios', href: 'https://ithappystudios.com/wp-content/uploads/2025/06/4-ice-submarine-arctic-platformer-environment-scaled.webp' },
+      },
+    ],
   },
   {
-    name: 'Voxels',
-    topic: 'Topic 3',
-    role: 'Turns the terrain into a solid, so it can have an inside.',
-    parts: [
-      'the heightfield read as a signed distance function',
-      'CSG subtraction, carving a gyroid tunnel network out of the rock',
-      'surface nets, meshing the result back into triangles',
+    id: 'verdant',
+    name: 'Verdant Valley',
+    line: 'A river valley, where vegetation follows the water.',
+    goals: [
+      'A river that finds its own way downhill',
+      'Trees and plants placed by water and slope',
+      'Stylized low-poly detail, then settlements',
     ],
-    state: 'partly wired',
-    to: { section: 'playground', page: 'voxels' },
-  },
-  {
-    name: 'Shaders',
-    topic: 'Topic 4',
-    role: 'Decides how the surface looks once its shape is settled.',
-    parts: [
-      'eight fragment-shader strategies over one fixed terrain',
-      'a lighting model built for a dark ground',
-      'Fresnel and distance haze',
-      'four GPU simulations: ripples, reaction–diffusion, erosion, schooling',
+    hero: {
+      src: '/inspiration/verdant/verdant_2.jpg',
+      role: 'Landscape and ecology',
+      alt: 'A stylized green valley with a waterfall, a shallow stream, trees and grazing deer.',
+      credit: { name: 'Palia, via Nintendo Everything', href: 'https://nintendoeverything.com/palia-free-to-play-adventure-sim-announced-for-switch/' },
+    },
+    supporting: [
+      {
+        src: '/inspiration/verdant/verdant_3.jpg',
+        role: 'Low-poly detail',
+        alt: 'A low-poly camp beside a river, with pine trees, tents, a campfire and snowy peaks.',
+      credit: { name: 'Facebook', href: 'https://scontent-lga3-2.xx.fbcdn.net/v/t39.30808-6/677785598_1611527590110550_8246218706645560836_n.jpg?stp=dst-jpg_tt6&cstp=mx1920x1080&ctp=s1920x1080&_nc_cat=107&ccb=1-7&_nc_sid=aa7b47&_nc_ohc=dswjiWvXcKQQ7kNvwFxAsTT&_nc_oc=AdpjhOfVI2ygb3_rPXTmDo669u1eIu4dT8WqXmeOMGkES8_iRUGgly9fobO8jrJ3-gg&_nc_zt=23&_nc_ht=scontent-lga3-2.xx&_nc_gid=CvxG64LT9d3XRks3sStf7Q&_nc_ss=7b2a8&oh=00_AQP_qzFqU7rH3o8m-W6jwiLe1oQDqsrXWPbS0tHb5hIXBA&oe=6ACBB2E2' },
+      },
+      {
+        src: '/inspiration/verdant/verdant_1.jpeg',
+        role: 'Architecture',
+        alt: 'A miniature stone castle with many spires, surrounded by rounded green trees.',
+      credit: { name: 'Tiny Glade, via r/pcgaming', href: 'https://www.reddit.com/r/pcgaming/comments/1ftzmdm/tiny_glade_players_are_remaking_fantasy_worlds_in/' },
+      },
     ],
-    state: 'not yet wired',
-    to: { section: 'playground', page: 'shaders' },
   },
 ]
 
-const STATE_LABEL: Record<System['state'], string> = {
-  'in the demo': 'In the demo',
-  'partly wired': 'Partly wired',
-  'not yet wired': 'Not yet wired',
-}
+/**
+ * One pipeline, three outcomes — what each stage does in each world today.
+ *
+ * Every cell is something the explorable worlds actually do, read off their
+ * specs in `src/explore/worlds.ts`: the same five stages and the same code,
+ * with different numbers. That is the claim the table exists to make.
+ */
+const PIPELINE: { stage: string; cells: Record<World['id'], string> }[] = [
+  {
+    stage: 'Terrain',
+    cells: {
+      volcanic: 'Ridged noise, and a 210-unit cone with a crater cut into it',
+      frozen: 'Noise terraced into shelves, around a central massif',
+      verdant: 'Rolling ground, mountains held back from the valley',
+    },
+  },
+  {
+    stage: 'Environment',
+    cells: {
+      volcanic: 'Seven lava channels drain outward from the crater',
+      frozen: 'The sea floods half the world, leaving islands',
+      verdant: 'A river traced downhill and carved into its bed',
+    },
+  },
+  {
+    stage: 'Surface',
+    cells: {
+      volcanic: 'Lava, scorched ground, ash, basalt',
+      frozen: 'Ocean, coastal ice, blue ice, snow',
+      verdant: 'Water, wet bank, grass, exposed rock',
+    },
+  },
+  {
+    stage: 'Placement',
+    cells: {
+      volcanic: 'Basalt pillars and boulders',
+      frozen: 'Icebergs and rocks',
+      verdant: 'Trees crowding the damp ground, rocks on slopes',
+    },
+  },
+  {
+    stage: 'Atmosphere',
+    cells: {
+      volcanic: 'Dark sky, ember-brown haze',
+      frozen: 'Pale, cold fog',
+      verdant: 'Soft daylight haze',
+    },
+  },
+]
+
+type LayerStatus = 'In place' | 'In progress' | 'Next'
+
+/** Built in this order, and marked honestly — a status is what Explore does today. */
+const LAYERS: { name: string; detail: string; status: LayerStatus }[] = [
+  {
+    name: 'Landscape',
+    detail: 'Noise, shaping and landmarks, streamed as terrain chunks',
+    status: 'In place',
+  },
+  {
+    name: 'Water, lava and ice',
+    detail: 'Lava channels, sea level and a downhill river; ice does not move yet',
+    status: 'In progress',
+  },
+  {
+    name: 'Surface materials',
+    detail: 'Ground coloured by environment, animated water; shaders from Topic 4 next',
+    status: 'In progress',
+  },
+  {
+    name: 'Procedural placement',
+    detail: 'Rule-based scatter of trees, rocks and pillars; paths and settlements next',
+    status: 'In progress',
+  },
+  {
+    name: 'Atmosphere and polish',
+    detail: 'Fog and sky in place; embers, snowfall and particles to come',
+    status: 'Next',
+  },
+]
 
 type ProjectOverviewProps = { navigate: (route: Route) => void }
 
 export function ProjectOverview({ navigate }: ProjectOverviewProps) {
-  // The same generator the Demo runs, at its defaults. A captured image would
-  // be a claim about the code rather than the code's own output, and would go
-  // stale the first time a default moved.
-  const { world, ramp } = useWorld(defaultWorld())
+  const explore = () => navigate({ section: 'project', page: 'explore' })
+  const progress = () => navigate({ section: 'project', page: 'progress' })
 
   return (
     <ProjectLayout
-      title="One terrain, every technique"
-      lede="A single procedurally generated world, assembled from the techniques each Playground topic takes apart. The Playground asks how one technique behaves; the project asks what happens when they all have to agree on the same ground."
-    >
-      <section className="project-hero">
-        <div className="project-hero-view">
-          <NoiseViewport
-            mode="surface"
-            resolution={world.resolution}
-            field={world.height}
-            heightScale={defaultWorld().relief}
-            selected={null}
-            ramp={ramp}
-            overlay={null}
-            spin={0}
-            wireframe={false}
-          />
+      wide
+      title="Three worlds, one generator"
+      lede="A procedural world generator that grows three distinct environments — volcanic, frozen and verdant — from one shared system, built up a layer at a time."
+      aside={
+        <div className="project-actions">
+          <button type="button" className="project-button is-primary" onClick={explore}>
+            Explore the worlds
+          </button>
+          <button type="button" className="project-button" onClick={progress}>
+            See the process
+          </button>
         </div>
-        <p className="project-caption">
-          Live, not a screenshot — {world.resolution}² cells, {world.droplets.toLocaleString()}{' '}
-          droplets of rain, generated in {world.ms.toFixed(0)} ms. Drag to orbit.
-        </p>
-      </section>
+      }
+    >
+      <section className="project-section" aria-labelledby="worlds-heading">
+        <h2 id="worlds-heading">The worlds</h2>
+        <div className="board">
+          {WORLDS.map((world) => (
+            <article className={`board-world is-${world.id}`} key={world.id}>
+              <figure className="board-hero">
+                <img src={world.hero.src} alt={world.hero.alt} />
+                <figcaption>
+                  {world.hero.role}
+                  <Credit credit={world.hero.credit} />
+                </figcaption>
+              </figure>
 
-      <div className="project-actions">
-        <button
-          type="button"
-          className="project-button is-primary"
-          onClick={() => navigate({ section: 'project', page: 'demo' })}
-        >
-          Open interactive demo
-        </button>
-        <button
-          type="button"
-          className="project-button"
-          onClick={() => navigate({ section: 'project', page: 'progress' })}
-        >
-          See how it got here
-        </button>
-      </div>
+              <div className="board-body">
+                <h3 className="board-name">{world.name}</h3>
+                <p className="board-line">{world.line}</p>
+                <ul className="board-goals">
+                  {world.goals.map((goal) => (
+                    <li key={goal}>{goal}</li>
+                  ))}
+                </ul>
+              </div>
 
-      <section className="project-section">
-        <h2>What this is</h2>
-        <p>
-          The course works one technique at a time, and each one is easiest to
-          understand in isolation — which is exactly what the Playground is for. But
-          a technique studied alone never has to survive contact with the others.
-          Erosion that looks right on its own heightfield has to still look right
-          when that heightfield becomes the roof of a cave system, and a palette
-          chosen to read as land and sea has to hold once the sea is a clamped floor
-          rather than a colour band.
-        </p>
-        <p>
-          The project is the place those arguments happen. It generates one world and
-          makes every system work from it, so a change to the terrain is a change to
-          everything downstream of it rather than to a demo of its own.
-        </p>
-      </section>
-
-      <section className="project-section">
-        <h2>Systems</h2>
-        <p className="project-note">
-          Four techniques, at three different depths of integration. The status on
-          each is what is actually wired into the demo today, not what the topic can
-          do on its own page.
-        </p>
-
-        <div className="project-grid">
-          {SYSTEMS.map((system) => (
-            <article className="project-card" key={system.name}>
-              <header className="project-card-head">
-                <div>
-                  <h3>{system.name}</h3>
-                  <span className="project-card-topic">{system.topic}</span>
-                </div>
-                <span
-                  className={`project-status is-${system.state.replace(/ /g, '-')}`}
-                  title={
-                    system.state === 'not yet wired'
-                      ? 'The technique exists and works on its own page, but the demo does not use it yet.'
-                      : undefined
-                  }
-                >
-                  {STATE_LABEL[system.state]}
-                </span>
-              </header>
-
-              <p className="project-card-role">{system.role}</p>
-
-              <ul className="project-list">
-                {system.parts.map((part) => (
-                  <li key={part}>{part}</li>
+              <div className="board-refs">
+                {world.supporting.map((ref) => (
+                  <figure className="board-ref" key={ref.src}>
+                    <img src={ref.src} alt={ref.alt} loading="lazy" />
+                    <figcaption>
+                      {ref.role}
+                      <Credit credit={ref.credit} />
+                    </figcaption>
+                  </figure>
                 ))}
-              </ul>
-
-              <button
-                type="button"
-                className="project-button is-quiet"
-                onClick={() => navigate(system.to)}
-              >
-                Explore {system.name}
-              </button>
+              </div>
             </article>
           ))}
         </div>
+        <p className="project-credit">
+          Reference images are other artists' work, collected as inspiration and credited
+          under each — not output of this project.
+        </p>
       </section>
 
-      <section className="project-section">
-        <h2>Where it stands</h2>
-        <p>
-          The terrain pipeline runs end to end: noise, warp, rain, slope collapse and
-          sea level, all from the project's own controls rather than from Topic 2's.
-          The solid is real but shallow — the heightfield becomes a distance field and
-          tunnels are subtracted from it, meshed with surface nets, which is a genuine
-          composition of Topics 2 and 3 on one world.
+      <section className="project-section" aria-labelledby="pipeline-heading">
+        <h2 id="pipeline-heading">One pipeline, three worlds</h2>
+        <p className="project-note">
+          These are not three separate scenes. The same five stages, in the same code, run
+          for every world — only the numbers change.
         </p>
-        <p>
-          The shading study is the honest gap. Its eight strategies live inside a
-          full-screen GPU pipeline built around one fixed terrain, so they cannot
-          simply be pointed at a different mesh; wiring them in means lifting the
-          material out of that pipeline rather than calling it. That is the next piece
-          of work, and it is named as such on{' '}
-          <button
-            type="button"
-            className="project-inline-link"
-            onClick={() => navigate({ section: 'project', page: 'progress' })}
-          >
-            Progress
-          </button>{' '}
-          rather than glossed over here.
+        <div className="pipeline-wrap">
+          <table className="pipeline">
+            <thead>
+              <tr>
+                <th scope="col">
+                  <span className="sr-only">Stage</span>
+                </th>
+                {WORLDS.map((world) => (
+                  <th scope="col" key={world.id} className={`is-${world.id}`}>
+                    {world.name.split(' ')[0]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {PIPELINE.map((row, index) => (
+                <tr key={row.stage}>
+                  <th scope="row">
+                    <span className="pipeline-step">{index + 1}</span>
+                    {row.stage}
+                  </th>
+                  {WORLDS.map((world) => (
+                    <td key={world.id}>{row.cells[world.id]}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="project-section" aria-labelledby="layers-heading">
+        <h2 id="layers-heading">Built in layers</h2>
+        <p className="project-note">
+          One layer at a time, each standing on the one before — not everything at once.
         </p>
+        <ol className="layers">
+          {LAYERS.map((layer, index) => (
+            <li className="layer" key={layer.name}>
+              <span className="layer-index">{index + 1}</span>
+              <h3 className="layer-name">{layer.name}</h3>
+              <p className="layer-detail">{layer.detail}</p>
+              <span className={`layer-status is-${layer.status.toLowerCase().replace(/ /g, '-')}`}>
+                {layer.status}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="project-section project-closing">
+        <p>Walk all three, in the browser.</p>
+        <button type="button" className="project-button is-primary" onClick={explore}>
+          Explore the worlds
+        </button>
       </section>
     </ProjectLayout>
+  )
+}
+
+/** The source under a reference image: small, quiet, and a real link out. */
+function Credit({ credit }: { credit: Reference['credit'] }) {
+  return (
+    <a className="board-credit" href={credit.href} target="_blank" rel="noreferrer">
+      {credit.name}
+    </a>
   )
 }

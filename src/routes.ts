@@ -7,11 +7,11 @@ import { useCallback, useEffect, useState } from 'react'
  * a technique gets taken apart — every parameter exposed, every metric on
  * screen. The Project is where the techniques are put back together and shown.
  * They want opposite things from a UI, which is why they are separated here
- * rather than being seven tabs in a row.
+ * rather than being ten tabs in a row.
  *
  * ## Why no router
  *
- * Seven static destinations, no route parameters, no nested data loading, no
+ * Ten static destinations, no route parameters, no nested data loading, no
  * code splitting. react-router-dom 7.18.4 bundles to 42,538 bytes minified
  * (15,235 gzipped) for the handful of exports this would need — 3.6% on top of
  * the app's 425 KB gzipped bundle, for a feature set that is almost entirely
@@ -23,7 +23,7 @@ import { useCallback, useEffect, useState } from 'react'
 export type Section = 'playground' | 'project'
 
 export type PlaygroundId = 'objects' | 'maps' | 'voxels' | 'shaders' | 'distributions' | 'paths' | 'flow'
-export type ProjectId = 'overview' | 'demo' | 'explore' | 'progress'
+export type ProjectId = 'overview' | 'explore' | 'progress'
 
 export type Route =
   | { section: 'playground'; page: PlaygroundId }
@@ -50,7 +50,6 @@ export const PLAYGROUND: { id: PlaygroundId; topic: string; title: string }[] = 
 /** Project pages carry no topic number — the project is not a topic. */
 export const PROJECT: { id: ProjectId; title: string; blurb: string }[] = [
   { id: 'overview', title: 'Overview', blurb: 'What the project is and which systems build it' },
-  { id: 'demo', title: 'Demo', blurb: 'The integrated world, with the controls that matter' },
   { id: 'explore', title: 'Explore', blurb: 'Three worlds you can walk around in' },
   { id: 'progress', title: 'Progress', blurb: 'How each experiment feeds the project' },
 ]
@@ -113,6 +112,11 @@ export function useRoute(): [Route, (next: Route) => void] {
   const [route, setRoute] = useState<Route>(() => parsePath(window.location.pathname))
 
   useEffect(() => {
+    // An address that parsed to somewhere else — /project/demo, since that page
+    // was retired — is corrected in place, so the bar names the page shown.
+    // replaceState rather than push, so Back does not return to the dead path.
+    const shown = toPath(parsePath(window.location.pathname))
+    if (shown !== window.location.pathname) window.history.replaceState(null, '', shown)
     const onPop = () => setRoute(parsePath(window.location.pathname))
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)

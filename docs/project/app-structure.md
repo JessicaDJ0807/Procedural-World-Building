@@ -26,7 +26,7 @@ to set it somewhere destructive.
 
 **Project** is where the techniques are put back together. It generates one
 world and makes every system work from it, so a change to the terrain is a
-change to everything downstream rather than to a demo of its own.
+change to everything downstream rather than to a separate page of its own.
 
 The two want opposite things from a user interface. A Playground topic is dense
 on purpose: every pixel within reach of the viewport is worth a control. The
@@ -56,7 +56,7 @@ which is what it was before. Switching section never shows both sets at once.
 | --- | --- |
 | `/` | Project Overview |
 | `/project` | Project Overview |
-| `/project/demo` | Project Demo |
+| `/project/explore` | Project Explore |
 | `/project/progress` | Project Progress |
 | `/playground/objects` | Topic 1 |
 | `/playground/maps` | Topic 2 |
@@ -65,6 +65,9 @@ which is what it was before. Switching section never shows both sets at once.
 
 Anything unrecognised falls back rather than erroring: an unknown project page
 lands on Overview, an unknown topic on the newest one, and anything else on `/`.
+The address bar is corrected to the page shown, with `replaceState` so Back
+does not return to the dead path — which is what `/project/demo` does now that
+the Demo page is gone.
 
 Entering a section always lands on its own front door — Playground on its newest
 topic, the Project on Overview. Neither remembers where you were last, because a
@@ -104,111 +107,80 @@ to reconsider — and swapping a library in would touch one file.
 
 ## What the Project pages are
 
+Three pages, each with one job:
+
+| Page | Job |
+| --- | --- |
+| Overview | The concept: three worlds, their references, one pipeline, the build order |
+| Explore | The experience: walk the worlds in the browser |
+| Progress | The process: each Playground topic → what Explore uses → what it contributes |
+
 ### Overview
 
-What the project is, which systems build it, and how far each one is actually
-wired in. The systems table carries a status — *in the demo*, *partly wired*,
-*not yet wired* — because listing four techniques without it would imply all
-four were integrated. Three are, to different depths.
+A presentation board rather than a reading column — the one page that uses
+`ProjectLayout`'s wide variant, because three worlds side by side at an 880px
+measure shrink to thumbnails.
 
-The hero is a live viewport running the demo's own generator at its defaults,
-not a captured image. A screenshot would be a claim about the code rather than
-the code's output, and would go stale the first time a default moved.
+Each world is a hero reference image, a one-line description, three goals and
+two smaller references, and every image is labelled with what it informs —
+*Landscape*, *Atmosphere*, *Lava behaviour* — because a wall of mood images
+says nothing about what is being built. Colour identifies a world only as an
+accent line on its hero image, its caption and its goal markers; the UI stays
+neutral. Captions sit under the images, never on them: the references are busy
+enough that no text over them would be reliably readable.
 
-![The Project Overview: a live eroded terrain under the two-row navigation](../images/readme-project-overview.png)
+Below the board, **one pipeline, three worlds**: the five stages down the side,
+the three worlds across, and in each cell what that stage actually does in that
+world today, read off the specs in `src/explore/worlds.ts`. It is the page's
+central claim made checkable. Then **built in layers**, with each layer marked
+*In place*, *In progress* or *Next* by what Explore does today.
 
-### Demo
+The reference images live in `public/inspiration/<world>/` so the app and the
+README read the same files. They are by other artists, and the page says so.
 
-The integrated world, and the one Project page that is an instrument rather than
-a reading. It borrows the Playground's `Workspace` — three resizable columns and
-the floating **View** popover — rather than inventing a second layout language
-for the same job.
+![The Project Overview: three worlds side by side, each with a hero image and two labelled references](../images/readme-project-overview.jpg)
 
-Nine controls against Topic 2's thirty. A control earns its place here by
-changing the world in a way worth describing, which eight erosion dials that
-each need a measurement to set responsibly do not. So the droplet's character is
-fixed to Topic 2's `gorges` preset, chosen there against a structure-function
-sweep, and what the project exposes is how much rain falls on it.
+### Explore
 
-> The project picks the settings that need evidence, and leaves the ones that
-> read as decisions.
-
-![The Project Demo: scenarios on the left, the world in the middle, nine controls on the right](../images/readme-project-demo.png)
+The worlds themselves; see [Explorable worlds](explorable-worlds.md).
 
 ### Progress
 
-The chain from technique to contribution, ordered by what depends on what rather
-than by when it was built — erosion is third because it needs a noise field to
-cut, not because it happened in week three. The dates are in the git history,
-which is a better place for them.
+One entry per Playground topic, each with three things: what Explore actually
+uses of it, what it contributes, and — where there is one — what is not there
+yet. A status marks each: *In Explore*, *Partly*, or *Next*. Two topics are in
+fully, three in part, two not yet, and the page says which rather than listing
+seven techniques beside three worlds and implying all seven are in them.
 
-Each stage carries what the study found, where the study found something: the
-six-octave result, the erosion decay curve, the warp threshold, the OKLab step
-count. Two stages are marked *not yet wired* and stay on the list, because
-leaving them off would make the gap invisible rather than honest.
+![The Project Progress page: each topic with its status and what Explore uses of it](../images/readme-project-progress.png)
 
-![The Project Progress page: the dependency chain with measured findings beside each stage](../images/readme-project-progress.png)
+## The Demo page, retired
 
-## The integration
+There was a fourth Project page, Demo: Topic 2's droplet erosion and Topic 3's
+CSG caves composed on one 128² heightfield, with nine controls and built-in
+scenarios. It was the first place two topics had to agree on the same data, and
+it is in the git history.
 
-The demo's two views are the same world, not two worlds. One heightfield is
-generated; the surface view renders it directly, and the caves view turns that
-same array into a signed distance function and subtracts a tunnel network from
-it. Moving a terrain dial moves both.
-
-```
-fBm octave stack          noise.ts        compositeLayers
-  → domain warp           noise.ts        warpField
-  → droplet erosion       erosion.ts      erodeStep
-  → thermal collapse      erosion.ts      thermalPass
-  → sea level             project/world.ts  flood
-  ├→ surface              NoiseViewport
-  └→ heightfield as SDF   project/world.ts  meshCaves
-       → CSG subtract     density.ts      combine, getShape('gyroid')
-       → surface nets     mesher.ts       meshSurfaceNets
-       → solid            VoxelViewport
-```
-
-Everything in the right-hand column is imported. `src/project/world.ts` adds the
-order those calls run in and the mapping from nine controls onto their
-parameters — no algorithm is reimplemented.
-
-At the demo's defaults: 128² cells, 4,915 droplets, about 18 ms to generate. The
-`Undercroft` scenario at 72³ meshes 118,092 triangles in about 13 ms on top of
-an 8 ms generation.
-
-Generation runs behind `useDeferredValue`, so a slider drag commits at full rate
-and the terrain follows a beat behind rather than sticking the thumb. The seven
-fields generation actually reads are separated from the rest, so relief and
-palette — which change nothing in the field — do not regenerate it.
-
-## What is deliberately not shared
-
-**Procedural code is reused, panels are not.** The demo imports every generator
-and both viewports. It does not import a Playground inspector: dumping Topic 2's
-sidebar into the Project would have been reuse of the wrong thing.
-
-**`world.ts` repeats `NoisePage`'s orchestration rather than sharing it.** About
-forty lines of function calls, no algorithms. The alternative was refactoring
-Topic 2's memo chain into something parameterised over both callers, and the
-cost of getting that wrong lands on a page that already works. If a third caller
-appears, extract then.
-
-**The demo has no Firestore collection of its own.** Its worlds are built into
-the page, so nothing on it needs you to be signed in. Giving the project a fifth
-`TopicId` would mean editing and redeploying `firestore.rules`, and a stale
-ruleset fails as `permission-denied`, which looks identical to not being signed
-in. The saved-world infrastructure would carry project worlds with no new
-machinery whenever that is wanted — see
-[Firebase setup](firebase-setup.md).
-
-**Shader integration is not faked.** Topic 4's eight strategies live inside a
-full-screen GPU pipeline built around one fixed terrain, so they cannot be
-pointed at a different mesh. Wiring them in means lifting the material out of
-that pipeline rather than calling it. Until that happens, the demo renders with
-the standard material from Topic 1 and both the Overview and Progress say so.
+It was removed because Explore became the interactive experience and the two
+told different stories — Demo a single eroded tile, Explore three streamed
+worlds that cannot use droplet erosion at all, since droplets need the whole
+grid and chunks cannot see their neighbours. Two interactive pages with two
+terrain systems made the project harder to explain, not easier. Its two
+generators, `world.ts` and `useWorld.ts`, had no other caller and went with it.
+What it proved — that the heightfield can be read as a distance field and cut
+with CSG — is listed on Progress as the route to caves.
 
 ## Notes
+
+**Two stylesheets both owned `.world-name`.** The Overview's world titles
+rendered at 13px instead of 22: the Playground's saved-worlds library in
+`App.css` already styles `.world-name`, loads globally, and won the cascade.
+Nothing failed — the page simply looked wrong, and it was found by reading the
+computed style in the browser. The Overview's board classes are prefixed
+`board-` now.
+
+*The notes below are about the retired Demo page and the earlier Overview hero
+that ran its generator. They are kept because the findings outlived the pages.*
 
 **The hero mounted at 814×0 and nothing said so.** `.noise-viewport` sizes
 itself with `flex: 1` because in the Playground it is always a flex child; in
