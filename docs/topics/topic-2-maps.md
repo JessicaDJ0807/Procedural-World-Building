@@ -1,15 +1,23 @@
 # Topic 2 — Maps
 
-A layered noise stack, smoothed by a cellular automaton, carved by hydraulic
-erosion, and graphed as 3D geometry — a height field, a point cloud, or a
-planet.
+Noise turned into ground, in two views. The **Lab** takes one noise function
+at a time — white, Perlin or cellular — shapes it, and shows the map beside the
+terrain it makes, with the program the controls amount to written out under
+them. The **Workbench** is the full stack: a layered noise field, smoothed by a
+cellular automaton, carved by hydraulic erosion, and graphed as 3D geometry — a
+height field, a point cloud, or a planet.
 
 [← back to the README](../../README.md) · [study notebook index](../README.md)
 
-![The Topic 2 page: a height field after 167,000 erosion droplets, with the source map and the collapsible control sections in the sidebar](../images/readme-topic-2-noise.png)
+![The Topic 2 Lab on the Islands preset: the noise map with the profile row dashed across it, the terrain tile with its sea, the profile cut along that row, and the start of the pipeline pseudocode](../images/readme-topic-2-lab.png)
 
 ## Contents
 
+- [The Lab](#the-lab) — noise → modify noise → use it as a map
+  - [Three noise functions](#three-noise-functions)
+  - [The pipeline, in order](#the-pipeline-in-order)
+  - [Presets are recipes](#presets-are-recipes)
+- [The workbench](#the-workbench) — everything below, down to Notes
 - [The field](#the-field) — what a cell holds, and how the page is laid out
 - [Geometry modes](#geometry-modes) — height field, volumetric cloud, planet
 - [Colour ramps](#colour-ramps) — OKLab interpolation, ramp fitting, bands
@@ -21,6 +29,169 @@ planet.
 - [Shaping operations](#shaping-operations) — the eight per-cell ops
 - [Reading the volumetric mode](#reading-the-volumetric-mode)
 - [Notes](#notes) — the decisions, including the wrong ones
+
+## The Lab
+
+The page opens here, and its argument fits in one line: **noise → modify noise →
+use it as a map.** Every control belongs to one of those three steps, and the
+two views on screen are the same numbers read two ways — the map is the value at
+each point, and the terrain is that value used as height. A slider moves both at
+once, so a mathematical change and its spatial meaning arrive together.
+
+| Area | What it holds |
+| --- | --- |
+| Left column | **Presets** — eight recipes, each a different combination of the controls on the right |
+| Noise map | 128² values in `[0, 1]`, coloured by the same ramp as the terrain. Click or drag to move the dashed row |
+| Terrain | The same values as a height-field tile, `height = value × amplitude`, with an optional sea |
+| Profile | The dashed row cut through the terrain — the "/\\_/\\" sketch of the field, drawn from the data |
+| Pipeline | The controls written out as pseudocode with their current numbers, in the order they run |
+| Right column | **Noise**, **Parameters**, **Shaping**, **Domain warp**, **Island mask**, **Water**, and the time the field took |
+
+A **Lab | Workbench** switch sits at the top of the sidebar. The terrain tile is
+its own small scene, not the Project's world: it exists to be thrown away.
+
+### Three noise functions
+
+![White noise and the terrain it makes: a speckled map beside a bed of needles](../images/topic-2-lab-white.jpg)
+
+*White noise as terrain. Every sample is independent of its neighbours, so
+there is no slope to follow and no feature larger than one cell — the baseline
+the other two functions exist to fix.*
+
+| Noise | What is random | What it makes |
+| --- | --- | --- |
+| **White** | The value at every sample | Static. Has no frequency and nothing to stack, so its scale and octave controls are hidden rather than left inert |
+| **Perlin** | The *slope* at each lattice point; the value there is always 0 | Smooth hills of one characteristic size. The extremes fall between lattice points, which is why it has no blocky cells |
+| **Cellular** | One jittered point per lattice cell; the value is a distance | **F1** (nearest point) makes round basins; **F2 − F1** is 0 exactly where two points are equally near, so it draws the cell walls — here, as cracks between domes |
+
+Perlin here is 2D gradient noise with eight unit gradients and the quintic fade
+`6t⁵ − 15t⁴ + 10t³`, whose continuous second derivative keeps lattice lines out
+of the lighting. Its signed output peaks at √2⁄2 in theory, so it is mapped to
+`[0, 1]` by dividing by twice that. Measured over 50 seeds at frequency 8, a
+single octave spans **0.032–0.967**: the mapping never clips, and very nearly
+uses the whole range.
+
+The values are hashed from lattice coordinates rather than drawn from a running
+PRNG, so a sample is a function of *where* it is. That is what lets domain warp
+read the same field at moved coordinates instead of producing a new one.
+
+### Parameters
+
+| Control | Effect | Shown when |
+| --- | --- | --- |
+| Seed | Which random field. A number, with **New** for a random one | Always |
+| Frequency | First-octave features across the tile | Not white |
+| Amplitude | Height of a value of 1, against a tile 2.4 wide. Changes the terrain and caption, never the map — the map is unitless | Always |
+| Octaves | Copies stacked, each finer than the last | Not white |
+| Persistence | Each octave's amplitude relative to the one before — the roughness dial | More than one octave |
+| Lacunarity | Each octave's frequency relative to the one before | More than one octave |
+
+### The pipeline, in order
+
+```
+x2 = x + snoise(x * s, z * s) * strength          // domain warp
+z2 = z + snoise(x * s + 100, z * s + 100) * strength
+for each octave:
+  n = noise(x2 * freq, z2 * freq)                  // white, perlin or cellular
+  n = pow(1 - abs(n * 2 - 1), sharpness)           // ridged — or abs(n * 2 - 1), billow
+  value += n * amp
+value /= sum of amps
+value = (value - min) / (max - min)                // stretch to [0, 1]
+value *= max(0, 1 - falloff * d * d)               // island mask
+value = pow(value, k)                              // power — or terrace
+height = value * amplitude
+```
+
+The panel under the views prints this with the live numbers, and greys out the
+stages that are off rather than removing them. Turning a stage on is then seen
+to slot into a fixed sequence instead of replacing what was there — which is
+the point the presets make too.
+
+![Mountains: the ridged map, white creases branching across it, beside the sharp-crested terrain it makes](../images/topic-2-lab-ridged.jpg)
+
+*The Mountains preset: six octaves of Perlin, each folded before it is summed.
+The thin bright lines on the map are the creases; on the terrain they are crests.*
+
+**Ridged and Billow fold each octave; Terrace and Power remap the result.** The
+two kinds are different on purpose. `1 − |2n − 1|` is non-differentiable exactly
+where `n = 0.5`, and a non-differentiable maximum is a crease. Folded *after*
+the sum — which is what the workbench's Output Ridge does — that happens along one
+contour of the finished field, so the creases are all one scale. Folded per
+octave, it happens along the 0.5 contour of *every* octave, so there are crests
+at every scale and the large ridges carry smaller ones. That is what reads as a
+range rather than a field of rounded knolls with a seam drawn through them.
+
+**The fBm is stretched to `[0, 1]` before anything that cares about absolute
+value.** Averaging octaves narrows the range — mean over 10 seeds, Perlin at
+frequency 3, persistence 0.5:
+
+| octaves | raw span | range |
+| --- | --- | --- |
+| 1 | 0.700 | 0.143–0.843 |
+| 2 | 0.592 | 0.194–0.786 |
+| 3 | 0.544 | 0.225–0.769 |
+| 5 | 0.517 | 0.236–0.753 |
+| 8 | 0.505 | 0.243–0.748 |
+
+Without the stretch, a six-step terrace on the five-octave field above would
+use only four of its six levels — `floor(0.236 × 6)` is 1 and `floor(0.753 × 6)`
+is 4 — and a power curve would mean something different every time the octave
+count moved. The
+pipeline line prints the measured range it stretched from, so the
+normalisation is visible rather than silent.
+
+**The terrace is `min(floor(value × steps), steps − 1) / (steps − 1)`**, not the
+textbook `floor(value × steps) / steps`. After the stretch the single highest
+sample is exactly 1, and the textbook form lifts that one vertex a full step
+above the top plateau — a needle on every mesa.
+
+**Water reads the noise; it is not part of it.** Sea level is a flat plane in
+the terrain and a tint on the map, the same colour in both, and the readout
+reports the share of the tile above it.
+
+### Presets are recipes
+
+Each preset sets every control except the seed. Keeping the seed means switching
+preset compares recipes on the same ground — the island and the mountain range
+are built from the same underlying noise.
+
+| Preset | Recipe |
+| --- | --- |
+| **Baseline** *(default)* | Five octaves of Perlin at frequency 3, nothing else. Every other preset is a variation on this |
+| Rolling Hills | Frequency 2, three octaves, persistence 0.35 — the fine octaves too quiet to roughen it |
+| Mountains | Six octaves, ridged per octave at sharpness 2 |
+| Terraces | Four octaves, terraced into seven steps |
+| Islands | Baseline × radial falloff at 1.0, sea level 0.32 — **36%** land on seed 42 |
+| Rocky | Frequency 6, seven octaves, persistence 0.62, lacunarity 2.2 |
+| Organic | Baseline read through a domain warp of 25% of the tile at scale 2 |
+| Cells | Cellular F2 − F1, frequency 5, two octaves |
+
+Change any control and the highlighted preset clears — the settings no longer
+describe that recipe, so the page stops claiming they do.
+
+### Cost
+
+Measured in Node over `generateLab`, median of five runs at 128². The sidebar
+reports the live figure for the field on screen.
+
+| noise | 1 octave | 5 octaves | 8 octaves |
+| --- | --- | --- | --- |
+| White | 0.3 ms | — | — |
+| Perlin | 0.23 ms | 0.77 ms | 1.20 ms |
+| Cellular | 2.76 ms | 15.3 ms | 24.8 ms |
+
+Cellular costs about twenty times Perlin from five octaves up (twelve at one),
+because every sample searches nine cells and hashes two coordinates in each. It is still inside a frame at five octaves, so
+the field is generated on the main thread during render with no worker and no
+cache. Domain warp adds two Perlin lookups per sample: 0.77 → 1.32 ms at five
+octaves.
+
+## The workbench
+
+The rest of this chapter, down to Notes, describes the Workbench — the view
+Topic 2 was before the Lab existed, kept whole behind the switch.
+
+![The Workbench: a height field after 167,000 erosion droplets, with the source map and the collapsible control sections in the sidebar](../images/readme-topic-2-noise.png)
 
 ## The field
 
@@ -529,6 +700,52 @@ Resolution is capped at 128 for a height field and 32 for a volume, since a
 volume costs the cube of the value; switching modes clamps it on the way in.
 
 ## Notes
+
+### The Lab
+
+**The Lab came second, and is the front door.** The workbench grew around one
+kind of noise — a lattice of random values, interpolated — and spent thirty
+controls on what happens afterwards. It never showed what a noise function *is*,
+or why a given operation makes a given landform. The Lab answers that, so it is
+what the page opens on; the workbench is kept rather than folded into it,
+because its measurements are what the Project and the later topics were built
+from.
+
+**The Lab normalises and the workbench does not, because they ask different
+questions.** The workbench keeps raw values and fits the *colour ramp* to them,
+because the subject there is what averaging and erosion do to the distribution.
+The Lab's subject is what an operation does to the ground, and that is only
+legible if a power curve or a terrace acts on the same range every time.
+
+**The profile's axis started fixed, and every profile came out flat.** It was
+pinned at the amplitude slider's maximum so that lowering amplitude would
+visibly flatten it. But at a 1600-pixel window the strip was about 1,020 pixels
+wide and 96 tall, which against a 1.5 axis compresses a 2.4-wide tile 6.6×
+vertically, and the result was a near-straight line for every preset — the one thing the strip
+exists to show was the thing it hid. It is now fitted to `[0, amplitude]` and
+says so in its caption; the terrain beside it carries the amplitude.
+
+**The workbench first opened blank.** Both views were mounted up front with the
+inactive one under `display: none`, so that switching back would find an erosion
+run where it was left. Mounted hidden, the workbench's canvases measured a width
+of 0: the source map painted nothing and had no reason to repaint once shown,
+and the viewport's resize cleared its drawing buffer without waking the idle
+render loop, so it stayed black until the pointer moved. The workbench now
+mounts on first visit and stays mounted after, and `NoiseViewport` wakes its
+loop on every resize — a resize always clears the canvas, hidden or not.
+
+**Lab settings are not saved to the worlds library.** The presets cover what a
+saved configuration would, and the Firestore rules whitelist each topic's
+document shape: a second Topic 2 shape would mean a rules change and a deploy
+for a view whose whole state is thirteen numbers and five choices.
+
+**The pseudocode is the one monospace text in the app.** The visual system holds
+to one family, and metrics use tabular figures instead. Pseudocode is content
+rather than chrome, and its indentation is meaning — a loop body only reads as
+one if it lines up — so it gets `--font-code`, and nothing else does. See
+[the visual system](../project/visual-system.md).
+
+### The workbench
 
 **Noise sampling is deterministic.** A seeded PRNG (mulberry32) feeds a
 Box–Muller transform. `Math.random()` would resample on every re-render, so

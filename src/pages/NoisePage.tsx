@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ConfigPanel } from '../ConfigPanel'
 import { ControlSection } from '../ControlSection'
 import { LayerPanel } from '../LayerPanel'
@@ -110,7 +110,8 @@ const createFbmStack = (octaves: number, persistence: number, maxFrequency: numb
 const INITIAL = defaultNoiseSettings()
 const INITIAL_LAYERS: NoiseLayer[] = withLayerIds(INITIAL.layers)
 
-export function NoisePage() {
+/** `switcher` is Topic 2's Lab | Workbench control, placed at the top of the sidebar. */
+export function NoisePage({ switcher }: { switcher?: ReactNode } = {}) {
   const [mode, setMode] = useState<GeometryMode>(INITIAL.mode)
   const [resolution, setResolution] = useState(INITIAL.resolution)
   // Averaging six octaves shrinks the variance, so the stack's relief is about
@@ -490,6 +491,7 @@ export function NoisePage() {
       }
       inspector={
         <aside className="control-sidebar" aria-label="Noise controls">
+        {switcher}
         <h2>Source map</h2>
         <NoiseMapPreview
           resolution={resolution}

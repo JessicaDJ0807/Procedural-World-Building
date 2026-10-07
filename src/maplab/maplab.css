@@ -1,0 +1,222 @@
+/* Topic 2's Lab: two views of one field side by side, with the profile and the
+   pipeline under them. The bench scrolls rather than shrinking the views — a
+   map too small to read defeats the comparison it exists for. */
+
+.lab-bench {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px 20px;
+  overflow-y: auto;
+  background: var(--bg);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.lab-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.lab-pane {
+  margin: 0;
+  min-width: 0;
+}
+
+.lab-pane figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-bottom: 6px;
+}
+
+.lab-caption {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.lab-caption-detail {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Capped by height as well as width, so on a short window both squares stay
+   fully in view instead of the terrain dropping below the fold. */
+.lab-square {
+  position: relative;
+  width: 100%;
+  max-width: calc(100vh - 230px);
+  margin: 0 auto;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--viewport-bg);
+}
+
+.lab-terrain > .noise-viewport {
+  position: absolute;
+  inset: 0;
+}
+
+.lab-map {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.lab-arrow {
+  color: var(--text-muted);
+  font-size: 22px;
+  /* Sits level with the squares, not with the captions above them. */
+  padding-top: 20px;
+}
+
+.lab-profile {
+  display: block;
+  width: 100%;
+  height: 110px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--viewport-bg);
+}
+
+.lab-profile-ground {
+  fill: #6f7f68;
+  stroke: #b8c2b0;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.lab-profile-sea {
+  fill: rgba(61, 111, 143, 0.72);
+}
+
+/* The one monospace block in the app. Pseudocode is content rather than
+   chrome, and its indentation is meaning — the loop body only reads as a loop
+   body if it lines up. See docs/project/visual-system.md. */
+.lab-code {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-family: var(--font-code);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.lab-code .is-off {
+  color: var(--text-disabled);
+}
+
+.lab-code-comment {
+  color: var(--text-muted);
+}
+
+.lab-code .is-off .lab-code-comment {
+  color: var(--text-disabled);
+}
+
+/* ---- Presets, the left column ---- */
+
+.lab-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lab-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lab-preset:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.lab-preset.is-active {
+  border-color: var(--accent-line);
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+}
+
+.lab-preset-name {
+  font-size: 13.5px;
+  font-weight: var(--weight-ui);
+}
+
+.lab-preset-recipe {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* ---- Seed ---- */
+
+.lab-seed-row {
+  display: flex;
+  gap: 6px;
+}
+
+.lab-seed-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-seed-row input:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+.lab-seed-row .reset-button {
+  width: auto;
+  margin: 0;
+  padding-inline: 12px;
+}
+
+/* ---- Lab | Workbench ---- */
+
+/* Both views stay mounted, so switching back finds the workbench where it was
+   left — an erosion run is minutes of accumulated state. */
+.maps-view {
+  height: 100%;
+}
+
+.maps-view[hidden] {
+  display: none;
+}
+
+.maps-switch {
+  margin-bottom: 14px;
+}

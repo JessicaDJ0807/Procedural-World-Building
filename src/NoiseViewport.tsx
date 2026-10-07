@@ -29,6 +29,18 @@ type NoiseViewportProps = {
   spin: number
   /** Draws the sampling lattice over the height field. Surface mode only. */
   wireframe: boolean
+  /**
+   * Sea level in field units, drawn as a flat plane at that height. Surface
+   * mode only; omitted or 0 draws no water. Only the Lab passes it — the
+   * workbench's low ground is coloured by the ramp instead.
+   */
+  water?: number
+  /**
+   * Camera distance relative to the default framing. The Lab draws the tile in
+   * a square pane rather than a wide viewport, where the default leaves it
+   * filling about half the width.
+   */
+  zoom?: number
 }
 
 const SPAN = 2.4 // width and depth of the field in world units
@@ -39,6 +51,7 @@ const VISIBILITY_FLOOR = 0.06 // below this a volume cell is omitted, not drawn 
 const CUT_COLOUR: [number, number, number] = [0.94, 0.42, 0.22]
 const FILL_COLOUR: [number, number, number] = [0.42, 0.86, 0.98]
 const OVERLAY_BASE = 0.34 // how much of the ramp colour survives where nothing moved
+const WATER_COLOUR = 0x3d6f8f
 
 /** Default framing per mode: a flat sheet reads well closer in than a full cube. */
 const FRAMING: Record<GeometryMode, { position: [number, number, number]; target: number }> = {
@@ -79,6 +92,7 @@ type Scene = {
   /** Unit-sphere direction per planet vertex, fixed for the life of the mesh. */
   planetDirections: Float32Array
   marker: THREE.Mesh
+  water: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>
   /** Resolution the surface grid was last built for; -1 forces a rebuild. */
   surfaceResolution: number
 }
@@ -345,6 +359,8 @@ export function NoiseViewport({
   overlay,
   spin,
   wireframe,
+  water = 0,
+  zoom = 1,
 }: NoiseViewportProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const loopRef = useRef<RenderLoop | null>(null)
@@ -444,6 +460,22 @@ export function NoiseViewport({
     // Inside the group so the marker stays stuck to the cell it points at.
     spinner.add(marker)
 
+    // Translucent so the drowned terrain still reads as a seabed: an opaque
+    // plane would make sea level look like a cut rather than a fill.
+    const waterPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(SPAN, SPAN).rotateX(-Math.PI / 2),
+      new THREE.MeshStandardMaterial({
+        color: WATER_COLOUR,
+        transparent: true,
+        opacity: 0.72,
+        roughness: 0.35,
+        metalness: 0.1,
+        side: THREE.DoubleSide,
+      }),
+    )
+    waterPlane.visible = false
+    spinner.add(waterPlane)
+
     sceneRef.current = {
       scene,
       camera,
@@ -455,6 +487,7 @@ export function NoiseViewport({
       planet,
       planetDirections,
       marker,
+      water: waterPlane,
       surfaceResolution: -1,
     }
 
@@ -464,6 +497,10 @@ export function NoiseViewport({
       camera.aspect = clientWidth / clientHeight
       camera.updateProjectionMatrix()
       renderer.setSize(clientWidth, clientHeight)
+      // Resizing clears the drawing buffer, and an idle loop would leave it
+      // blank until the pointer next moved — which is exactly what happened
+      // when Topic 2's hidden view was first shown.
+      loopRef.current?.wake()
     }
     const observer = new ResizeObserver(resize)
     observer.observe(container)
@@ -496,6 +533,8 @@ export function NoiseViewport({
       planet.material.dispose()
       marker.geometry.dispose()
       ;(marker.material as THREE.Material).dispose()
+      waterPlane.geometry.dispose()
+      waterPlane.material.dispose()
       renderer.dispose()
       renderer.domElement.remove()
     }
@@ -514,10 +553,11 @@ export function NoiseViewport({
     const objects = sceneRef.current
     if (!objects) return
     const framing = FRAMING[mode]
-    objects.camera.position.set(...framing.position)
+    const [px, py, pz] = framing.position
+    objects.camera.position.set(px * zoom, framing.target + (py - framing.target) * zoom, pz * zoom)
     objects.controls.target.set(0, framing.target, 0)
     objects.controls.update()
-  }, [mode])
+  }, [mode, zoom])
 
   useEffect(() => {
     const objects = sceneRef.current
@@ -527,6 +567,8 @@ export function NoiseViewport({
     objects.cloud.visible = mode === 'volume'
     objects.planet.visible = mode === 'planet'
     objects.lattice.visible = mode === 'surface' && wireframe
+    objects.water.visible = mode === 'surface' && water > 0
+    objects.water.position.y = water * heightScale
 
     if (mode === 'surface') {
       if (objects.surfaceResolution !== resolution) {
@@ -548,7 +590,7 @@ export function NoiseViewport({
       objects.cloud.geometry = buildCloud(resolution, field, ramp)
       objects.cloud.material.size = Math.max((SPAN / resolution) * 0.75, 0.012)
     }
-  }, [mode, resolution, field, heightScale, ramp, overlay, wireframe])
+  }, [mode, resolution, field, heightScale, ramp, overlay, wireframe, water])
 
   useEffect(() => {
     const objects = sceneRef.current

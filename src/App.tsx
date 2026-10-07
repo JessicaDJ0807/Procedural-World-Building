@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import { AuthBar } from './AuthBar'
-import { NoisePage } from './pages/NoisePage'
+import { MapsPage } from './pages/MapsPage'
 import { ObjectViewerPage } from './pages/ObjectViewerPage'
 import { DistributionPage } from './pages/DistributionPage'
 import { PathPage } from './pages/PathPage'
@@ -27,7 +27,7 @@ import './App.css'
 
 const PLAYGROUND_PAGES: Record<PlaygroundId, () => ReactElement> = {
   objects: () => <ObjectViewerPage />,
-  maps: () => <NoisePage />,
+  maps: () => <MapsPage />,
   voxels: () => <VoxelPage />,
   shaders: () => <ShaderPage />,
   distributions: () => <DistributionPage />,

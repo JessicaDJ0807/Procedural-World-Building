@@ -88,7 +88,20 @@ and material controls lit by a generated `RoomEnvironment` cubemap.
 
 ### [Topic 2 — Maps](docs/topics/topic-2-maps.md)
 
-A field of values in `[0, 1]`, built and then progressively shaped:
+Noise turned into ground, in two views.
+
+The **Lab** opens first and shows one idea: *noise → modify noise → use it as a
+map*. Pick white, Perlin or cellular noise, stack octaves, fold them ridged or
+billowed, terrace or power-curve the result, warp the lookup, mask an island,
+flood it — and see the noise map and the terrain it makes side by side, a
+profile cut through both, and the pseudocode the controls amount to with the
+live numbers in it. Eight presets, from Baseline to Mountains to Cells, are each
+the same pipeline with different switches.
+
+![Topic 2 — the Lab on the Islands preset: noise map, terrain tile with a sea, a profile cut along the dashed row, and the pipeline pseudocode](docs/images/readme-topic-2-lab.png)
+
+The **Workbench** is a field of values in `[0, 1]`, built and then
+progressively shaped:
 
 - **Layers** — a stack of value-noise fields, composited bottom-up with nine
   blend modes. Opens on a six-octave fBm stack, which measures at a Hurst
@@ -101,8 +114,6 @@ A field of values in `[0, 1]`, built and then progressively shaped:
   cuts dendritic valley networks that noise alone never produces.
 - **Output** — eight per-cell shaping ops, six colour ramps interpolated in
   OKLab, and three geometry modes: height field, point cloud, or planet.
-
-![Topic 2 — a height field after 167,000 erosion droplets, beside the sidebar's source map and layer controls](docs/images/readme-topic-2-noise.png)
 
 ### [Topic 3 — Voxels](docs/topics/topic-3-voxels.md)
 
@@ -295,7 +306,9 @@ src/
 ├── LayerPanel.tsx            Layer stack editor (Topic 2)
 ├── pages/
 │   ├── ObjectViewerPage.tsx  Topic 1 — viewer and its control panel
-│   ├── NoisePage.tsx         Topic 2 — viewport, sidebar, and noise state
+│   ├── MapsPage.tsx          Topic 2 — the Lab | Workbench switch
+│   ├── NoiseLabPage.tsx      Topic 2 Lab — map, terrain, profile, pipeline, presets
+│   ├── NoisePage.tsx         Topic 2 Workbench — viewport, sidebar, and noise state
 │   ├── VoxelPage.tsx         Topic 3 — viewport, sidebar, and CSG state
 │   ├── ShaderPage.tsx        Topic 4 — strategy selector and parameters
 │   ├── DistributionPage.tsx  Topic 5 — layer rules, debug view, probe
@@ -327,6 +340,11 @@ src/
 ├── study/                    Shared by the Topic 5–7 studies
 │   ├── terrain.ts            Small eroded terrain: height, slope, distance to water
 │   └── study.css             Viewport overlays, segmented picker, swatches
+├── maplab/                   Topic 2's Lab
+│   ├── noiseLab.ts           White, Perlin and cellular noise; the pipeline; its pseudocode; presets
+│   ├── LabMap.tsx            The noise map, with the profile row
+│   ├── LabProfile.tsx        The row cut through the terrain
+│   └── maplab.css            The two-view bench, presets, the pseudocode block
 ├── distributions/            Topic 5
 │   ├── rules.ts              The factors, the three layers, their defaults
 │   ├── scatter.ts            Jittered candidates, acceptance, per-instance variation

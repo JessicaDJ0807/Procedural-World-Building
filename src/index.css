@@ -98,6 +98,9 @@
      resolves to it, which is what stops a control inheriting the UA serif. */
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
     Arial, sans-serif;
+  /* The one exception, and only for code shown as content — Topic 2's
+     pseudocode, whose indentation is meaning. Never for chrome or metrics. */
+  --font-code: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   /* The small uppercase label — WORLDS, STRATEGY, TOPIC 1, CONTRIBUTES. Five
      rules were repeating the same weight, tracking and transform with slightly
