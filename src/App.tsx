@@ -5,6 +5,7 @@ import { ObjectViewerPage } from './pages/ObjectViewerPage'
 import { DistributionPage } from './pages/DistributionPage'
 import { PathPage } from './pages/PathPage'
 import { FlowPage } from './pages/FlowPage'
+import { BranchingPage } from './pages/BranchingPage'
 import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
 import { ExplorePage } from './explore/ExplorePage'
@@ -32,6 +33,7 @@ const PLAYGROUND_PAGES: Record<PlaygroundId, () => ReactElement> = {
   distributions: () => <DistributionPage />,
   paths: () => <PathPage />,
   flow: () => <FlowPage />,
+  branching: () => <BranchingPage />,
 }
 
 const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => ReactElement> = {

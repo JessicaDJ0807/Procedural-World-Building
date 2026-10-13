@@ -24,6 +24,7 @@ runs.
   - [Topic 5 — Distributions](#topic-5--distributions)
   - [Topic 6 — Paths](#topic-6--paths)
   - [Topic 7 — Vector Fields](#topic-7--vector-fields)
+  - [Topic 8 — Branching](#topic-8--branching)
 - [Study notebook](#study-notebook) — the full documentation index
 - [Keyboard](#keyboard)
 - [Getting started](#getting-started)
@@ -260,6 +261,31 @@ field made visible.
 
 ![Topic 7: particle trails flowing left to right and curling around six vortices, blue-white on a dark ground](docs/images/readme-topic-7-flow.jpg)
 
+### [Topic 8 — Branching](docs/topics/topic-8-branching.md)
+
+From a grammar to a forest, one stage at a time: *L-system → branch skeleton →
+tree geometry → levels of detail → distribution → instanced forest*. A string
+is rewritten in parallel, a 3D turtle walks it into a branch graph, the graph
+becomes tapered tubes and leaf clumps, and the tree is scattered over the ground
+and drawn at the detail its distance calls for.
+
+- **Grammar you can edit** — axiom, rules, iterations, angle, variation,
+  branch roll and tropism, with the string's growth per iteration and the
+  string itself on screen. Scrub *turtle progress* to watch it draw.
+- **Teaching views** — skeleton as rods, colour by generation, leaves on or
+  off, and a lineup of the same tree at all four LODs.
+- **Five distributions** — uniform, grid, jittered grid, clustered and Poisson
+  disk, told apart by their measured nearest-neighbour ratio (1.03, 2.00, 1.29,
+  0.70 and 1.58 at 400 trees).
+- **Levels of detail** — auto by distance with hysteresis, or manual; LOD
+  colours and rings on the ground. 76–85% fewer triangles in each preset's
+  opening view, drawn in 19 to 29 instanced draw calls whatever the tree count.
+- **Four presets** — Pine Forest, Ancient Oak Grove, Dense Young Forest, and an
+  Alien Coral Field that is the same machinery with a rule that never keeps a
+  leader.
+
+![Topic 8: an oak grove from above, LOD rings on the ground between the trees, with the presets and grammar in the sidebar](docs/images/readme-topic-8-branching.png)
+
 ## Study notebook
 
 The write-ups are the coursework, not a side effect of it. The full index —
@@ -330,7 +356,8 @@ src/
 │   ├── ShaderPage.tsx        Topic 4 — strategy selector and parameters
 │   ├── DistributionPage.tsx  Topic 5 — layer rules, debug view, probe
 │   ├── PathPage.tsx          Topic 6 — path editor and elevation profile
-│   └── FlowPage.tsx          Topic 7 — field and particle controls
+│   ├── FlowPage.tsx          Topic 7 — field and particle controls
+│   └── BranchingPage.tsx     Topic 8 — grammar, geometry, distribution, LOD, display
 ├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
@@ -354,7 +381,7 @@ src/
 │   ├── erosion.ts            Virtual-pipe hydraulic erosion
 │   ├── boids.ts              Fish schooling
 │   └── index.ts              The strategy registry
-├── study/                    Shared by the Topic 5–7 studies
+├── study/                    Shared by the Topic 5–8 studies
 │   ├── terrain.ts            Small eroded terrain: height, slope, distance to water
 │   └── study.css             Viewport overlays, segmented picker, swatches
 ├── maplab/                   Topic 2's Noise tab
@@ -375,6 +402,16 @@ src/
 │   ├── field.ts              Current, vortices, curl noise, stirs; the divergence check
 │   ├── particles.ts          Typed-array particles, midpoint step, segment writer
 │   └── FlowViewport.tsx      Accumulation buffer, arrow and handle overlays, pointer
+├── branching/                Topic 8
+│   ├── lsystem.ts            Parallel rewriting, with a symbol cap
+│   ├── skeleton.ts           The 3D turtle: segments, generations, taper, leaf sites
+│   ├── treeGeometry.ts       Tapered tubes and leaf clumps as typed arrays
+│   ├── lod.ts                Four levels per tree, canopy blobs, chooseLod with hysteresis
+│   ├── distribution.ts       Five point processes, Clark–Evans ratio
+│   ├── ForestRenderer.ts     Instanced buckets, per-tree culling and level, stats
+│   ├── presets.ts            Settings shape, palettes, grammar library, presets
+│   ├── BranchingViewport.tsx Scene, camera, LOD rings; one effect per stage
+│   └── branching.css         Grammar editor, preset grid, derivation and LOD tables
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── Workspace.tsx             Three resizable columns: library, canvas, inspector
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
@@ -401,7 +438,8 @@ src/
 │   ├── shaderConfig.ts       Topic 4's saved shape
 │   ├── distributionConfig.ts Topic 5's saved shape
 │   ├── pathConfig.ts         Topic 6's saved shape
-│   └── flowConfig.ts         Topic 7's saved shape
+│   ├── flowConfig.ts         Topic 7's saved shape
+│   └── branchingConfig.ts    Topic 8's saved shape, and its slider definitions
 ├── project/                  The Project section — separate from the topics, not a topic itself
 │   ├── ProjectLayout.tsx     Reading shell: measured column (or wide board), own scroller
 │   ├── ProjectOverview.tsx   The three worlds, their references, the pipeline, the layers

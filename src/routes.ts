@@ -22,7 +22,15 @@ import { useCallback, useEffect, useState } from 'react'
  */
 export type Section = 'playground' | 'project'
 
-export type PlaygroundId = 'objects' | 'maps' | 'voxels' | 'shaders' | 'distributions' | 'paths' | 'flow'
+export type PlaygroundId =
+  | 'objects'
+  | 'maps'
+  | 'voxels'
+  | 'shaders'
+  | 'distributions'
+  | 'paths'
+  | 'flow'
+  | 'branching'
 export type ProjectId = 'overview' | 'explore' | 'progress'
 
 export type Route =
@@ -45,6 +53,7 @@ export const PLAYGROUND: { id: PlaygroundId; topic: string; title: string }[] = 
   { id: 'distributions', topic: 'Topic 5', title: 'Distributions' },
   { id: 'paths', topic: 'Topic 6', title: 'Paths' },
   { id: 'flow', topic: 'Topic 7', title: 'Vector Fields' },
+  { id: 'branching', topic: 'Topic 8', title: 'Branching' },
 ]
 
 /** Project pages carry no topic number — the project is not a topic. */
