@@ -59,6 +59,7 @@ which is what it was before. Switching section never shows both sets at once.
 | `/project/explore` | Project Explore |
 | `/project/site` | Project Site |
 | `/project/progress` | Project Progress |
+| `/project/decisions` | Project Decisions |
 | `/playground/objects` | Topic 1 |
 | `/playground/maps` | Topic 2 |
 | `/playground/voxels` | Topic 3 |
@@ -108,7 +109,7 @@ to reconsider — and swapping a library in would touch one file.
 
 ## What the Project pages are
 
-Four pages, each with one job:
+Five pages, each with one job:
 
 | Page | Job |
 | --- | --- |
@@ -116,6 +117,7 @@ Four pages, each with one job:
 | Explore | The experiment: the growth simulation, with its fields on view |
 | Site | The real place: Roosevelt Island and Cornell Tech, from NYC Open Data |
 | Progress | The process: the pipeline, one rule at a time, and the decisions |
+| Decisions | The argument: the five design decisions, one card each, for discussing with others |
 
 ### Overview
 
@@ -153,6 +155,23 @@ presets side by side, then the decisions with their reasons. Every figure was ca
 it, and each experiment's numbers were measured on the same run. Figures that
 do not exist yet render as a dashed *Screenshot to add* slot rather than as a
 stand-in image.
+
+### Decisions
+
+Written to be discussed with people who haven't read the notebook. Five
+cards — one growth rule for every plant, species that differ only in their
+needs, light from the real sun, die-back, and the surface deciding where a
+plant can hold — each with the same five headings: **the rule** (in words,
+then as computed), **why**, **what came first** (the version that was wrong,
+and how it showed), **evidence**, and an **open question**. A jump list at
+the top, a figure pair per card, a button to the page where the decision can
+be seen working, and at the end a table of the numbers that are *chosen, not
+measured* — the cutoff, the light scale, the die-back rate, winter, the
+surface multipliers, the façades — the first places to push. It measures
+nothing new: every number is from the runs documented in Progress,
+[Green Architecture](green-architecture.md) and
+[Roosevelt Island](roosevelt-island.md). The Site figures it shows are copies
+in `public/project/`, since `docs/images/` isn't served.
 
 ![The Explore page from the Corner view: flowering vine on the sunlit fronts and the roofs, ivy in the shadow of the inside corner, moss on the wing's west wall, with the growth and species controls on the right](../images/readme-project-explore.jpg)
 

@@ -11,6 +11,7 @@ import { GreenExplorePage } from './green/GreenExplorePage'
 import { SitePage } from './site/SitePage'
 import { ProjectOverview } from './project/ProjectOverview'
 import { ProjectProgress } from './project/ProjectProgress'
+import { ProjectDecisions } from './project/ProjectDecisions'
 import {
   DEFAULT_PLAYGROUND,
   DEFAULT_PROJECT,
@@ -40,6 +41,7 @@ const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => Rea
   explore: () => <GreenExplorePage />,
   site: () => <SitePage />,
   progress: (navigate) => <ProjectProgress navigate={navigate} />,
+  decisions: (navigate) => <ProjectDecisions navigate={navigate} />,
 }
 
 /**

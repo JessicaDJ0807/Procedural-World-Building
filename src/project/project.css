@@ -540,3 +540,116 @@
 .project-table.is-numeric thead th:not(:first-child) {
   text-align: right;
 }
+
+/* Decisions: one card per decision, the same five headings in each, so they
+   can be compared side by side in a discussion. */
+.decision-index ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.decision-index a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  color: var(--text-primary);
+  font-size: 13.5px;
+  text-decoration: none;
+}
+
+.decision-index a:hover {
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
+.decision-card {
+  scroll-margin-top: 24px;
+}
+
+/* A card's title is its decision, so it reads as a heading, not as the
+   small section label the other Project pages use. */
+.decision-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.decision-summary {
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.decision-facts {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0 0;
+}
+
+.decision-facts > div {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 16px;
+}
+
+.decision-facts dt {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding-top: 3px;
+}
+
+.decision-facts dd {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.decision-facts dd p {
+  margin: 0 0 10px;
+}
+
+.decision-facts ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.decision-facts li + li {
+  margin-top: 4px;
+}
+
+.decision-formula {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.decision-question dd {
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+@media (max-width: 720px) {
+  .decision-facts > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

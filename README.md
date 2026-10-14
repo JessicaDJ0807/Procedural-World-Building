@@ -81,6 +81,11 @@ numbered by nothing:
 - **Progress** — the pipeline, five experiments that each add one rule, the
   three species and the walls they took, the presets side by side, and the
   decisions with the measurements behind them.
+- **Decisions** — the five design decisions on one page, for discussion: one
+  growth rule for every plant, species that differ only in their needs, light
+  from the real sun, die-back, and the surface deciding where a plant can
+  hold. Each has the rule, why, what came first, the evidence and an open
+  question; a closing table lists the numbers that were chosen, not measured.
 
 ![The Explore page from the Corner view: flowering vine across the sunlit fronts and onto the roofs, dark ivy in the shadow of the inside corner, moss on the wing's west wall, with the growth and species controls on the right](docs/images/readme-project-explore.jpg)
 
@@ -445,6 +450,7 @@ src/
 │   ├── ProjectLayout.tsx     Reading shell: measured column (or wide page), own scroller
 │   ├── ProjectOverview.tsx   The idea, the question, the system as a flow, scope
 │   ├── ProjectProgress.tsx   Pipeline, five one-rule experiments, presets, decisions
+│   ├── ProjectDecisions.tsx  The five design decisions, one card each, with open questions
 │   └── project.css           The Project section's own styling
 ├── firebase/                 App init, auth context and provider, Firestore, Storage
 ├── App.css                   Shell, panel, and canvas styling
@@ -476,6 +482,7 @@ docs/
 
 public/
 ├── green/                    Figures for the Project pages, captured from Explore
+├── project/                  Figures for the Decisions page: Site captures, served copies of docs figures
 └── site/                     The Roosevelt Island snapshot, the far shores' buildings, the south's landscape
 
 scripts/
