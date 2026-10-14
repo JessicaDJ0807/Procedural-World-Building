@@ -316,15 +316,15 @@ export function ProjectProgress({ navigate }: ProjectProgressProps) {
       <section className="project-section" aria-labelledby="next-heading">
         <h2 id="next-heading">Next experiment</h2>
         <p>
-          Let plants die back where they cannot live. Growth is only ever added, so given time almost
-          every reachable cell fills and the end state forgets the environment that shaped it. If a
-          grown cell could wither when its suitability is low — taking the vine beyond it with it —
-          the wall would settle into a pattern that says where vegetation <em>survives</em>, not just
-          where it arrived first. That is the half of the question the current model does not yet
-          answer.
+          Die-back, the experiment this page used to end on, is built — on the Site page, where the
+          Cornell Tech buildings have a real year of sun to die back through. Grown cells wither where
+          their species cannot live, a climber&rsquo;s stem takes everything above it, and roots
+          survive the winter. Over ten simulated years it moved the share of grown wall held by the
+          species suited to it from 73% to 85–89%: the flowering vine climbs into part-sun walls each
+          summer and is cut back each winter, and ivy keeps them. It is not on this building yet.
         </p>
         <p>
-          After that: let the plants change their environment. A vine shades the wall under it and holds
+          Next: let the plants change their environment. A vine shades the wall under it and holds
           water against it; feeding growth back into the fields would make the system respond to
           itself.
         </p>

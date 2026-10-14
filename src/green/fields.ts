@@ -10,6 +10,7 @@ import {
   SHELTER,
   UNGROWABLE,
   type Building,
+  type Volume,
 } from './building'
 import { SUN_ELEVATION_DEG, type GrowthParams } from './params'
 import { SPECIES_IDS } from './species'
@@ -48,6 +49,36 @@ export function sunDirection(azimuthDeg: number): [number, number, number] {
   const az = (azimuthDeg * Math.PI) / 180
   const el = (SUN_ELEVATION_DEG * Math.PI) / 180
   return [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)]
+}
+
+/**
+ * Whether a ray toward the sun passes through a volume's side.
+ *
+ * The ray leaves (ox, y, oz) along the horizontal unit direction (hx, hz),
+ * climbing `rise` per unit travelled. Each edge of the volume's footprint is a
+ * wall; the ray is blocked if it crosses one at a height between the volume's
+ * bottom and top. Exact, not a blur, and shared by the single-sun field here
+ * and the whole-day field in sunPath.ts.
+ */
+export function rayHits(vol: Volume, ox: number, y: number, oz: number, hx: number, hz: number, rise: number): boolean {
+  const poly = vol.polygon
+  for (let k = 0; k < poly.length; k++) {
+    const [axv, azv] = poly[k]
+    const [bxv, bzv] = poly[(k + 1) % poly.length]
+    const ex = bxv - axv
+    const ez = bzv - azv
+    // Ray o + t·h against segment a + w·e, w in [0, 1].
+    const denom = hx * ez - hz * ex
+    if (Math.abs(denom) < 1e-9) continue
+    const rx = axv - ox
+    const rz = azv - oz
+    const t = (rx * ez - rz * ex) / denom
+    const w = (rx * hz - rz * hx) / denom
+    if (t <= 1e-4 || w < 0 || w > 1) continue
+    const at = y + t * rise
+    if (at > vol.y0 + 1e-6 && at < vol.y1 - 1e-6) return true
+  }
+  return false
 }
 
 /**
@@ -94,26 +125,10 @@ export function computeSun(b: Building, azimuthDeg: number): Float32Array {
     if (lit > 0) {
       const ox = b.px[i] + b.nx[i] * 1e-3
       const oz = b.pz[i] + b.nz[i] * 1e-3
-      volumes: for (const vol of b.volumes) {
-        const poly = vol.polygon
-        for (let k = 0; k < poly.length; k++) {
-          const [axv, azv] = poly[k]
-          const [bxv, bzv] = poly[(k + 1) % poly.length]
-          const ex = bxv - axv
-          const ez = bzv - azv
-          // Ray o + t·h against segment a + w·e, w in [0, 1].
-          const denom = hx * ez - hz * ex
-          if (Math.abs(denom) < 1e-9) continue
-          const rx = axv - ox
-          const rz = azv - oz
-          const t = (rx * ez - rz * ex) / denom
-          const w = (rx * hz - rz * hx) / denom
-          if (t <= 1e-4 || w < 0 || w > 1) continue
-          const at = y + t * rise
-          if (at > vol.y0 + 1e-6 && at < vol.y1 - 1e-6) {
-            lit = 0
-            break volumes
-          }
+      for (const vol of b.volumes) {
+        if (rayHits(vol, ox, y, oz, hx, hz, rise)) {
+          lit = 0
+          break
         }
       }
     }

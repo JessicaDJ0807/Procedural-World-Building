@@ -57,6 +57,7 @@ which is what it was before. Switching section never shows both sets at once.
 | `/` | Project Overview |
 | `/project` | Project Overview |
 | `/project/explore` | Project Explore |
+| `/project/site` | Project Site |
 | `/project/progress` | Project Progress |
 | `/playground/objects` | Topic 1 |
 | `/playground/maps` | Topic 2 |
@@ -107,12 +108,13 @@ to reconsider — and swapping a library in would touch one file.
 
 ## What the Project pages are
 
-Three pages, each with one job:
+Four pages, each with one job:
 
 | Page | Job |
 | --- | --- |
 | Overview | The concept: the idea, the question, and the system as a flow |
 | Explore | The experiment: the growth simulation, with its fields on view |
+| Site | The real place: Roosevelt Island and Cornell Tech, from NYC Open Data |
 | Progress | The process: the pipeline, one rule at a time, and the decisions |
 
 ### Overview
@@ -131,6 +133,17 @@ The one Project page that is driven. It reuses the Workspace's own classes —
 canvas and inspector, no library column — so focus mode (H) and the View
 popover behave exactly as on a topic. See
 [Green Architecture](green-architecture.md) for what it simulates.
+
+### Site
+
+The second driven page, on the same workspace shell as Explore. Roosevelt
+Island from a saved snapshot of NYC Open Data: buildings extruded from their
+footprints, the planimetric ground layers, and the Cornell Tech buildings cut
+into cells, lit by the real sun through a simulated year and grown on by
+Explore's three species — planted automatically or by clicking — with
+die-back; and a second study, Roadside, on the island's ground. Like Explore, it drags like a
+map: left-drag moves, right-drag orbits. See
+[Roosevelt Island](roosevelt-island.md).
 
 ### Progress
 

@@ -148,7 +148,7 @@ export function GreenExplorePage() {
             <span className="control-label">Show leaves</span>
             <input type="checkbox" checked={showLeaves} onChange={(e) => setShowLeaves(e.target.checked)} />
           </label>
-          <p className="hint">Drag to orbit, scroll to zoom.</p>
+          <p className="hint">Drag to move, right-drag or ⌘-drag to orbit, scroll to zoom.</p>
         </ViewControls>
 
         {display !== 'final' && (

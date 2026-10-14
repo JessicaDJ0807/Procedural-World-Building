@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { applyMapDrag, clampTarget } from '../mapDrag'
 import { createCameraGate, startRenderLoop, wakeOnInput } from '../renderLoop'
 import { VIEWPORT_BACKGROUND } from '../theme'
 import { BLOCKED, GLASS, HEIGHT, buildBuilding } from './building'
-import { detailGeometry, shellGeometry } from './buildingMesh'
+import { detailGeometry, isStairHousing, shellGeometry } from './buildingMesh'
 import { combine, computeGeometry, computeMoisture, computeSun, sunDirection, type Fields } from './fields'
 import { Growth, NO_SPECIES } from './growth'
 import type { GrowthParams } from './params'
@@ -59,6 +60,7 @@ const MAX_STEPS_PER_FRAME = 24
  * gaps this was chosen against.
  */
 export const STALL_STEPS = 600
+const PAN_BOUNDS = { x0: -30, x1: 22, z0: -22, z1: 22 }
 /** The frame cap while growth plays. */
 const PLAYING_FPS = 30
 
@@ -86,6 +88,7 @@ const geometryField = computeGeometry(building)
 
 export function GreenViewport(props: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const tipRef = useRef<HTMLDivElement>(null)
   const latest = useRef(props)
   const api = useRef<{
     setParams: (p: GrowthParams, previous: GrowthParams | null) => void
@@ -127,6 +130,7 @@ export function GreenViewport(props: Props) {
     controls.maxPolarAngle = Math.PI * 0.495
     controls.minDistance = 8
     controls.maxDistance = 70
+    applyMapDrag(controls)
     controls.update()
     const gate = createCameraGate()
 
@@ -163,10 +167,20 @@ export function GreenViewport(props: Props) {
     // which tells wall from roof. Field views: the texture alone, unlit.
     const wallLit = new THREE.MeshStandardMaterial({ roughness: 0.92, map: fieldTexture, vertexColors: true })
     const wallField = new THREE.MeshBasicMaterial({ map: fieldTexture })
+    // Sun-facing sides cast. three.js's default for a one-sided material is to
+    // draw only its back faces into the shadow map, which suits closed solids;
+    // the shell is open quads, and at the L's inside corner the wall casting
+    // the shadow then left a hairline unshadowed along the corner — a dashed
+    // light strip down the corner and along the ledges, shimmering whenever
+    // anything near it changed. Zeroing the normal bias left it; casting from
+    // the front faces removed it, with no acne in the Front, Corner or a
+    // grazing view at the existing bias.
+    wallLit.shadowSide = THREE.FrontSide
+    wallField.shadowSide = THREE.FrontSide
     const shell = new THREE.Mesh<THREE.BufferGeometry, THREE.Material>(shellGeometry(building), wallLit)
     shell.castShadow = true
     shell.receiveShadow = true
-    const detailMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 })
+    const detailMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, shadowSide: THREE.FrontSide })
     const details = new THREE.Mesh(detailGeometry(building), detailMaterial)
     details.castShadow = true
     details.receiveShadow = true
@@ -356,6 +370,9 @@ export function GreenViewport(props: Props) {
         if (!flying) flight = null
       }
       controls.update()
+      // The building is about 22 × 10; a target more than a building away
+      // from it has panned off into empty ground.
+      clampTarget(controls, camera, PAN_BOUNDS)
       renderer.render(scene, camera)
 
       frames++
@@ -399,6 +416,54 @@ export function GreenViewport(props: Props) {
     observer.observe(container)
     const stopWaking = wakeOnInput(loop)
 
+    // --- what the rooftop boxes are, on hover ---
+    // They are the one thing on the building that never grows, and the reason
+    // is not visible: they are not surfaces the simulation has cells on. So the
+    // label says so, rather than leaving it to look like a rule about plants.
+    const raycaster = new THREE.Raycaster()
+    const ndc = new THREE.Vector2()
+    const unitAt = (event: PointerEvent) => {
+      if (!details.visible) return null
+      const rect = renderer.domElement.getBoundingClientRect()
+      ndc.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1)
+      raycaster.setFromCamera(ndc, camera)
+      const hit = raycaster.intersectObjects([shell, details], false)[0]
+      if (!hit) return null
+      const { x, y, z } = hit.point
+      return (
+        building.units.find((u) => {
+          const roofY = building.roofs[u.roof].y
+          // A little margin, for the pad, the cap and the door that stand proud of the box.
+          return Math.abs(x - u.x) <= u.w / 2 + 0.2 && Math.abs(z - u.z) <= u.d / 2 + 0.2 && y > roofY + 0.02 && y <= roofY + u.h + 0.2
+        }) ?? null
+      )
+    }
+    const onMove = (event: PointerEvent) => {
+      const tip = tipRef.current
+      if (!tip) return
+      const unit = event.buttons ? null : unitAt(event)
+      if (!unit) {
+        tip.hidden = true
+        return
+      }
+      const stair = isStairHousing(unit.h)
+      const title = document.createElement('strong')
+      title.textContent = stair ? 'Stair housing' : 'Rooftop equipment'
+      const body = document.createElement('span')
+      body.textContent = stair
+        ? 'Where the stairs come out onto the roof. Bare because the model grows plants only on the building’s walls and roofs, and this is neither. It still shades the roof beside it, and growth follows its edge.'
+        : 'Air-handling units. Bare because the model has no surface on them to grow on — and a real roof keeps them clear for airflow and servicing. They shade the roof, and rain collects against them.'
+      tip.replaceChildren(title, body)
+      const rect = containerRef.current!.getBoundingClientRect()
+      tip.hidden = false
+      tip.style.transform = `translate(${Math.min(event.clientX - rect.left + 14, rect.width - 290)}px, ${event.clientY - rect.top + 14}px)`
+    }
+    const onLeave = () => {
+      if (tipRef.current) tipRef.current.hidden = true
+    }
+    renderer.domElement.addEventListener('pointermove', onMove)
+    renderer.domElement.addEventListener('pointerleave', onLeave)
+
     setParams(latest.current.params, null)
     reset(latest.current.params.seed)
 
@@ -410,6 +475,13 @@ export function GreenViewport(props: Props) {
         vegetation.uStep.value = growth.step
         loop.wake()
         return growth.grown
+      }
+      // And put the camera anywhere, for a close-up figure no preset view gives.
+      ;(window as unknown as { __greenCamera?: (p: number[], t: number[]) => void }).__greenCamera = (p, t) => {
+        camera.position.set(p[0], p[1], p[2])
+        controls.target.set(t[0], t[1], t[2])
+        controls.update()
+        loop.wake()
       }
     }
 
@@ -425,6 +497,8 @@ export function GreenViewport(props: Props) {
     return () => {
       api.current = null
       stopWaking()
+      renderer.domElement.removeEventListener('pointermove', onMove)
+      renderer.domElement.removeEventListener('pointerleave', onLeave)
       loop.dispose()
       observer.disconnect()
       controls.dispose()
@@ -485,5 +559,9 @@ export function GreenViewport(props: Props) {
     api.current?.wake()
   }, [props.running])
 
-  return <div className="green-viewport" ref={containerRef} />
+  return (
+    <div className="green-viewport" ref={containerRef}>
+      <div ref={tipRef} className="green-tip" hidden />
+    </div>
+  )
 }

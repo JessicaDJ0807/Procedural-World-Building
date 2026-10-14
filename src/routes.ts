@@ -23,7 +23,7 @@ import { useCallback, useEffect, useState } from 'react'
 export type Section = 'playground' | 'project'
 
 export type PlaygroundId = 'objects' | 'maps' | 'voxels' | 'shaders' | 'distributions' | 'paths' | 'flow'
-export type ProjectId = 'overview' | 'explore' | 'progress'
+export type ProjectId = 'overview' | 'explore' | 'site' | 'progress'
 
 export type Route =
   | { section: 'playground'; page: PlaygroundId }
@@ -51,6 +51,7 @@ export const PLAYGROUND: { id: PlaygroundId; topic: string; title: string }[] = 
 export const PROJECT: { id: ProjectId; title: string; blurb: string }[] = [
   { id: 'overview', title: 'Overview', blurb: 'Green Architecture: the idea and the question' },
   { id: 'explore', title: 'Explore', blurb: 'Watch vegetation grow over a building' },
+  { id: 'site', title: 'Site', blurb: 'Roosevelt Island and Cornell Tech, from NYC Open Data' },
   { id: 'progress', title: 'Progress', blurb: 'The experiments, rule by rule' },
 ]
 

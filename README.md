@@ -42,7 +42,7 @@ their own needs, compete for every surface. The
 question is *how do geometry, sunlight and moisture influence where plants
 grow?*
 
-Three pages, none of them a topic — the project cuts across all of them and is
+Four pages, none of them a topic — the project cuts across all of them and is
 numbered by nothing:
 
 - **Overview** — the idea and the question, in the first person, with the
@@ -54,6 +54,20 @@ numbered by nothing:
   three species to switch on and tune; switches for each rule; four presets; and
   views that paint species territories, moisture, sunlight, geometry and
   suitability onto the building.
+- **Site** — Roosevelt Island from NYC Open Data, the real place the model is
+  moving onto: 68 buildings extruded from their footprints, parks, roads and
+  sidewalks. The six Cornell Tech buildings are cut into cells like the invented
+  building, lit by the real sun for a clear day in June, at an equinox or in
+  December, and grown on by the same three species, planted automatically along
+  every wall or by clicking, through a simulated year in which plants die back
+  where they can't live. The species sort themselves the way a gardener would
+  plant them — vine on full-sun walls, ivy on part sun and shade — and each
+  winter cuts the vine back out of the walls it can't keep. Close up, real
+  leaves; in the sidebar, coverage by building and wall direction. A second
+  study, **Roadside**, grows the same plants on the island's ground and tests
+  whether verges are greener because roads bring seeds or because pavement
+  sheds water (seeds, at normal rain; water, in a dry year).
+  See [`docs/project/roosevelt-island.md`](docs/project/roosevelt-island.md).
 - **Progress** — the pipeline, five experiments that each add one rule, the
   three species and the walls they took, the presets side by side, and the
   decisions with the measurements behind them.
@@ -256,7 +270,7 @@ with a description of what each document covers — is in
 | --- | --- |
 | [`docs/topics/`](docs/topics/) | One chapter per topic: what it does, how it works, and the decisions behind it |
 | [`docs/analysis/`](docs/analysis/) | Measurement and comparison reports that outgrew their chapter |
-| [`docs/project/`](docs/project/) | The project — Green Architecture and the ideas notebook — plus infrastructure: the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
+| [`docs/project/`](docs/project/) | The project — Green Architecture, the Roosevelt Island site and the ideas notebook — plus infrastructure: the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
 | [`docs/images/`](docs/images/) | Screenshots, all captured from the running app |
 
 ## Keyboard
@@ -368,8 +382,9 @@ src/
 ├── ControlSection.tsx        Collapsible sidebar group
 ├── ConfigPanel.tsx           The worlds library — the left column on every topic
 ├── hashNoise.ts              Table-free value noise, used by Topics 5–7
+├── mapDrag.ts                Map-style dragging for the Project's Explore and Site views
 ├── green/                    The Project: Green Architecture
-│   ├── building.ts           Walls, roofs, windows, ledges, balconies; cells and their neighbour table
+│   ├── building.ts           The invented building as a spec; any spec into cells and neighbours
 │   ├── fields.ts             Sunlight (shadow rays), moisture (walls and roofs), geometry; how they combine
 │   ├── growth.ts             Seeded tips of three species that grow, branch, stall, die and compete
 │   ├── species.ts            Ivy, moss, flowering vine: needs, growth traits, colours
@@ -377,8 +392,23 @@ src/
 │   ├── buildingMesh.ts       Shell with a texel per cell, merged detail boxes
 │   ├── vegetation.ts         Stems, a leaf shape per species, flowers; aged and shaded per leaf
 │   ├── GreenViewport.tsx     Scene, sun and shadows, field textures, the step clock
+│   ├── fromFootprints.ts     Cells for real buildings, from outlines and heights
+│   ├── sunPath.ts            The real sun's path over a day, and each cell's sun hours
 │   ├── GreenExplorePage.tsx  Controls, species, presets, display and camera
 │   └── green.css             Explore's sidebar, presets and field legend
+├── site/                     Project Site: Roosevelt Island from NYC Open Data
+│   ├── siteData.ts           The snapshot's types, loader and area helpers
+│   ├── campus.ts             The Cornell Tech buildings as growth-model cells
+│   ├── campus.worker.ts      Builds the campus and traces the sun off the main thread
+│   ├── campusSim.ts          The growth model on the campus: a year of light, warmth, die-back
+│   ├── SiteHistory.tsx       Coverage over the run, by species, winters shaded
+│   ├── siteLeaves.ts         Real leaves on the campus, near the camera only
+│   ├── roadside.ts           The roadside study's ground: 1 m cells, surfaces, shadows, runoff
+│   ├── roadsideLayer.ts      The roadside on screen and its simulation
+│   ├── siteLook.ts           Ground colours and the sun ramps
+│   ├── SiteViewport.tsx      Island, ground layers, extruded buildings, picking
+│   ├── SitePage.tsx          Site summary, Cornell Tech list, selection, layers
+│   └── site.css              The Site page's sidebar, tooltip and compass
 ├── showcase/                 Five demonstration worlds, four documents each
 │   ├── worlds.ts             The presets, built from each topic's own defaults
 │   ├── validate.ts           Whether a preset is storable and renderable
@@ -416,6 +446,7 @@ docs/
 │   └── topic-3-meshing-and-chunking.md
 ├── project/                  Infrastructure and setup
 │   ├── green-architecture.md
+│   ├── roosevelt-island.md
 │   ├── final-project-ideas.md
 │   ├── showcase-worlds.md
 │   ├── visual-system.md
@@ -425,7 +456,11 @@ docs/
 └── images/                   Screenshots, captured from the running app
 
 public/
-└── green/                    Figures for the Project pages, captured from Explore
+├── green/                    Figures for the Project pages, captured from Explore
+└── site/                     The Roosevelt Island snapshot the Site page reads
+
+scripts/
+└── fetch-roosevelt-island.mjs  Fetches NYC Open Data and writes the snapshot
 
 firestore.rules               Owner-scoped Firestore access rules
 storage.rules                 Owner-scoped Storage access rules

@@ -193,6 +193,11 @@ function flower() {
 
 const GEOMETRY: Record<SpeciesId, () => THREE.BufferGeometry> = { ivy: ivyLeaf, moss: mossClump, vine: vineLeaf }
 
+/** A species' leaf shape, unit-sized along +y from its stalk — for other renderers of the same plants. */
+export function leafGeometry(id: SpeciesId): THREE.BufferGeometry {
+  return GEOMETRY[id]()
+}
+
 class Batch {
   readonly mesh: THREE.InstancedMesh
   readonly birth: THREE.InstancedBufferAttribute

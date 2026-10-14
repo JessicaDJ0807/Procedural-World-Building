@@ -88,6 +88,21 @@ Checked headlessly: every growable cell is reachable from the ground across the
 table; 872 links lead from a wall onto a roof; 25 of 125,547 links are one-way,
 all at corners where two cells tie for nearest.
 
+The cells are not built by code that knows this building. `buildBuilding()`
+writes a *spec* — wall segments, roofs, rooftop units, the solids that cast
+shadows, corners, windows and overhangs — and `assembleBuilding(spec)` turns
+any spec into cells, neighbours and flags. The real buildings on the
+[Site page](roosevelt-island.md) are another spec, derived from city
+footprints by `buildFromFootprints`. Splitting it changed nothing here: the
+invented building's cells, its three fields and a 600-step growth run hash
+identically before and after. `Growth` was opened up the same way: it reads
+the cell size from the building, takes a `scale` that multiplies every
+species' seed count and tip cap (1 here; about 16 on the campus, whose walls
+are sixteen times as long), can `plant` a single seed by hand, takes a
+`vigour` that scales every chance to grow (1 here; less in a campus winter),
+and has a `dieBack` this building doesn't call. The 600-step hash is unchanged
+by all of it.
+
 Each cell carries flags: `GLASS` (a pane — never grown on), `FRAME` (the ring of
 wall around a pane), `LEDGE` (the band at each floor line and the cornice),
 `SHELTER` (under a balcony, down to 1.5× its depth), `ROOF`, `BLOCKED` (under a
@@ -262,6 +277,13 @@ Simulation decides *where*; rendering decides *how it looks*.
   Windows, frames, sills, ledges, cornices, balconies and rooftop units are
   merged boxes in vertex colour — one draw call. In Final the texture darkens
   damp surfaces by up to 22%.
+- **Rooftop units**: the tall one is a stair housing, with a framed door
+  toward the Front camera, a light over it, a cap and a louvred vent on the
+  west side; the two low ones are air-handling units, galvanised boxes on a
+  concrete pad with louvres down every side and fans in the top. They began as
+  plain boxes, and a plain box on a roof read as nothing in particular — the
+  first question about them was what they were. Hovering one in Explore names
+  it and says why nothing grows on it.
 - **Vegetation**: five instanced meshes at any size — stems for the two
   climbers (parent → cell), one leaf mesh per species, and the vine's flowers.
   Every instance carries its birth step; a uniform holds the current step with
@@ -288,6 +310,7 @@ Simulation decides *where*; rendering decides *how it looks*.
 | Species | On/off for ivy, moss, flowering vine; select one to edit its Light preference, Moisture need, Edge preference, Upward tendency | Who is growing, and what the selected species needs. Switching a species on or off replants |
 | Model | Randomness; Moisture, Sunlight, Geometry switches | Randomness for every species; switch a whole term off |
 | View | Final / Species / Moisture / Sunlight / Suitability / Geometry; Front / Corner; Show leaves | Display only — the growth is unchanged. Suitability is the selected species' |
+| Camera | Drag to move; right-drag, or ⌘/Ctrl/Shift-drag, to orbit; scroll to zoom | Map-style, as on the Site page: the building is a place to move around, and on a trackpad right-drag is the awkward gesture. Panning stays on the ground and can't leave the building behind |
 
 Changing a parameter mid-run recomputes the fields and carries on — the growth
 continues under the new conditions — so a change can be watched taking effect.
@@ -348,7 +371,7 @@ Measured in Node 22 on the development machine, warmed up:
 
 | | |
 | --- | --- |
-| Building the cells and neighbour table (once, at load) | 119 ms |
+| Building the cells and neighbour table (once, at load) | about 60 ms (110–120 ms before the bucket grid) |
 | One growth step, three species | 10.6 µs while growing, 5 µs once it slows; the browser readout agrees (0.015 ms) |
 | At 16× (128 steps/s) | under 1.5 ms of simulation per second |
 | Sunlight field (on a sun-direction change) | 4.8 ms, including every shadow ray against five solids |
@@ -421,7 +444,12 @@ growth has.
 - **The plants do not change the environment.** A real vine shades the wall
   under it and holds water; here the fields are fixed.
 - **Walls and flat roofs only.** Nothing grows on balcony undersides, in planters
-  or on the rooftop units, and nothing hangs down from a ledge.
+  or on the rooftop units, and nothing hangs down from a ledge. The units stay
+  bare because they are not surfaces the model has cells on, not because of a
+  rule about plants: in reality a vine would happily climb the stair housing,
+  though the air-handling units would be kept clear for airflow and servicing.
+  Making the housing growable is a small change to the spec, but it would move
+  every measured number on this page.
 - **One building, one season.** Three species, competing only for space: none
   displaces another, and first arrival decides a cell.
 - **Leaf colour is fixed at birth.** A leaf grown in the dry keeps its olive tint
@@ -429,10 +457,12 @@ growth has.
 
 ## Next experiments
 
-1. **Die-back.** Let a grown cell wither when its env is low, taking the vine
-   beyond it with it. Then the wall settles into a pattern that says where
-   vegetation *survives*, not just where it arrived first — the half of the
-   question the current model does not answer.
+1. **Die-back here too.** It is built — `Growth.dieBack`, with roots that
+   survive and stems that take what is above them — and runs on the Cornell
+   Tech campus through a simulated year, where over ten years it moved the
+   share of grown wall held by the species suited to it from 73% to 85–89%
+   ([Roosevelt Island](roosevelt-island.md#seasons-and-die-back)). This
+   building doesn't use it yet: it would change every measured number above.
 2. **Feedback.** Feed growth back into the fields: vines shade the wall under
    them and hold moisture against it.
 3. **Hanging growth.** Seed planters on the balconies and give those tips a
@@ -501,10 +531,29 @@ all three Dry + sunny seeds add more than twenty cells per thousand steps after
 20,000.
 
 **The neighbour table cost 278 ms of page load.** String keys in its spatial
-lookup; integer keys made it 119 ms, cold. The sunlight field went from 0.2 ms
+lookup; integer keys made it 119 ms, cold. Replacing the Map of buckets with a
+dense grid in typed arrays (a head index per bucket, a next index per cell)
+halved it again, to about 60 ms warmed up, and the cells, fields and a 600-step
+growth run hash the same as before. The sunlight field went from 0.2 ms
 to 33 ms when it began testing every overhang on the building for every wall
 cell; grouping overhangs by wall brought it to 4.8 ms. Both changes were checked
 to give identical cells.
+
+**A light line flickered in the L's inside corner.** Two defects, both in the
+rendering, not the model. First, every ledge and cornice ran a little past
+both ends of its wall so that two would meet at an outside corner; at the
+inside corner those extensions crossed, and the cornice's stub lay on the roof
+at exactly roof height — coincident faces the depth test can't order. Trim now
+extends only at outside corners, and at an inside corner the wall that ends
+stops short by the trim's depth, so one piece fills the corner. Second, a
+dashed light strip ran down the corner and along the ledges in shadow. Setting
+the normal bias to zero left it; it came from three.js drawing only back faces
+of one-sided materials into the shadow map, which leaves a hairline
+unshadowed where an open wall meets another. The walls and details now cast
+from their front faces, with no acne in the Front, Corner or a grazing view.
+A still camera gave identical frames either way, so the flicker came from
+things changing around the strip: the camera settling, and growth appearing
+beside it.
 
 **The geometry field was too uniform at first.** With a 3-cell falloff its mean
 over the facade was 0.67 — a window every 2.5 units and a ledge every 3 put

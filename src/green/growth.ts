@@ -1,4 +1,4 @@
-import { CELL, UNGROWABLE, type Building } from './building'
+import { UNGROWABLE, type Building } from './building'
 import type { Fields } from './fields'
 import type { GrowthParams } from './params'
 import { SPECIES, SPECIES_IDS } from './species'
@@ -104,7 +104,8 @@ const SPECIES_COUNT = SPECIES_IDS.length
  * of the wall in 150 steps, a blob rather than vines.
  */
 const TIP_CAPS = SPECIES_IDS.map((id) => SPECIES[id].maxTips)
-const TIP_CAPACITY = TIP_CAPS.reduce((a, b) => a + b, 0)
+/** Seeds of one species are at least this far apart along the foot of the walls. */
+const SEED_SPACING = 3
 /** Below this suitability a tip will not enter a cell at all. */
 const ENTER_CUTOFF = 0.1
 /** Marks a cell no species holds. */
@@ -123,21 +124,46 @@ export class Growth {
   step = 0
   /** The step at which a cell last grew — what the viewport's stall detection reads. */
   lastGrowth = 0
-  private tips = new Int32Array(TIP_CAPACITY)
-  private tipDir = new Float32Array(TIP_CAPACITY * 3)
-  private tipSp = new Uint8Array(TIP_CAPACITY)
+  private tips: Int32Array
+  private tipDir: Float32Array
+  private tipSp: Uint8Array
   private tipCount = 0
-  private nextTips = new Int32Array(TIP_CAPACITY)
-  private nextDir = new Float32Array(TIP_CAPACITY * 3)
-  private nextSp = new Uint8Array(TIP_CAPACITY)
+  private nextTips: Int32Array
+  private nextDir: Float32Array
+  private nextSp: Uint8Array
   private perSpecies = new Int32Array(SPECIES_COUNT)
   private random: () => number = Math.random
   private readonly b: Building
   private growable = 0
+  /** Tip caps and seed counts for this building: the species' own, times `scale`. */
+  private readonly caps: number[]
+  private readonly seeds: number[]
+  /** Cells removed by the last `dieBack`, for a renderer to clear. `diedCount` of them are valid. */
+  readonly died: Int32Array
+  diedCount = 0
+  private readonly dead: Uint8Array
 
-  constructor(b: Building) {
+  /**
+   * `scale` multiplies every species' seed count and tip cap. The species'
+   * numbers were set on the invented building, whose walls are 64 m round at
+   * the foot; a campus with a kilometre of wall planted with eight ivy seeds
+   * and 48 tips would be eight vines lost on it. Scaling both by the length of
+   * wall to plant along keeps the density of planting and of growth the same.
+   */
+  constructor(b: Building, scale = 1) {
     this.b = b
+    this.caps = TIP_CAPS.map((c) => Math.max(1, Math.round(c * scale)))
+    this.seeds = SPECIES_IDS.map((id) => Math.max(1, Math.round(SPECIES[id].seeds * scale)))
+    const capacity = this.caps.reduce((a, c) => a + c, 0)
+    this.tips = new Int32Array(capacity)
+    this.tipDir = new Float32Array(capacity * 3)
+    this.tipSp = new Uint8Array(capacity)
+    this.nextTips = new Int32Array(capacity)
+    this.nextDir = new Float32Array(capacity * 3)
+    this.nextSp = new Uint8Array(capacity)
     const n = b.count
+    this.died = new Int32Array(n)
+    this.dead = new Uint8Array(n)
     this.birth = new Int32Array(n)
     this.parent = new Int32Array(n)
     this.species = new Uint8Array(n)
@@ -149,8 +175,12 @@ export class Growth {
     return this.tipCount
   }
 
-  /** Clears everything and plants the seeds for `seed`, for the species switched on. */
-  reset(seed: number, p: GrowthParams) {
+  /**
+   * Clears everything and plants the seeds for `seed`, for the species
+   * switched on. With `autoSeed` false nothing is planted, for seeds placed by
+   * hand with `plant`.
+   */
+  reset(seed: number, p: GrowthParams, autoSeed = true) {
     this.birth.fill(-1)
     this.parent.fill(-1)
     this.species.fill(NO_SPECIES)
@@ -161,6 +191,7 @@ export class Growth {
     this.lastGrowth = 0
     this.tipCount = 0
     this.random = rng(seed * 2654435761)
+    if (!autoSeed) return
 
     // Seeds along the foot of the wall, at least 3 units apart within a
     // species, each species from its own stream so neither the parameters nor
@@ -168,14 +199,15 @@ export class Growth {
     const ground = this.b.ground
     const n = ground.length
     const ring = (a: number, c: number) => Math.min(Math.abs(a - c), n - Math.abs(a - c))
+    const spacing = Math.round(SEED_SPACING / this.b.cell)
     SPECIES_IDS.forEach((id, k) => {
       if (!p.species[id].enabled) return
       const place = rng(seed * 40503 + 17 + k * 7919)
       const chosen: number[] = []
       let guard = 0
-      while (chosen.length < SPECIES[id].seeds && guard++ < 1000) {
+      while (chosen.length < this.seeds[k] && guard++ < 1000 * Math.max(1, this.seeds[k] / SPECIES[id].seeds)) {
         const u = Math.floor(place() * n)
-        if (chosen.some((c) => ring(c, u) < 12)) continue
+        if (chosen.some((c) => ring(c, u) < spacing)) continue
         chosen.push(u)
       }
       for (const u of chosen) {
@@ -188,6 +220,19 @@ export class Growth {
     })
   }
 
+  /**
+   * Plants one seed of species `sp` at `cell`, now — a planter placed by hand.
+   * Returns false where nothing can be planted: glass, under a rooftop unit,
+   * or a cell already grown. The seed counts against the species' tip cap
+   * like any tip.
+   */
+  plant(cell: number, sp: number): boolean {
+    if (cell < 0 || cell >= this.b.count || this.birth[cell] >= 0 || this.b.flags[cell] & UNGROWABLE) return false
+    this.occupy(cell, -1, sp)
+    this.addTip(cell, 0, 1, 0, sp)
+    return true
+  }
+
   private occupy(cell: number, parent: number, sp: number) {
     this.birth[cell] = this.step
     this.parent[cell] = parent
@@ -198,7 +243,7 @@ export class Growth {
   }
 
   private addTip(cell: number, dx: number, dy: number, dz: number, sp: number) {
-    if (this.perSpecies[sp] >= TIP_CAPS[sp]) return
+    if (this.perSpecies[sp] >= this.caps[sp]) return
     this.perSpecies[sp]++
     const t = this.tipCount++
     this.tips[t] = cell
@@ -218,7 +263,13 @@ export class Growth {
     return count
   }
 
-  advance(fields: Fields, p: GrowthParams) {
+  /**
+   * One step. `vigour` scales every chance to grow — entering a cell,
+   * branching, waking a side shoot — for a season that is too cold to grow
+   * in. At 1, the default, it multiplies nothing away: Explore's runs are
+   * bit-for-bit what they were.
+   */
+  advance(fields: Fields, p: GrowthParams, vigour = 1) {
     const { flags, neighbours, px, py, pz } = this.b
     const r = this.random
     this.step++
@@ -227,10 +278,12 @@ export class Growth {
     counts.fill(0)
     const traits = SPECIES_IDS.map((id) => SPECIES[id])
     const upward = SPECIES_IDS.map((id) => p.species[id].upward)
-    const DIAGONAL = CELL * 1.2
+    const cellSize = this.b.cell
+    const DIAGONAL = cellSize * 1.2
+    const caps = this.caps
 
     const push = (cell: number, dx: number, dy: number, dz: number, sp: number) => {
-      if (counts[sp] >= TIP_CAPS[sp]) return
+      if (counts[sp] >= caps[sp]) return
       counts[sp]++
       this.nextTips[next] = cell
       this.nextDir[next * 3] = dx
@@ -265,7 +318,7 @@ export class Growth {
         const sz = pz[n] - pz[cell]
         const len = Math.hypot(sx, sy, sz)
         const along = (sx * tx + sy * ty + sz * tz) / len
-        const dy = Math.max(-1, Math.min(1, sy / CELL))
+        const dy = Math.max(-1, Math.min(1, sy / cellSize))
         const score =
           1.4 * suitability[n] +
           0.6 * upward[sp] * dy +
@@ -286,10 +339,10 @@ export class Growth {
 
       if (best < 0) continue // boxed in: the tip ends here
       const s = suitability[best]
-      if (s > ENTER_CUTOFF && r() < 0.05 + 0.95 * s * s) {
+      if (s > ENTER_CUTOFF && r() < (0.05 + 0.95 * s * s) * vigour) {
         this.occupy(best, cell, sp)
         this.pushToward(push, cell, best, sp)
-        if (second >= 0 && r() < trait.branch + trait.branchPerEnv * env[best]) {
+        if (second >= 0 && r() < (trait.branch + trait.branchPerEnv * env[best]) * vigour) {
           this.occupy(second, cell, sp)
           this.pushToward(push, cell, second, sp)
         }
@@ -305,7 +358,7 @@ export class Growth {
       for (let k = 0; k < wakes; k++) {
         const cell = this.order[Math.floor(r() * this.grown)]
         const sp = this.species[cell]
-        if (r() < 0.6 * fields.env[sp][cell]) {
+        if (r() < 0.6 * fields.env[sp][cell] * vigour) {
           const toward = neighbours[cell * 8 + Math.floor(r() * 8)]
           if (toward >= 0) this.pushToward(push, cell, toward, sp)
           else push(cell, 0, 1, 0, sp)
@@ -318,6 +371,87 @@ export class Growth {
     ;[this.tipDir, this.nextDir] = [this.nextDir, this.tipDir]
     ;[this.tipSp, this.nextSp] = [this.nextSp, this.tipSp]
     this.tipCount = next
+  }
+
+  /**
+   * Die-back: grown cells wither where their species can't live.
+   *
+   * Each grown cell's hostility is how far its species' env falls short of
+   * `survive`: h = max(0, 1 − env / survive). Over the `steps` since the last
+   * call it dies with probability 1 − (1 − rate·h²)^steps — the same chance as
+   * testing it every step, taken in one draw. A cell at env 0 under rate 0.003
+   * survives a 600-step season one time in six; a cell at or above `survive`
+   * never dies.
+   *
+   * Two things make it a plant rather than paint:
+   * - **Roots live.** A seed cell never dies back. It is the rootstock, and
+   *   side shoots from it regrow the plant when conditions turn, which is how
+   *   a vine comes back in spring.
+   * - **A climber's stem carries what is above it.** When a cell of ivy or the
+   *   vine dies, every cell grown from it dies too. Moss has no stems; its
+   *   cells die one by one.
+   *
+   * Removed cells are listed in `died` for the renderer, and become free for
+   * any species to grow into again.
+   */
+  dieBack(fields: Fields, steps: number, rate: number, survive: number): number {
+    const r = this.random
+    const dead = this.dead
+    const order = this.order
+    const stems = SPECIES_IDS.map((id) => SPECIES[id].stems)
+    let killed = 0
+    for (let k = 0; k < this.grown; k++) {
+      const cell = order[k]
+      const parent = this.parent[cell]
+      if (parent < 0) continue
+      const sp = this.species[cell]
+      // Born after its parent, so a parent's fate is always decided first.
+      if (stems[sp] && dead[parent]) {
+        dead[cell] = 1
+        killed++
+        continue
+      }
+      const h = Math.max(0, 1 - fields.env[sp][cell] / survive)
+      if (h <= 0) continue
+      if (r() < 1 - Math.pow(1 - rate * h * h, steps)) {
+        dead[cell] = 1
+        killed++
+      }
+    }
+    this.diedCount = 0
+    if (killed === 0) return 0
+
+    let w = 0
+    for (let k = 0; k < this.grown; k++) {
+      const cell = order[k]
+      if (!dead[cell]) {
+        order[w++] = cell
+        continue
+      }
+      this.died[this.diedCount++] = cell
+      this.grownBy[this.species[cell]]--
+      this.birth[cell] = -1
+      this.parent[cell] = -1
+      this.species[cell] = NO_SPECIES
+    }
+    this.grown = w
+
+    // Tips on cells that died go with them.
+    let t2 = 0
+    this.perSpecies.fill(0)
+    for (let t = 0; t < this.tipCount; t++) {
+      if (dead[this.tips[t]]) continue
+      this.tips[t2] = this.tips[t]
+      this.tipDir[t2 * 3] = this.tipDir[t * 3]
+      this.tipDir[t2 * 3 + 1] = this.tipDir[t * 3 + 1]
+      this.tipDir[t2 * 3 + 2] = this.tipDir[t * 3 + 2]
+      this.tipSp[t2] = this.tipSp[t]
+      this.perSpecies[this.tipSp[t]]++
+      t2++
+    }
+    this.tipCount = t2
+    for (let k = 0; k < this.diedCount; k++) dead[this.died[k]] = 0
+    return killed
   }
 
   /** Queues a tip at `to`, heading the way it came from `from`. */

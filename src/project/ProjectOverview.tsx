@@ -22,10 +22,9 @@ const QUESTIONS = [
   'Can simple local rules create believable organic growth?',
 ]
 
+// Several buildings, seasons, die-back and the roadside moved off this list
+// when they were built, on the Site page.
 const FUTURE = [
-  'More than one building, so they can shade and shelter each other',
-  'Seasonal change — growth in spring, die-back in winter',
-  'Plants that die back where they cannot live, so the wall settles instead of filling',
   'Plants that change their surroundings — shading the wall, holding water against it',
   'Abandoned or reclaimed architecture, where the plants have had decades',
 ]

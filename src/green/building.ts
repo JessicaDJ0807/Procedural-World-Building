@@ -103,6 +103,13 @@ export type WallSegment = {
   length: number
   y0: number
   y1: number
+  /**
+   * Cells along and up. On the invented building every length is a whole
+   * number of cells; a real footprint's is not, so its cells are stretched a
+   * little to fit — never by more than half a cell over the whole run.
+   */
+  cols: number
+  rows: number
   /** Where this segment's cells start in the field texture, in texels. */
   texU: number
   texV: number
@@ -125,6 +132,8 @@ export type Window = { segment: number; s0: number; s1: number; y0: number; y1: 
 
 export type Roof = {
   polygon: [number, number][]
+  /** Courtyards: rings inside the polygon that are not roof. */
+  holes?: [number, number][][]
   y: number
   /** Grid origin: the minimum corner of the polygon's bounds. */
   x0: number
@@ -139,12 +148,20 @@ export type Roof = {
 export type Unit = { x: number; z: number; w: number; d: number; h: number; roof: number }
 
 /** A solid for shadow rays: a footprint polygon between two heights. */
-export type Volume = { polygon: [number, number][]; y0: number; y1: number }
+export type Volume = {
+  polygon: [number, number][]
+  /** Courtyards. Only the solids test reads these; a shadow ray sees a courtyard's walls as more edges. */
+  holes?: [number, number][][]
+  y0: number
+  y1: number
+}
 
 /** A vertical edge between two walls, over the heights where it exists. */
 export type Corner = { x: number; z: number; y0: number; y1: number; inside: boolean }
 
 export type Building = {
+  /** Edge length of a cell. CELL on the invented building; coarser on a real one. */
+  cell: number
   /** Number of cells. Every per-cell array has this length. */
   count: number
   /** Surface point. */
@@ -210,7 +227,9 @@ function wallSegments(): WallSegment[] {
     const length = Math.hypot(bx - ax, bz - az)
     const dx = (bx - ax) / length
     const dz = (bz - az) / length
-    segments.push({ ax, az, dx, dz, nx: -dz, nz: dx, length, y0, y1, texU, texV })
+    const cols = Math.round(length / CELL)
+    const rows = Math.round((y1 - y0) / CELL)
+    segments.push({ ax, az, dx, dz, nx: -dz, nz: dx, length, y0, y1, cols, rows, texU, texV })
   }
   // The outline, split where the height changes. Texture columns follow the
   // walk, so the walls read left to right in the texture as they do round
@@ -284,7 +303,7 @@ function features(segments: WallSegment[]): { windows: Window[]; overhangs: Over
   return { windows, overhangs }
 }
 
-function inside(polygon: [number, number][], x: number, z: number): boolean {
+export function inside(polygon: [number, number][], x: number, z: number): boolean {
   let hit = false
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
     const [xi, zi] = polygon[i]
@@ -294,28 +313,49 @@ function inside(polygon: [number, number][], x: number, z: number): boolean {
   return hit
 }
 
+/** Everything that decides the cells. The invented building writes one by hand; a real one is derived from footprints. */
+export type BuildingSpec = {
+  cell: number
+  segments: WallSegment[]
+  roofs: Roof[]
+  units: Unit[]
+  /** What casts shadows. */
+  volumes: Volume[]
+  /**
+   * What wall cells cannot be inside. Where two buildings stand against each
+   * other, the lower one's wall facing the taller one is inside it, and so is
+   * the foot of the taller one's — neither is a surface anything could reach.
+   */
+  solids?: Volume[]
+  corners: Corner[]
+  windows: Window[]
+  overhangs: Overhang[]
+  texW: number
+  texH: number
+}
+
+export function roofOf(polygon: [number, number][], y: number, texU: number, texV: number, cell = CELL): Roof {
+  const xs = polygon.map((p) => p[0])
+  const zs = polygon.map((p) => p[1])
+  const x0 = Math.min(...xs)
+  const z0 = Math.min(...zs)
+  return {
+    polygon,
+    y,
+    x0,
+    z0,
+    cols: Math.round((Math.max(...xs) - x0) / cell),
+    rows: Math.round((Math.max(...zs) - z0) / cell),
+    texU,
+    texV,
+  }
+}
 export function buildBuilding(): Building {
   const segments = wallSegments()
   const { windows, overhangs } = features(segments)
 
   // Roofs: the main block's L, and the wing's terrace. Their texture regions
   // sit beside the upper wall's, below the outline strip.
-  const roofOf = (polygon: [number, number][], y: number, texU: number, texV: number): Roof => {
-    const xs = polygon.map((p) => p[0])
-    const zs = polygon.map((p) => p[1])
-    const x0 = Math.min(...xs)
-    const z0 = Math.min(...zs)
-    return {
-      polygon,
-      y,
-      x0,
-      z0,
-      cols: Math.round((Math.max(...xs) - x0) / CELL),
-      rows: Math.round((Math.max(...zs) - z0) / CELL),
-      texU,
-      texV,
-    }
-  }
   const stripRows = HEIGHT / CELL
   const upperCols = Math.round(segments[8].length / CELL)
   const roofs = [
@@ -327,6 +367,53 @@ export function buildBuilding(): Building {
     { x: 1.5, z: -3.2, w: 1.6, d: 1.2, h: 0.8, roof: 0 },
     { x: 5.6, z: 1.8, w: 1.2, d: 1.0, h: 0.7, roof: 0 },
   ]
+  const blocks: Volume[] = [
+    { polygon: MAIN_FOOTPRINT, y0: 0, y1: HEIGHT },
+    { polygon: WING_FOOTPRINT, y0: 0, y1: WING_HEIGHT },
+  ]
+  return assembleBuilding({
+    cell: CELL,
+    segments,
+    roofs,
+    units,
+    volumes: [
+      ...blocks,
+      ...units.map((u) => ({
+        polygon: [
+          [u.x - u.w / 2, u.z - u.d / 2],
+          [u.x + u.w / 2, u.z - u.d / 2],
+          [u.x + u.w / 2, u.z + u.d / 2],
+          [u.x - u.w / 2, u.z + u.d / 2],
+        ] as [number, number][],
+        y0: roofs[u.roof].y,
+        y1: roofs[u.roof].y + u.h,
+      })),
+    ],
+    solids: blocks,
+    corners: [
+      { x: -14, z: 0, y0: 0, y1: WING_HEIGHT, inside: false },
+      { x: 3, z: 0, y0: 0, y1: HEIGHT, inside: true },
+      { x: 3, z: 5, y0: 0, y1: HEIGHT, inside: false },
+      { x: 8, z: 5, y0: 0, y1: HEIGHT, inside: false },
+      { x: 8, z: -5, y0: 0, y1: HEIGHT, inside: false },
+      { x: -14, z: -5, y0: 0, y1: WING_HEIGHT, inside: false },
+      // Where the wall above the terrace turns the corner onto the main front and back.
+      { x: -8, z: 0, y0: WING_HEIGHT, y1: HEIGHT, inside: false },
+      { x: -8, z: -5, y0: WING_HEIGHT, y1: HEIGHT, inside: false },
+    ],
+    windows,
+    overhangs,
+    texW: 256,
+    texH: stripRows + 40,
+  })
+}
+
+/** Turns a spec into cells, neighbours and flags. Nothing in here knows which building it is. */
+export function assembleBuilding(spec: BuildingSpec): Building {
+  const { cell, segments, roofs, units, windows, overhangs } = spec
+  const solids = spec.solids ?? []
+  const insideSolid = (x: number, y: number, z: number) =>
+    solids.some((v) => y > v.y0 && y < v.y1 && inside(v.polygon, x, z) && !v.holes?.some((h) => inside(h, x, z)))
 
   // --- create cells ---
   type Proto = {
@@ -342,28 +429,35 @@ export function buildBuilding(): Building {
   const protos: Proto[] = []
   const columns: number[][] = []
   const ground: number[] = []
+  const windowsOf = segments.map((_, si) => windows.filter((w) => w.segment === si))
+  const overhangsOf = segments.map((_, si) => overhangs.filter((o) => o.segment === si))
 
   segments.forEach((seg, si) => {
-    const cols = Math.round(seg.length / CELL)
-    const rows = Math.round((seg.y1 - seg.y0) / CELL)
+    const { cols, rows } = seg
+    const stepA = seg.length / cols
+    const stepU = (seg.y1 - seg.y0) / rows
     for (let c = 0; c < cols; c++) {
-      const along = (c + 0.5) * CELL
+      const along = (c + 0.5) * stepA
       const x = seg.ax + seg.dx * along
       const z = seg.az + seg.dz * along
+      // Half a cell out from the wall: inside another solid means this cell
+      // faces into a neighbouring building rather than out into the air.
+      const ox = x + seg.nx * cell * 0.5
+      const oz = z + seg.nz * cell * 0.5
       const column: number[] = []
       for (let r = rows - 1; r >= 0; r--) {
-        const y = seg.y0 + (r + 0.5) * CELL
+        const y = seg.y0 + (r + 0.5) * stepU
+        if (solids.length && insideSolid(ox, y, oz)) continue
         let flags = 0
-        for (const w of windows) {
-          if (w.segment !== si) continue
+        for (const w of windowsOf[si]) {
           const inPane = along > w.s0 && along < w.s1 && y > w.y0 && y < w.y1
           // The frame is the ring of wall cells immediately around the pane.
-          const inFrame = along > w.s0 - CELL && along < w.s1 + CELL && y > w.y0 - CELL && y < w.y1 + CELL
+          const inFrame = along > w.s0 - cell && along < w.s1 + cell && y > w.y0 - cell && y < w.y1 + cell
           if (inPane) flags |= GLASS
           else if (inFrame) flags |= FRAME
         }
-        for (const o of overhangs) {
-          if (o.segment !== si || along < o.s0 || along > o.s1) continue
+        for (const o of overhangsOf[si]) {
+          if (along < o.s0 || along > o.s1) continue
           if (o.kind !== 'balcony' && y > o.y && y < o.y + o.thickness) flags |= LEDGE
           // Sheltered from rain: under the slab, down to about its own depth
           // below — rain falls at an angle, so the dry patch is that tall.
@@ -382,16 +476,19 @@ export function buildBuilding(): Building {
           texel: [seg.texU + c, seg.texV + r],
         })
       }
-      columns.push(column)
+      if (column.length) columns.push(column)
     }
   })
 
   roofs.forEach((roof, ri) => {
     for (let j = 0; j < roof.rows; j++) {
       for (let i = 0; i < roof.cols; i++) {
-        const x = roof.x0 + (i + 0.5) * CELL
-        const z = roof.z0 + (j + 0.5) * CELL
+        const x = roof.x0 + (i + 0.5) * cell
+        const z = roof.z0 + (j + 0.5) * cell
         if (!inside(roof.polygon, x, z)) continue
+        if (roof.holes?.some((h) => inside(h, x, z))) continue
+        // Under a taller neighbour's overhanging footprint: not open to the sky.
+        if (solids.length && insideSolid(x, roof.y + cell * 0.5, z)) continue
         let flags = ROOF
         for (const unit of units) {
           if (unit.roof === ri && Math.abs(x - unit.x) < unit.w / 2 && Math.abs(z - unit.z) < unit.d / 2) flags |= BLOCKED
@@ -413,6 +510,7 @@ export function buildBuilding(): Building {
   const count = protos.length
   const f32 = () => new Float32Array(count)
   const b: Building = {
+    cell,
     count,
     px: f32(), py: f32(), pz: f32(),
     nx: f32(), ny: f32(), nz: f32(),
@@ -425,38 +523,15 @@ export function buildBuilding(): Building {
     cornerDist: f32(),
     cornerInside: new Uint8Array(count),
     texel: new Int32Array(count),
-    texW: 256,
-    texH: stripRows + 40,
+    texW: spec.texW,
+    texH: spec.texH,
     columns: columns.map((c) => Int32Array.from(c)),
     ground: Int32Array.from(ground),
     segments,
     roofs,
     units,
-    volumes: [
-      { polygon: MAIN_FOOTPRINT, y0: 0, y1: HEIGHT },
-      { polygon: WING_FOOTPRINT, y0: 0, y1: WING_HEIGHT },
-      ...units.map((u) => ({
-        polygon: [
-          [u.x - u.w / 2, u.z - u.d / 2],
-          [u.x + u.w / 2, u.z - u.d / 2],
-          [u.x + u.w / 2, u.z + u.d / 2],
-          [u.x - u.w / 2, u.z + u.d / 2],
-        ] as [number, number][],
-        y0: roofs[u.roof].y,
-        y1: roofs[u.roof].y + u.h,
-      })),
-    ],
-    corners: [
-      { x: -14, z: 0, y0: 0, y1: WING_HEIGHT, inside: false },
-      { x: 3, z: 0, y0: 0, y1: HEIGHT, inside: true },
-      { x: 3, z: 5, y0: 0, y1: HEIGHT, inside: false },
-      { x: 8, z: 5, y0: 0, y1: HEIGHT, inside: false },
-      { x: 8, z: -5, y0: 0, y1: HEIGHT, inside: false },
-      { x: -14, z: -5, y0: 0, y1: WING_HEIGHT, inside: false },
-      // Where the wall above the terrace turns the corner onto the main front and back.
-      { x: -8, z: 0, y0: WING_HEIGHT, y1: HEIGHT, inside: false },
-      { x: -8, z: -5, y0: WING_HEIGHT, y1: HEIGHT, inside: false },
-    ],
+    volumes: spec.volumes,
+    corners: spec.corners,
     windows,
     overhangs,
   }
@@ -490,37 +565,57 @@ export function buildBuilding(): Building {
   }
 
   // --- neighbours: step across the surface, take the nearest cell ---
-  // A spatial hash at cell resolution; a step lands within 0.18 units of its
-  // neighbour on a flat surface (exactly on it, in fact) and around a corner
-  // or over an edge (0.177 = the diagonal of half a cell). 0.2 accepts both
-  // and is still less than a cell, so it never reaches two cells over.
-  // Integer keys: the building fits in ±128 cells on every axis, and string
-  // keys made this loop 278 ms of page load.
-  const key = (cx: number, cy: number, cz: number) => ((cx + 128) * 256 + (cy + 128)) * 256 + (cz + 128)
-  const buckets = new Map<number, number[]>()
+  // A grid of buckets at cell resolution. On the invented building a step
+  // lands exactly on its neighbour on a flat surface, and within 0.177 units
+  // (the diagonal of half a cell) round a corner or over an edge; 0.2 — 0.8 of
+  // a cell — accepts both and is still less than a cell, so it never reaches
+  // two cells over. The same fraction carries to other cell sizes.
+  //
+  // The buckets are a dense grid over the cells' bounding box, as a head index
+  // per bucket and a next index per cell, not a Map: that is 216 hash lookups
+  // per cell (8 steps × 27 buckets) saved. Measured in Node, the invented
+  // building went from 172 ms to 85 and the six Cornell Tech buildings at 1 m
+  // from 562 ms to 254; string keys, before the Map had integer ones, had made
+  // the invented building alone 278 ms. Cells go in last-first, so each
+  // bucket lists them in index order and ties in distance resolve exactly as
+  // they did — the cells, fields and a 600-step growth run hash the same.
+  let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity
   for (let i = 0; i < count; i++) {
-    const k = key(Math.floor(b.px[i] / CELL), Math.floor(b.py[i] / CELL), Math.floor(b.pz[i] / CELL))
-    const list = buckets.get(k)
-    if (list) list.push(i)
-    else buckets.set(k, [i])
+    minX = Math.min(minX, b.px[i]); maxX = Math.max(maxX, b.px[i])
+    minY = Math.min(minY, b.py[i]); maxY = Math.max(maxY, b.py[i])
+    minZ = Math.min(minZ, b.pz[i]); maxZ = Math.max(maxZ, b.pz[i])
   }
-  const REACH = 0.2
+  // A margin of two buckets each side, so every query's 3×3×3 stays inside.
+  const gx0 = Math.floor(minX / cell) - 2
+  const gy0 = Math.floor(minY / cell) - 2
+  const gz0 = Math.floor(minZ / cell) - 2
+  const gnx = Math.floor(maxX / cell) - gx0 + 3
+  const gny = Math.floor(maxY / cell) - gy0 + 3
+  const gnz = Math.floor(maxZ / cell) - gz0 + 3
+  const head = new Int32Array(gnx * gny * gnz).fill(-1)
+  const next = new Int32Array(count)
+  const bucket = (cx: number, cy: number, cz: number) => ((cx - gx0) * gny + (cy - gy0)) * gnz + (cz - gz0)
+  for (let i = count - 1; i >= 0; i--) {
+    const k = bucket(Math.floor(b.px[i] / cell), Math.floor(b.py[i] / cell), Math.floor(b.pz[i] / cell))
+    next[i] = head[k]
+    head[k] = i
+  }
+  const REACH = 0.8 * cell
   for (let i = 0; i < count; i++) {
-    SLOTS.forEach(([da, du], slot) => {
-      const qx = b.px[i] + (b.ax[i] * da + b.ux[i] * du) * CELL
-      const qy = b.py[i] + (b.ay[i] * da + b.uy[i] * du) * CELL
-      const qz = b.pz[i] + (b.az[i] * da + b.uz[i] * du) * CELL
+    for (let slot = 0; slot < 8; slot++) {
+      const [da, du] = SLOTS[slot]
+      const qx = b.px[i] + (b.ax[i] * da + b.ux[i] * du) * cell
+      const qy = b.py[i] + (b.ay[i] * da + b.uy[i] * du) * cell
+      const qz = b.pz[i] + (b.az[i] * da + b.uz[i] * du) * cell
       let best = -1
       let bestD = REACH
-      const cx = Math.floor(qx / CELL)
-      const cy = Math.floor(qy / CELL)
-      const cz = Math.floor(qz / CELL)
+      const cx = Math.floor(qx / cell)
+      const cy = Math.floor(qy / cell)
+      const cz = Math.floor(qz / cell)
       for (let ox = -1; ox <= 1; ox++) {
         for (let oy = -1; oy <= 1; oy++) {
           for (let oz = -1; oz <= 1; oz++) {
-            const list = buckets.get(key(cx + ox, cy + oy, cz + oz))
-            if (!list) continue
-            for (const j of list) {
+            for (let j = head[bucket(cx + ox, cy + oy, cz + oz)]; j >= 0; j = next[j]) {
               if (j === i) continue
               const d = Math.hypot(b.px[j] - qx, b.py[j] - qy, b.pz[j] - qz)
               if (d < bestD) {
@@ -532,7 +627,7 @@ export function buildBuilding(): Building {
         }
       }
       b.neighbours[i * 8 + slot] = best
-    })
+    }
   }
 
   // --- edges worth following: roof borders, cells against units, and where a
