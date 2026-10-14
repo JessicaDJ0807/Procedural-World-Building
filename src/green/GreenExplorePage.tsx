@@ -42,7 +42,8 @@ const SPEEDS = [1, 4, 16]
 export function GreenExplorePage() {
   const [params, setParams] = useState<GrowthParams>(DEFAULT_PARAMS)
   const [preset, setPreset] = useState<PresetId | null>('balanced')
-  const [running, setRunning] = useState(true)
+  // Paused on arrival: the page opens on the seeds, and Play is the user's call.
+  const [running, setRunning] = useState(false)
   const [speed, setSpeed] = useState(4)
   const [stepToken, setStepToken] = useState(0)
   const [resetToken, setResetToken] = useState(0)

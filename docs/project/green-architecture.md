@@ -304,7 +304,7 @@ Simulation decides *where*; rendering decides *how it looks*.
 
 | Group | Control | What it does |
 | --- | --- | --- |
-| Growth | Play / Pause, Step, Reset; 1× / 4× / 16× | 1× is 8 steps a second; 16× is 128. Reset replants the same seeds. Play pauses itself once nothing has grown for 600 steps |
+| Growth | Play / Pause, Step, Reset; 1× / 4× / 16× | The page opens paused, on the seeds; a preset plays from them. 1× is 8 steps a second; 16× is 128. Reset replants the same seeds. Play pauses itself once nothing has grown for 600 steps |
 | Presets | Balanced, Wet + shaded, Dry + sunny, Architecture-driven | Set parameters, switch all species on and replant — never a hand-authored layout |
 | Environment | Rain, Sun direction | Change the moisture and sunlight fields |
 | Species | On/off for ivy, moss, flowering vine; select one to edit its Light preference, Moisture need, Edge preference, Upward tendency | Who is growing, and what the selected species needs. Switching a species on or off replants |

@@ -3,7 +3,8 @@ import type { Building } from '../green/building'
 import type { Growth } from '../green/growth'
 import { NO_SPECIES } from '../green/growth'
 import { leafGeometry } from '../green/vegetation'
-import { SPECIES_IDS, SPECIES_LOOK } from '../green/species'
+import { SPECIES_IDS } from '../green/species'
+import { FRESH_STEPS, SITE_SPECIES, flowerColour, flowering } from './siteLook'
 
 /**
  * Real leaves on the campus, near the camera only.
@@ -18,8 +19,14 @@ import { SPECIES_IDS, SPECIES_LOOK } from '../green/species'
  * colour — rebuilt when the camera has moved or the growth has changed.
  *
  * The leaves are the same shapes as Explore's, sized for the coarser cells,
- * and coloured by the same rule. They carry no age: leaves appear whole.
+ * in the page's own greens. Leaves come in a few steps behind the growth front
+ * and grow to full size over LEAF_GROW steps, so a vine reads as a strand
+ * first and fills out after; a flowering vine cell carries a lavender flower.
  */
+
+/** Steps after a cell is grown before its leaves appear, and over which they reach full size. */
+const LEAF_DELAY = 6
+const LEAF_GROW = 50
 
 /** Leaves are drawn when the camera is within this many metres of what it is looking at… */
 export const LEAF_RANGE = 160
@@ -51,6 +58,7 @@ function hash(n: number): number {
 
 export class SiteLeaves {
   readonly meshes: THREE.InstancedMesh[]
+  private readonly flowers: THREE.InstancedMesh
   private readonly b: Building
   /** Where and what the leaves were last built for. */
   private builtAt = new THREE.Vector3(Infinity, 0, 0)
@@ -68,8 +76,27 @@ export class SiteLeaves {
       mesh.count = 0
       mesh.frustumCulled = false
       mesh.renderOrder = 22
+      mesh.receiveShadow = true
       return mesh
     })
+    // A flat five-petalled star.
+    const petals: number[] = []
+    for (let i = 0; i < 10; i++) {
+      const a0 = (Math.PI * 2 * i) / 10
+      const a1 = (Math.PI * 2 * (i + 1)) / 10
+      const r0 = i % 2 === 0 ? 0.5 : 0.2
+      const r1 = i % 2 === 0 ? 0.2 : 0.5
+      petals.push(0, 0, 0.05, Math.cos(a0) * r0, Math.sin(a0) * r0, 0, Math.cos(a1) * r1, Math.sin(a1) * r1, 0)
+    }
+    const flowerGeo = new THREE.BufferGeometry()
+    flowerGeo.setAttribute('position', new THREE.Float32BufferAttribute(petals, 3))
+    flowerGeo.computeVertexNormals()
+    this.flowers = new THREE.InstancedMesh(flowerGeo, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }), CAPACITY / 4)
+    this.flowers.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array((CAPACITY / 4) * 3), 3)
+    this.flowers.count = 0
+    this.flowers.frustumCulled = false
+    this.flowers.renderOrder = 23
+    this.meshes.push(this.flowers)
   }
 
   set visible(v: boolean) {
@@ -81,7 +108,7 @@ export class SiteLeaves {
     return centre.distanceTo(this.builtAt) > RADIUS * 0.25 || growth.grown !== this.builtGrown || fieldsVersion !== this.builtFields
   }
 
-  rebuild(centre: THREE.Vector3, growth: Growth, moisture: Float32Array, fieldsVersion: number) {
+  rebuild(centre: THREE.Vector3, growth: Growth, env: Float32Array[], fieldsVersion: number, lift: Float32Array | null = null) {
     const b = this.b
     const r2 = RADIUS * RADIUS
     // First pass: which grown cells are near, per species, to choose a stride
@@ -106,20 +133,25 @@ export class SiteLeaves {
     const zAxis = new THREE.Vector3()
     const colour = new THREE.Color()
     this.count = 0
-    near.forEach((cells, sp) => {
-      const id = SPECIES_IDS[sp]
+    let flowerCount = 0
+    const flowerCap = CAPACITY / 4
+    SPECIES_IDS.forEach((_, sp) => {
+      const cells = near[sp]
       const spec = SPECS[sp]
       const mesh = this.meshes[sp]
-      const lush = new THREE.Color(SPECIES_LOOK[id].lush)
-      const dry = new THREE.Color(SPECIES_LOOK[id].dry)
+      const look = SITE_SPECIES[sp]
       const stride = Math.max(1, (cells.length * spec.perCell) / CAPACITY)
       let i = 0
       for (let f = 0; f < cells.length && i < CAPACITY; f += stride) {
         const cell = cells[Math.floor(f)]
+        const age = growth.step - growth.birth[cell]
+        if (age < LEAF_DELAY) continue
+        const grownIn = Math.min(1, (age - LEAF_DELAY) / LEAF_GROW)
+        const opening = grownIn * grownIn * (3 - 2 * grownIn)
         n.set(b.nx[cell], b.ny[cell], b.nz[cell])
         t.set(b.ax[cell], b.ay[cell], b.az[cell])
         face.set(b.ux[cell], b.uy[cell], b.uz[cell])
-        const wet = Math.min(1, moisture[cell] * 1.4)
+        const health = Math.min(1, Math.max(0, env[sp][cell] * 1.25))
         for (let j = 0; j < spec.perCell && i < CAPACITY; j++) {
           const h = cell * 7 + j * 131
           const spin = (hash(h) - 0.5) * Math.PI * 1.6
@@ -128,28 +160,54 @@ export class SiteLeaves {
           const yAxis = along.multiplyScalar(Math.cos(tilt)).addScaledVector(n, Math.sin(tilt)).normalize()
           zAxis.copy(n).addScaledVector(yAxis, -n.dot(yAxis)).normalize()
           xAxis.crossVectors(yAxis, zAxis)
-          const size = spec.size[0] + hash(h + 2) * spec.size[1]
+          const size = (spec.size[0] + hash(h + 2) * spec.size[1]) * (0.35 + 0.65 * opening)
           const width = 0.8 + hash(h + 6) * 0.4
           m.makeBasis(xAxis.multiplyScalar(size * width), yAxis.clone().multiplyScalar(size), zAxis.clone().multiplyScalar(size))
           const ja = (hash(h + 3) - 0.5) * b.cell * 0.8
           const ju = (hash(h + 4) - 0.5) * b.cell * 0.8
+          // Out by the surface's own relief too — onto a louver, not behind it.
+          const off = spec.offset + (lift ? lift[cell] : 0)
           m.setPosition(
-            b.px[cell] + n.x * spec.offset + t.x * ja + face.x * ju,
-            b.py[cell] + n.y * spec.offset + t.y * ja + face.y * ju,
-            b.pz[cell] + n.z * spec.offset + t.z * ja + face.z * ju,
+            b.px[cell] + n.x * off + t.x * ja + face.x * ju,
+            b.py[cell] + n.y * off + t.y * ja + face.y * ju,
+            b.pz[cell] + n.z * off + t.z * ja + face.z * ju,
           )
           mesh.setMatrixAt(i, m)
-          colour.copy(dry).lerp(lush, wet)
-          colour.offsetHSL((hash(h + 7) - 0.5) * 0.05, (hash(h + 8) - 0.5) * 0.2, (hash(h + 9) - 0.5) * 0.14)
+          colour.copy(look.dry).lerp(look.lush, health)
+          if (age < FRESH_STEPS) colour.lerp(look.fresh, 1 - age / FRESH_STEPS)
+          colour.offsetHSL((hash(h + 7) - 0.5) * 0.04, (hash(h + 8) - 0.5) * 0.12, (hash(h + 9) - 0.5) * 0.12)
           mesh.setColorAt(i, colour)
           i++
         }
       }
       mesh.count = i
+      // The vine's flowers, just proud of its leaves.
+      if (sp === 2) {
+        for (let f = 0; f < cells.length && flowerCount < flowerCap; f += stride) {
+          const cell = cells[Math.floor(f)]
+          const age = growth.step - growth.birth[cell]
+          if (!flowering(2, age, cell)) continue
+          n.set(b.nx[cell], b.ny[cell], b.nz[cell])
+          face.set(b.ux[cell], b.uy[cell], b.uz[cell])
+          t.set(b.ax[cell], b.ay[cell], b.az[cell])
+          const size = 0.45 + hash(cell * 17) * 0.2
+          xAxis.crossVectors(face, n).multiplyScalar(size)
+          m.makeBasis(xAxis, face.clone().multiplyScalar(size), n.clone().multiplyScalar(size))
+          const fo = 0.22 + (lift ? lift[cell] : 0)
+          m.setPosition(b.px[cell] + n.x * fo, b.py[cell] + n.y * fo, b.pz[cell] + n.z * fo)
+          this.flowers.setMatrixAt(flowerCount, m)
+          this.flowers.setColorAt(flowerCount, flowerColour(cell))
+          flowerCount++
+        }
+      }
       mesh.instanceMatrix.needsUpdate = true
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
       this.count += i
     })
+    this.flowers.count = flowerCount
+    this.flowers.instanceMatrix.needsUpdate = true
+    if (this.flowers.instanceColor) this.flowers.instanceColor.needsUpdate = true
+    this.count += flowerCount
     this.builtAt.copy(centre)
     this.builtGrown = growth.grown
     this.builtFields = fieldsVersion

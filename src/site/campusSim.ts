@@ -97,6 +97,12 @@ export type SimSurface = {
   moisture?: (light: Float32Array, rain: number) => Float32Array
   /** A per-cell multiplier on every species' env and suitability. */
   habitat?: Float32Array
+  /** The same, per species (ivy, moss, vine): what a façade's surface means to each. */
+  habitatBySpecies?: Float32Array[]
+  /** Water a surface holds, added to the moisture field. */
+  moistureBonus?: Float32Array
+  /** Shade the computed sun can't see — a cantilever's underside — as a multiplier on light. */
+  lightScale?: Float32Array
 }
 
 export type SimMode = {
@@ -143,7 +149,7 @@ export class CampusSim {
   readonly scale: number
   /** Bumped whenever the fields change, so a renderer knows to repaint what depends on them. */
   fieldsVersion = 0
-  /** Cells that died since the renderer last asked, by `takeDied`. */
+  /** Cells that died since the renderer last asked, by `takeDied`, as [cell, species, step] triples. */
   private diedSince: number[] = []
   readonly history: HistoryPoint[] = []
   /** Milliseconds for the last field rebuild, and per step over the last advance. */
@@ -205,7 +211,8 @@ export class CampusSim {
         this.energy[i] = a.light[i] + (b.light[i] - a.light[i]) * t
       }
     }
-    for (let i = 0; i < this.light.length; i++) this.light[i] = Math.min(1, this.hours[i] / FULL_LIGHT_HOURS)
+    const shade = this.surface.lightScale
+    for (let i = 0; i < this.light.length; i++) this.light[i] = Math.min(1, this.hours[i] / FULL_LIGHT_HOURS) * (shade ? shade[i] : 1)
     this.rebuild()
   }
 
@@ -213,12 +220,25 @@ export class CampusSim {
     const start = performance.now()
     const b = this.surface.building
     this.moisture = this.surface.moisture ? this.surface.moisture(this.light, this.params.rain) : computeMoisture(b, this.params.rain, this.light)
+    const bonus = this.surface.moistureBonus
+    if (bonus) for (let i = 0; i < this.moisture.length; i++) if (this.moisture[i] > 0) this.moisture[i] = Math.min(1, this.moisture[i] + bonus[i])
     this.fields = combine(b, { sun: this.light, moisture: this.moisture, geometry: this.geometry }, this.params)
     const habitat = this.surface.habitat
     if (habitat) {
       for (const field of [...this.fields.env, ...this.fields.suitability]) {
         for (let i = 0; i < field.length; i++) field[i] *= habitat[i]
       }
+    }
+    const bySpecies = this.surface.habitatBySpecies
+    if (bySpecies) {
+      bySpecies.forEach((h, sp) => {
+        const env = this.fields.env[sp]
+        const suit = this.fields.suitability[sp]
+        for (let i = 0; i < h.length; i++) {
+          env[i] *= h[i]
+          suit[i] *= h[i]
+        }
+      })
     }
     this.fieldsVersion++
     this.fieldMs = performance.now() - start
@@ -249,7 +269,7 @@ export class CampusSim {
       g.advance(this.fields, this.params, vigour)
       if (this.mode.dieBack && g.step % DIEBACK_EVERY === 0) {
         g.dieBack(this.fields, DIEBACK_EVERY, DIEBACK_RATE, DIEBACK_SURVIVE)
-        for (let d = 0; d < g.diedCount; d++) this.diedSince.push(g.died[d])
+        for (let d = 0; d < g.diedCount; d++) this.diedSince.push(g.died[d], g.diedSpecies[d], g.step)
       }
       if (g.step % FIELD_EVERY === 0) {
         if (this.cycling) this.refreshLight()
@@ -259,7 +279,7 @@ export class CampusSim {
     if (steps > 0) this.stepMs = (performance.now() - start) / steps
   }
 
-  /** The cells that died since the last call; the renderer clears them. */
+  /** The cells that died since the last call, as flat [cell, species, step] triples; the renderer fades them out. */
   takeDied(): number[] {
     const out = this.diedSince
     this.diedSince = []

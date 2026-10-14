@@ -63,10 +63,20 @@ numbered by nothing:
   where they can't live. The species sort themselves the way a gardener would
   plant them — vine on full-sun walls, ivy on part sun and shade — and each
   winter cuts the vine back out of the walls it can't keep. Close up, real
-  leaves; in the sidebar, coverage by building and wall direction. A second
+  leaves; in the sidebar, coverage by building and wall direction. Each
+  building has a procedural façade — windows, seams, louvers, fins, ledges, a
+  solar canopy — that tells the plants where they can hold on, so glass stays
+  clear and the glassy hotel greens least. South of the campus, the lawn
+  and parks are a landscape: mapped trees, paths and lawns from city data and
+  OpenStreetMap, relief from the city's spot heights, and slope-aware groves
+  and shrubs where the data is silent. A second
   study, **Roadside**, grows the same plants on the island's ground and tests
   whether verges are greener because roads bring seeds or because pavement
-  sheds water (seeds, at normal rain; water, in a dry year).
+  sheds water (seeds, at normal rain; water, in a dry year). The page is
+  styled after the island at golden hour: the real sun for the chosen day,
+  late in the afternoon (paused, any date and hour, with a sun-path dial), cool
+  shadows, stone-coloured buildings, hazy far shores, and the simulated plants
+  as the cool, deep greens in a warm scene.
   See [`docs/project/roosevelt-island.md`](docs/project/roosevelt-island.md).
 - **Progress** — the pipeline, five experiments that each add one rule, the
   three species and the walls they took, the presets side by side, and the
@@ -402,9 +412,18 @@ src/
 │   ├── campus.worker.ts      Builds the campus and traces the sun off the main thread
 │   ├── campusSim.ts          The growth model on the campus: a year of light, warmth, die-back
 │   ├── SiteHistory.tsx       Coverage over the run, by species, winters shaded
+│   ├── facadeSurfaces.ts     Surface types and what each means to a plant
+│   ├── facade.ts             Procedural façades: rules per archetype → cell types and geometry
+│   ├── sunClock.ts           The real sun for any date and New York clock time, for the scene's light
+│   ├── SunDial.tsx           The sun-path dial over the scene
+│   ├── siteVegetation.ts     Plant masses drawn from the cells, the far level of detail
+│   ├── siteStructure.ts      Stems, growth front and leaf clusters, the middle level
 │   ├── siteLeaves.ts         Real leaves on the campus, near the camera only
 │   ├── roadside.ts           The roadside study's ground: 1 m cells, surfaces, shadows, runoff
 │   ├── roadsideLayer.ts      The roadside on screen and its simulation
+│   ├── siteAtmosphere.ts     Golden hour: sky, haze, the sun coloured by its height, glass, trees
+│   ├── siteContext.ts        The real buildings across the river, as one hazy mesh
+│   ├── siteLandscape.ts      The south's lawns and parks: land cover, relief, trees, shrubs
 │   ├── siteLook.ts           Ground colours and the sun ramps
 │   ├── SiteViewport.tsx      Island, ground layers, extruded buildings, picking
 │   ├── SitePage.tsx          Site summary, Cornell Tech list, selection, layers
@@ -457,10 +476,12 @@ docs/
 
 public/
 ├── green/                    Figures for the Project pages, captured from Explore
-└── site/                     The Roosevelt Island snapshot the Site page reads
+└── site/                     The Roosevelt Island snapshot, the far shores' buildings, the south's landscape
 
 scripts/
-└── fetch-roosevelt-island.mjs  Fetches NYC Open Data and writes the snapshot
+├── fetch-roosevelt-island.mjs  Fetches NYC Open Data and writes the snapshot
+├── fetch-roosevelt-context.mjs The Manhattan and Queens buildings across the river, as scenery
+└── fetch-roosevelt-landscape.mjs The south's trees, lawns, paths and ground heights, as scenery
 
 firestore.rules               Owner-scoped Firestore access rules
 storage.rules                 Owner-scoped Storage access rules

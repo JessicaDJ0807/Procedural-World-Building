@@ -12,7 +12,7 @@ simulated year with plants that die back where they can't live — and the
 roadside study, the same plants on the island's ground.
 The growth model itself is in [Green Architecture](green-architecture.md).
 
-![Roosevelt Island from the east-south-east: buildings extruded from their footprints, green space, roads and sidewalks, the Cornell Tech buildings in amber at the south end](../images/project-site-island.jpg)
+![Roosevelt Island from the east-south-east at golden hour: stone-coloured buildings extruded from their footprints, sage lawns, roads and sidewalks, and at the south end the campus lawn and the parks, green and wooded, on a slate river between the real buildings of Manhattan and Queens](../images/project-site-island.jpg)
 
 ## Contents
 
@@ -30,6 +30,11 @@ The growth model itself is in [Green Architecture](green-architecture.md).
 - [Seasons and die-back](#seasons-and-die-back)
 - [Up close, and by building](#up-close-and-by-building)
 - [The roadside study](#the-roadside-study)
+- [The look](#the-look)
+- [The sun you see](#the-sun-you-see)
+- [The south: lawns and parks](#the-south-lawns-and-parks)
+- [Vegetation at three distances](#vegetation-at-three-distances)
+- [Façades](#façades)
 - [Limitations](#limitations)
 - [Next steps](#next-steps)
 - [Notes](#notes)
@@ -63,6 +68,15 @@ walls and roofs, and **Roadside**, on the island's ground. The Study switch at
 the top of the sidebar chooses which one Play, Planting and the readouts
 belong to (Roadside unlocks once its ground has been built, after the campus).
 
+- **Detailed façades / Massing** (under Study, for Buildings) chooses whether
+  the campus has procedural façades — windows, seams, louvers, ledges,
+  terraces, each with its own effect on growth — or the plain massing every
+  earlier section measured. Switching starts again. **Surfaces** and
+  **Suitability** in the View popover are debug views of what each cell is
+  and how much the chosen species wants it.
+- The page **opens on Cornell Tech**, close and low from the south-west, with
+  the low sun behind the camera lighting the campus's faces; the View
+  popover's Island camera shows the whole island.
 - **Drag to move** around, like a map. Right-drag, or ⌘/Ctrl/Shift-drag, to
   orbit; scroll to zoom. A compass in the corner points north, because the
   island runs south-west to north-east and the views follow it rather than
@@ -75,11 +89,19 @@ belong to (Roadside unlocks once its ground has been built, after the campus).
   to plant it there, then press Play. In Manual, Reset becomes Clear.
 - **Hover** a building to see its name, height and year. On the campus, hover
   gives that cell's species and hours of sun, its moisture in the Moisture
-  view, or, in Manual, what a click would plant.
+  view, or, in Manual, what a click would plant — and, with Detailed
+  façades, two more lines: what the cell is (*Seam / frame: a seam or frame
+  to follow, the best way up*) and the building's façade mix (*Façade: 39%
+  glass, 32% seam / frame, 19% smooth metal*). The façade as a map, every
+  cell coloured by its surface type, is **View → Display → Surfaces**.
   **Click** to select a building and see its record in the sidebar.
 - **Sunlight** picks the day: the June solstice, an equinox, the December
   solstice, or **Year**, the default, which moves the light through the
-  seasons during the run and shows the year and month. **Die-back**, on by
+  seasons during the run and shows the year and month. The scene is lit by
+  the real sun on that day, late in the afternoon, and a dial in the top
+  left draws its path. Paused, **Light on** and **At** choose any date and
+  hour for the light alone, **Play the day** runs it from sunrise to sunset,
+  and **Follow growth** (or Play) hands it back. **Die-back**, on by
   default, lets plants wither where they can't live. Under them, a chart of
   coverage over the run, total and by species, with the winters shaded.
   Changing any of these mid-run carries the growth on under the new
@@ -91,8 +113,10 @@ belong to (Roadside unlocks once its ground has been built, after the campus).
   species holds of it now, and its coverage. **By direction** gives the same
   for north-, east-, south- and west-facing walls and for roofs. Choosing a
   building selects it and flies the camera to it without changing the bearing.
-- **Up close**, within 160 m of what the camera looks at, real leaves are drawn
-  over the coloured cells.
+- The plants are drawn at **three levels of detail** from the same growth:
+  plant masses everywhere, stems and leaf clusters at medium range, full leaves
+  close up. **Show simulation cells** in the View popover draws the raw cells
+  instead, to check the masses against them.
 - The **View** popover chooses the display (Final, Species, Sun hours,
   Moisture, Sunlight),
   switches between the Island and Cornell Tech cameras, and turns each layer
@@ -117,6 +141,10 @@ writes `public/site/roosevelt-island.json`; the app reads only that file.
 | Sidewalks | Planimetric Sidewalk `52n9-sdep` | Sidewalk surface |
 | Parking | Planimetric Parking Lot `7cgt-uhhz` | Surface lots over 2,000 sq ft |
 | Campus names | DOB Job Application Filings `ic3t-wcy2` | The address filed for each building number |
+| Far shores | Building Footprints `5zhs-2jue` | Manhattan and Queens within 1.2 km of the island: outline and roof height, for scenery |
+| South landscape: trees | Forestry Tree Points `hn5i-inap`; OpenStreetMap | Trees south of the loop road, the city's first (trunk diameter, species), then OSM's |
+| South landscape: ground | Planimetric Elevation Points `9uxf-ng6q` | Ground spot heights (feature code 3000), for the relief |
+| South landscape: green and paths | OpenStreetMap | Lawns, planted beds, woods, grassland, the shingle shore, park outlines and footpaths |
 
 To refresh the data:
 
@@ -124,7 +152,15 @@ To refresh the data:
 node scripts/fetch-roosevelt-island.mjs
 ```
 
-It prints a summary of what it wrote. The figures and numbers in this document
+It prints a summary of what it wrote. The buildings across the river, drawn as
+scenery, come from a second script, `node scripts/fetch-roosevelt-context.mjs`,
+which writes `public/site/roosevelt-context.json` (6,828 buildings, 0.86 MB,
+0.26 MB gzipped) using the island snapshot's origin and never rewrites the
+snapshot itself — so adding scenery can't move a measured number. The south's
+landscape is a third, `node scripts/fetch-roosevelt-landscape.mjs`, writing
+`public/site/roosevelt-landscape.json` (51 KB, 13 KB gzipped) the same way;
+it is the one source here that isn't the city's, since the city's layers stop
+at the state parks' edge — see *The south: lawns and parks*. The figures and numbers in this document
 are from the snapshot of 2026-10-12.
 
 ## What the data contains
@@ -369,12 +405,11 @@ cap. A seed in the wrong light dies within a few steps, exactly as an
 automatic one would — ivy clicked onto The House's eight-hour south-east wall
 doesn't take.
 
-**What's drawn.** Each grown cell is coloured on the building's surface: its
-species' green, drier cells toward olive, nudged per cell in lightness. Explore
-draws real leaves, two or three per cell, but its renderer reserves room for
-every leaf up front: on 202,639 campus cells that is 2.0 million instances,
-about 160 MB of buffers, for leaves that would be a fraction of a pixel at
-campus distance. Leaves for close-ups belong with a level-of-detail pass.
+**What's drawn.** Not Explore's renderer: it reserves room for every leaf up
+front, and on 202,639 campus cells that is 2.0 million instances, about 160 MB
+of buffers, for leaves that would be a fraction of a pixel at campus distance.
+The campus is drawn at three levels of detail instead; see *Vegetation at
+three distances*.
 
 Measured in Node: a step takes about 0.1 ms with ~300–400 tips running, and
 rebuilding the fields after a change of day or rain takes 9–28 ms. 64× is 512
@@ -383,7 +418,7 @@ up; the headless test browser managed about 25.
 
 | June, step 1,000 | June, step 6,000 (Species view) |
 | --- | --- |
-| ![The campus after 1,000 steps in June: green strands climbing the walls from their feet, the amber buildings still mostly bare](../images/project-site-grow-june.jpg) | ![The campus after 6,000 steps in June, by species: almost every sunlit wall pink with flowering vine, ivy green in the shaded gaps between buildings, bare patches only in the middle of the roofs](../images/project-site-species-june.jpg) |
+| ![The campus after 1,000 steps in June: green strands climbing the walls from their feet, the pale stone buildings still mostly bare](../images/project-site-grow-june.jpg) | ![The campus after 6,000 steps in June, by species: almost every sunlit wall lavender with flowering vine, ivy green in the shaded gaps between buildings, bare patches only in the middle of the roofs](../images/project-site-species-june.jpg) |
 
 ## What grows where
 
@@ -511,7 +546,7 @@ equinox):
 
 | Year 4, September | Year 4, the following March |
 | --- | --- |
-| ![The campus by species at the end of year 4's summer: vine pink across the sunlit walls and up The House's west face](../images/project-site-year4-september.jpg) | ![The same view six months later: The House's west face cut back to bare, the rest much as it was](../images/project-site-year4-march.jpg) |
+| ![The campus by species at the end of year 4's summer: vine lavender across the sunlit walls and up The House's west face](../images/project-site-year4-september.jpg) | ![The same view six months later: The House's west face cut back to bare, the rest much as it was](../images/project-site-year4-march.jpg) |
 
 The page and Node agree to the cell: 131,483 cells grown at step 8,400 (64.9%)
 and 122,273 at step 9,600 (60.3%) in both.
@@ -529,10 +564,10 @@ cell differs.
 
 ## Up close, and by building
 
-**Leaves near the camera.** The coloured cells read correctly from any
-distance; close up they are a mosaic. So within 70 m of the point the camera
+**Leaves near the camera** — the nearest of the three levels of detail
+(*Vegetation at three distances*). Within 70 m of the point the camera
 looks at — and only when the camera is within 160 m of it, in the Final view —
-real leaves are laid over them: Explore's ivy, moss and vine shapes at about
+real leaves are laid over the plant masses: Explore's ivy, moss and vine shapes at about
 twice the size (the cells are twice as wide), two per cell for the climbers,
 one moss clump, coloured by the same dry-to-lush rule. A rebuild is one pass
 over the grown cells and the matrices for those in range: at year 4,
@@ -541,7 +576,7 @@ centre, 40–55 ms in Node. It happens at once when the view settles and at most
 once a second while growth plays. Each species can hold 90,000 leaves; past
 that, cells would be thinned evenly.
 
-![Close on the Graduate Hotel and The House at year 4, September: ivy and flowering vine leaves over the walls, bare amber wall above where growth hasn't reached](../images/project-site-leaves.jpg)
+![Close on the Graduate Hotel and The House at year 4, September: ivy and flowering vine leaves over the walls, bare peach-lit wall above where growth hasn't reached](../images/project-site-leaves.jpg)
 
 **By building and by direction.** The sidebar counts, twice a second, what
 each species holds of each building and of each wall direction. Year 4, the
@@ -633,7 +668,7 @@ sprawls along sunny verges. Year, warmth and die-back are the campus's.
 
 | Final view, year 4 March | Species view |
 | --- | --- |
-| ![Main Street between the towers after four simulated years: speckled growth along the edges of sidewalks and roads and across unmapped ground, the mown lawns plain green](../images/project-road-final.jpg) | ![The same view by species: flowering vine in pink along the sunny verges, ivy in green in the shadows north of the towers, the lawns and roads bare](../images/project-road-species.jpg) |
+| ![Main Street between the towers after four simulated years: speckled growth along the edges of sidewalks and roads and across unmapped ground, the mown lawns plain green](../images/project-road-final.jpg) | ![The same view by species: flowering vine in lavender along the sunny verges, ivy in green in the shadows north of the towers, the lawns and roads bare](../images/project-road-species.jpg) |
 
 ### What it shows
 
@@ -693,14 +728,498 @@ run, and 14,328 (3.5%) in the dry one. A step costs 0.13–0.23 ms in Node. The
 incremental painting through die-back was checked against a repaint from
 scratch: no cell differs.
 
+## The look
+
+The Site page is styled after Roosevelt Island at golden hour: warm,
+atmospheric, architectural — and still plainly a simulation. One rule runs
+through it: **the light makes it warm, not the paint.**
+
+**Light.** A low orange sun, late in the afternoon, warms the faces turned
+to it peach and gold; a strong, cool
+lavender-grey sky light and a mauve bounce from below fill the faces turned
+away, so they read cool rather than dark. The sun casts real shadows, drawn
+only when the view moves far enough to refit the shadow box around what the
+camera looks at — close views get crisp shadows, the island view still gets
+them all. Filmic tone mapping keeps a bright sun on pale stone from clipping.
+The sun was first a fixed light, 12° up in the south-west; it now follows
+the day showing — see *The sun you see*. (The figures in this chapter
+before that section were captured under the fixed sun.)
+
+**Materials.** Buildings are cream, sandstone, warm off-white and taupe, with
+a little clay and muted terracotta, each building its own stone by a hash of
+its index. The Cornell Tech buildings are a pale limestone, a touch brighter.
+Lawns and medians are muted sage, roads warm grey, sidewalks warm light stone.
+
+**Context, kept quiet.** Generic trees — street trees 3 m off the roads every
+10 m, and a scatter through the lawns — in five sage and olive greens. The
+river is plain slate, unlit. Across it, Manhattan and Queens are their real
+buildings — every footprint within 1.2 km of the island, extruded to its
+recorded roof height as one merged mesh (130,893 triangles, built in about
+50 ms), lit but in a pale stone low in contrast, and softened by the haze.
+The first version used rows of hashed boxes, which read as a few placeholder
+rows and made the island look strangely alone; the real footprints give the
+shores their actual density and skyline, Queensbridge Houses included.
+Nothing grows on them or picks them.
+
+**Haze.** Atmospheric perspective scaled to the view: haze starts a little
+short of what the camera looks at and is complete at 3.5 times that distance,
+so the subject is crisp, the island beyond softens, and the far shores are
+mostly haze. The sky dome runs from peach at the horizon through dusty rose to
+blue-violet overhead, warmer toward the sun, with a soft glow around it.
+
+**The simulated plants** are the cool, deep greens in a warm scene, distinct
+from the muted context and from each other:
+
+| | Growth front | Settled | Stressed | Dying | Species view |
+| --- | --- | --- | --- | --- | --- |
+| Ivy | fresh green | dark forest green | olive | fades brown-grey to bare | forest green |
+| Moss | pale sage | cool teal-sage | olive | fades brown-grey to bare | teal-sage |
+| Flowering vine | bright green | mid green, lavender flowers | olive | fades brown-grey to bare | lavender |
+
+State is shown through colour, density and age rather than a heatmap: cells
+at the growth front are a fresh green for 30 steps and settle to their
+species' green; a cell drifts toward olive as its species' env on it falls;
+vine cells flower after 70 steps (as lavender flecks in the masses, a faint
+lavender tint from far away, and full flowers up close); a cell that dies back
+withers brown-grey and thins away over 120 steps instead of vanishing. Up close, leaves come in six steps behind the
+front and grow to full size over fifty. Only the cells still changing are
+repainted each frame — the youngest at the end of the birth-ordered list and
+the dying — and the repaint was checked against one from scratch in both
+studies: no cell differs.
+
+**Data views stay data.** Sun hours, Moisture, Sunlight and Species are drawn
+unlit, unhazed and untone-mapped, so a colour on screen is the colour in its
+legend; the mood never touches a number.
+
+Tuned by screenshot, five rounds. What changed and why: a fixed haze start
+drowned the island from the island view (it is 4 km out), so haze scales with
+the view; a fill light at 0.9 left shadowed faces nearly black; a lit, glossy
+river read purple and then as a void, so it is unlit slate; a sun from the
+west-south-west lit faces the default views barely show, so it moved to the
+south-west; lit, pale far shores read as a second, pinker city, so they are
+flat and grey.
+
+## The sun you see
+
+The Sunlight options used to change only the growth: June and December gave
+different sun hours to every cell, but the scene stayed under one fixed
+sunset. Now the light you see is the real sun for the day showing, so
+choosing December *looks* like December.
+
+| 21 June, 6:14 pm: the sun 23° up in the west-north-west, behind the campus from this camera; the faces turned to it are in cool shade, the shadows point east | 21 December, 3:08 pm: 12° up in the south-west; the same faces lit gold, the trees' shadows long |
+| --- | --- |
+| ![The Cornell Tech campus from the south-west on 21 June in the late afternoon: the walls facing the camera in cool lavender shade, shadows falling toward the east](../images/project-site-light-june.jpg) | ![The same view on 21 December in the late afternoon: the walls facing the camera lit warm gold, long tree shadows across the road](../images/project-site-light-december.jpg) |
+
+**Where the sun is** (`sunClock.ts`). The growth's solar geometry
+(`sunPath.ts`), for any day of the year, plus what turns solar time into a
+New York clock: the longitude against the Eastern time zone's 75° W (solar
+noon comes 4 minutes early), daylight saving (taken as 10 March to
+3 November; the real switch dates move a little each year), and the
+equation of time (the year's drift of solar noon, up to a quarter of an hour).
+Sunrise and sunset come to 5:24 am and 8:30 pm on 21 June and 7:17 am and
+4:31 pm on 21 December — within about a minute of the published New York
+times (5:25 / 8:31 and 7:17 / 4:32).
+
+**When.** While the growth plays, the sun sits at the same point in each
+day: 85% of the way from sunrise to sunset. A fixed clock time was the
+first plan, but 3 pm puts the equinox sun 40° up — midday light, not the
+page's golden hour — and 5 pm is after sunset in December. The share of the
+day keeps the low light in every season while still showing what changes:
+
+| Day | Late afternoon | Height | Bearing | Day length |
+| --- | --- | --- | --- | --- |
+| 21 June | 6:14 pm | 23° | 282° (west-north-west) | 15 h 06 m |
+| Equinox | 5:16 pm | 19° | 251° | 12 h 00 m |
+| 21 December | 3:08 pm | 12° | 225° (south-west) | 9 h 15 m |
+
+On a fixed day the light stays put; over a year it follows the growth's
+date, one step per simulated day (a whole day, so a playing year redraws
+shadows once a day, not every frame — at the default 16× that is about
+twenty times a second of playback). In software rendering (headless
+Chrome, SwiftShader) a redraw of the 4096² shadow map added 60–95 ms to a
+300 ms frame; on a GPU both numbers are far smaller, and the figure is
+there only to say a redraw costs about a quarter of a frame.
+
+**Paused, any moment.** *Light on* and *At* set any date and hour, for the
+light alone — the growth keeps its own day. *Play the day* runs the chosen
+day from a quarter of an hour before sunrise to as long after sunset, in
+nine seconds; Play or *Follow growth* hands the sun back to the growth.
+
+<img src="../images/project-site-sundial.png" alt="The sun dial: 21 December, 3:08 pm, follows growth; a low solid arc from east to west with the sun dot on its afternoon side, the higher June arc dotted above it; 12° up, bearing 225°, 9 h 15 m of day, sunrise 7:17 am, sunset 4:31 pm; a note that shadows show this moment while growth uses blended sun hours" width="266" align="right">
+
+**The dial**, top left, draws the day's path across the sky — east to west,
+south in the middle, height up — with the solstices dotted behind it for
+scale and a dot for the sun now, its height and bearing, the day's length,
+sunrise and sunset. Its last line says what the light is not: **the shadows
+show this one moment, while the growth uses each day's hours of sun, blended
+from three traced days.** A June cell's growth reads the whole of 21 June,
+not 6:14 pm.
+
+**Colour by height.** Light, sky and haze blend three palettes by the sun's
+elevation: the page's golden hour up to about 12°, a warm daylight by 40° —
+a cream sun, a pale warm horizon, a clearer blue overhead — and a dusk as it
+sets, the sun fading out by 1° below the horizon and the sky light cooling
+and dimming but never to black, so a scrubbed night still shows the campus.
+The sky dome's glow and the glass's reflections take the same sun. The
+glass's sun glint is switched off once the sun is down: a set sun mirrored
+low in the panes read as lit windows.
+
+## The south: lawns and parks
+
+South of the campus buildings the island was an empty brown area. That was
+the data, not the island: the city's planimetric layers map roads and
+sidewalks and stop at the edge of the state's parks, so the Campus Lawn,
+Southpoint Park and Four Freedoms Park were unmapped ground. They are now a
+landscape (`siteLandscape.ts`), from open data where it exists and
+procedural where it doesn't.
+
+![The south of the island from the west: the campus buildings top left; the Campus Lawn below them, open grass crossed by paths, with groves on its slopes and rows of real trees along the loop road; Southpoint Park beyond, wooded, its paths winding through](../images/project-site-south.jpg)
+
+**What the data has.** Going looking turned up more than expected, and less
+from the city than expected:
+
+- **Trees.** The city's Forestry Tree Points have 55 trees on the whole
+  island, 3 of them south of the loop road; the 2015 street-tree census,
+  which it supersedes, has none. The state parks' trees are not the city's
+  to count. OpenStreetMap has 471 more there, among them both rows of Four
+  Freedoms' allée. All 474 stand where they are mapped; the city's three get
+  their size from their trunks.
+- **Green areas and paths**, from OpenStreetMap: 37 lawns, 25 planted beds,
+  2 woods, a grassland, the shingle shore, the parks' outlines with their
+  names, and 94 footpaths, which line up with the city's own roads and
+  buildings to within a path's width.
+- **Ground heights.** The city's planimetric Elevation Points give 73 ground
+  heights south of the loop road, 1.8–9.3 m. Most of the ground sits at
+  2–4 m, but they find a mound on the Campus Lawn (three points at 7.1–7.9 m,
+  all added in a later capture than their neighbours, so recent) and a hill in
+  Southpoint Park (9.3 m); Four Freedoms' lawn is a metre or so above its
+  paths. Six points coded as ground at 44–51 m are the Queensboro Bridge's deck,
+  and are left out.
+
+**Land cover.** A 1 m grid over the island south of the loop road (z ≥ 520):
+the parks' outlines, then OSM's lawns, beds, woods, grassland and shingle,
+then — over everything — the city's roads, sidewalks, parking, medians and
+buildings and OSM's footpaths at their width. Ground still unmapped is
+naturalized green inside Southpoint Park, where it is meadow and planting
+between OSM's lawns, and paving elsewhere — Four Freedoms' granite, the
+campus plazas.
+
+| Cover | Area |
+| --- | --- |
+| Managed lawn | 2.47 ha |
+| Naturalized (meadow, Southpoint's unmapped ground) | 2.78 ha |
+| Wood | 0.56 ha |
+| Planted beds | 0.41 ha |
+| Rock shore | 0.61 ha |
+| Paving | 1.93 ha |
+| Footpaths | 0.71 ha |
+
+**Relief.** The heights smoothed with an 18 m Gaussian kernel, above 2.81 m —
+the median of the points that fall on paths and roads, the walkable level —
+and brought down to zero within 10 m of every path, road and building, so the
+flat city layers still meet the ground exactly. The highest point is 5.4 m up,
+on the campus mound. Slope comes from the smoothed heights *before* that
+falloff: the slope the data says the land has, not the bank a lawn gets
+where it meets a path. Of the green, 73.4% is gentle (under 4%), 12.0%
+moderate and 14.6% steep (over 10%) — the two mounds and their skirts.
+
+**Planting**, deterministic (every random choice is a hash of position):
+
+| | Gentle | Moderate | Steep |
+| --- | --- | --- | --- |
+| Managed lawn | open; a specimen tree now and then, at least 16 m from any other; a few flower patches | groves; some shrubs | denser groves and shrubs |
+| Naturalized | sparse groves, shrubs in patches | more of both | densest, and grass thinning to soil |
+| Planted beds | some trees in groves, many shrubs, most of the flowers | | |
+| Wood | trees close (every candidate is 80% likely) with an understorey of shrubs | | |
+
+Trees are candidates on a jittered 7 m grid, kept where a 45 m noise is high
+— groves, with clearings where it is low — never within 5 m of another tree
+or 3 m of a path, and not at all where the data already has three trees
+within 14 m: there the data has said what is there. Shrubs come on a 3.5 m
+grid clustered by a 16 m noise; flowers in patches of six. The result: 474
+mapped trees, 64 procedural, 295 shrubs and 228 flowers.
+
+**Managed and naturalized** read differently. Managed lawn is one even sage
+with its trees in two calm shapes and the established palette; naturalized
+ground mottles between dry and green, and its trees take all three shapes —
+round, upright, spreading — and a wider set of greens. Four Freedoms' allée
+trees share one upright shape, as a formal planting does, but no two are
+identical: each is within ±8% of the same size, its green shifted a little
+warmer or cooler and lighter or darker. Cloned at one size and one green the
+rows read as generated. Every tree, mapped or procedural, also leans up to 3°
+in its own direction, trunk and canopy together. All of it
+stays in the muted sage and olive of the page's other context, quieter than
+the simulated plants, and low-poly.
+
+**Cost.** The ground is one mesh of 56,364 triangles on a 2 m grid, its
+colour and outline a 1 m texture; the trees are three instanced canopies and
+one instanced trunk, with one instanced mesh each for shrubs and flowers —
+six draw calls for the vegetation. The whole build takes about 200 ms in
+Node when the file arrives (limiting each polygon's fill to its own rows
+took it from 330 ms).
+
+**Separate from the growth.** None of this is simulated: the climbing
+plants stay on the buildings, and nothing spreads across the lawns. It is
+drawn in the Buildings study only. The roadside study paints the same ground
+as its own 1 m cells; drawn together they were a patchwork, the landscape's
+mounds poking up through the roadside's flat ground, so in Roadside the
+south goes back to bare ground and generic trees. The Green space layer
+switch hides it.
+
+Two fixes on the way. The ground was first pushed back from the city's
+roads with a polygon offset, and the shadows on it frayed into a sawtooth
+along every edge; sinking it 2 cm instead does the same job for the eye.
+And a sawtooth that remained along Four Freedoms' paths turned out not to be
+a defect at all: with the trees' shadows switched off it vanished — it is
+the allée's canopies, stretched long by the low sun.
+
+## Vegetation at three distances
+
+The Site page used to draw each grown cell as a coloured square on the wall,
+which made a covered campus look like a raster of the simulation rather than
+plants on buildings. The simulation still works in cells — growth, coverage,
+species, tips and the readouts are untouched — but the picture is now built
+from them at three levels of detail, all from the same growth:
+
+| Level | When | What |
+| --- | --- | --- |
+| Far (2) | always | Plant masses: one layer over the walls and ground, drawn from the cells |
+| Medium (1) | camera 60–650 m from its target | Masses, plus vine stems, the growth front, and sparse leaf clusters |
+| Near (0) | camera under 160 m, within 70 m of the target | Masses, plus full leaves and flowers |
+
+**Masses (far).** The cells go to the GPU as two textures, one texel per cell:
+the cell's colour (species, age, stress) premultiplied by its *occupancy* —
+1 when grown, falling to 0 as a dead cell withers, 0 when empty — and which
+species holds it and whether it is in flower. The plant layer samples them
+smoothly, so occupancy becomes a continuous field between cell centres, and
+draws the plant where that field crosses one half. The edge therefore runs
+halfway between a grown cell and an empty one: an empty cell's centre is
+always 0, so **a hole stays a hole** and nothing is filled in; a lone cell is
+a small round patch; a stand is one continuous mass whose outline follows the
+growth. Each façade's cells sit in their own block of the texture with a
+blank texel round it, so up close a mass never runs across onto another wall.
+(From far away the texture's smaller mip levels average neighbouring texels,
+so a texel or two can blend across a block edge — below what such a view
+resolves.) A
+world-space noise roughens the outline — more for the vine, broad and soft for
+moss — and gives each species its surface: dense leafy light and dark for
+ivy, gentle mottling for moss, an open pattern with gaps and lavender flecks
+for the vine. The pattern is level-of-detail in the shader: once its scale is
+under a pixel or so it fades to its average, so from far away the masses are
+smooth, close up they are foliage, and they never shimmer.
+
+**Stems and clusters (medium).** Every vine cell is joined to the cell it grew
+from by a thin stem, so the vine stays the visibly branching species; climber
+cells younger than 60 steps are joined in a brighter green, so the growth
+front and its direction show; and three-leaf clusters sit on one ivy cell in
+eight and one vine cell in fourteen, for relief — none on moss, which stays a
+flat surface. One line mesh and one instanced mesh, rebuilt when the growth
+changes, at most once a second while it plays: 2–8 ms in Node, 71,332 stem
+segments and 11,747 clusters at year 4.
+
+**Leaves (near).** The close-up leaves of *Up close, and by building*.
+
+![The same view at year 4, September: on the left, the plants as drawn — leafy masses with ragged edges following the growth; on the right, the simulation cells they are drawn from, as squares](../images/project-site-lod.jpg)
+
+**Checked.** The growth is unchanged: the campus still grows 131,483 cells by
+step 8,400 and the roadside 77,043 by step 9,600, as before, and the invented
+building's cells, fields and growth hash as they did. Masses and raw cells,
+toggled in the same view, have the same shapes and holes (above). The
+incremental painting of the plant layer, in both studies, matches a repaint
+from scratch: no cell differs. The far level costs one extra draw of the
+campus's walls and of the ground quad.
+
+## Façades
+
+The footprints say nothing about a building's face, so at first every campus
+wall was the same surface. Now all six buildings have procedural façades,
+generated from rules taken from their published descriptions and photographs
+(not their drawings), and every façade element means something to a plant:
+
+    building mass → façade rules → a surface type per cell → flags and
+    coefficients for the growth, and boxes for the eye
+
+**One table of surface types** (`facadeSurfaces.ts`): opaque panel, glass,
+smooth metal, perforated metal, seam / frame, louver, ledge / parapet,
+railing, roof edge, ground contact, roof garden, recess / underside, roof.
+Each type sets the cell's flags for the shared growth rules — glass can't be
+grown on and sheds rain; a ledge holds water; a recess is out of the rain;
+seams, frames, louvers, ledges and railings are edges to follow — and adds a
+multiplier per species on env and suitability, extra moisture, a light
+multiplier for shade the computed sun can't see, and whether planting starts
+there. The growth algorithm, sun, rain and die-back are unchanged; they read
+the surface. The coefficients are design choices, made to make architecture
+matter plausibly, not measurements.
+
+**Six archetypes** (`facade.ts`), each a rules function laid out per wall,
+so the glass the plants avoid is exactly the glass drawn:
+
+- **The House**: 26 floors; a glazed storefront between mullions; above it
+  1.6 m bays with 0.9 × 1.7 m windows in a frame; panel seams up every bay
+  line and along every floor; one 3 m louver band up the longest wall; a
+  parapet. Panels are smooth metal: poor to hold on to. Seams and frames are
+  good.
+- **Verizon**: a 6 m glazed ground floor; three floors wrapped in vertical
+  cedar louvers about 0.55 m apart, varying a little in spacing and depth,
+  with a band at every floor.
+- **Tata**: six floors; on the long walls a 2.5 m cantilevered slab over a
+  recessed, shaded ground floor (light × 0.55, damp, out of the rain); glass
+  ribbons in 2.4 m bays with a quarter of the bays opaque; ledges at the
+  floor lines; a railed roof terrace with a planted strip set back from the
+  edge, where planting starts.
+- **Bloomberg Center**: four floors; a glazed ground floor; on each floor
+  above, a 1.6 m ribbon window mullioned every 3 m, and perforated aluminium
+  panels 1.5 m wide, each at its own depth off the wall (3–15 cm) so the skin
+  reads pixelated, with open joints every 3 m. Perforated metal is a new
+  surface type, between smooth metal and a seam: the holes give tendrils
+  something to take. A photovoltaic canopy on posts covers the roof, 3.2 m
+  up and 2.5 m past the edge, so the roof under it is a recess: shaded and
+  out of the rain.
+- **Graduate Hotel**: a 5.5 m storefront; 16 floors of 1.5 m modules, each
+  floor-to-ceiling glass or a solid metal panel (about a third solid, the
+  pattern shifting floor by floor), a 30 cm fin between modules, a slab edge
+  at each floor; a 5 m glazed top floor under an overhanging roof.
+- **8 North Loop Road**: no published façade description was found, so
+  generic service-building rules: three floors of precast panels jointed
+  every 3 m, a high band of windows on each floor, a coping, and a louvered
+  screen round the roof plant 3 m in from the edge.
+
+`massingRules` (opaque panel, a damp base, a parapet row) remains for any
+building without an archetype. Every wall's bottom row is ground contact,
+where seeds go; roof gardens seed too.
+
+Leaves and stems on a louver, fin or railing sit out on it rather than on
+the wall behind, by the surface's own depth. The façade geometry is two
+merged meshes that cast shadows — 76,008 triangles of frames, panels and
+fins, and 41,724 of glass — and the classification and geometry build in
+about 130 ms (median of seven, in Node).
+
+**Glass that reflects the sky.** The first façades drew glass as a dark
+slate, '#2f3a47'. With no environment map a lit glass box is only its
+colour, and the windows read as black holes in the warm walls. The glass
+now has its own material (`glassMaterial` in `siteAtmosphere.ts`): a
+blue-grey tint, plus the sky it would mirror — the sky dome's own gradient,
+sampled along the reflected view ray, stronger at grazing angles, with a
+glint where it mirrors the sun. The first try mirrored the warm horizon
+alone and turned every pane pale pink, lighter than the walls; mixing 40% of
+the cool zenith into the reflection keeps the windows a little darker and
+cooler than the walls, in the palette.
+
+### What changes
+
+Same seed, defaults, a turning year with die-back, four years (step 9,600),
+massing against façades:
+
+| Building | Massing | Façades |
+| --- | --- | --- |
+| The House | 48.1% | 56.2% |
+| Verizon Executive Education Center | 66.5% | 54.8% |
+| Tata Innovation Center | 68.7% | 42.5% |
+| Bloomberg Center | 60.0% | 31.0% |
+| Graduate Hotel | 66.1% | 17.0% |
+| 8 North Loop Road | 53.8% | 50.9% |
+| **Campus** | **60.3%** (ivy 27.3, moss 3.5, vine 29.6) | **54.1%** (ivy 26.1, moss 1.5, vine 26.4) |
+
+By surface, with façades:
+
+| Surface | Grown | Ivy / moss / vine |
+| --- | --- | --- |
+| Glass | **0%** | — |
+| Smooth metal | 11.9% | 2.7 / 0 / 9.2 |
+| Perforated metal | 53.3% | 21.9 / 0 / 31.4 |
+| Seam / frame | 82.4% | 42.1 / 0.3 / 40.0 |
+| Louver | 83.8% | 60.8 / 0 / 23.0 |
+| Opaque panel | 88.7% | 46.2 / 1.5 / 41.0 |
+| Ledge / parapet | 80.0% | 34.5 / 0 / 45.4 |
+| Railing | 25.2% | 0.3 / 0 / 25.0 |
+| Ground contact | 80.4% | 37.9 / 22.0 / 20.5 |
+| Recess / underside | 17.7% | 8.0 / 8.8 / 0.9 |
+| Roof garden | 92.1% | 3.3 / 2.3 / 86.5 |
+
+- **Glass stays clear**, and growth goes round it: on The House ivy and vine
+  trace the window grid along the seams and frames, while the smooth panels
+  between them stay mostly bare.
+- **A glass tower is hard to green.** The Graduate Hotel is 39% glass and
+  19% smooth metal; growth holds only on its fins and slab edges, and it
+  falls from 66% under massing to 17%, the lowest on campus. See *Why the
+  Graduate Hotel stays bare*, below.
+- **The solar canopy shades the Bloomberg roof.** A third of the building's
+  cells are roof under the canopy, and that recess grows only 18%, mostly
+  moss and ivy; its perforated walls grow 53%, against 12% for smooth metal
+  elsewhere. It falls from 60% to 31%.
+- **The louvers are climbed**, by ivy where they are shaded and by the vine
+  where they get sun — Verizon's louvers, in the Graduate Hotel's shadow,
+  went mostly to ivy.
+- **Moss gathers low and in the shade**: 22% of the damp bases, against 1.5%
+  of the campus overall.
+- **The roof garden fills**, almost all with the sun-loving vine, and the
+  railing round it is the vine's.
+- **Architecture separates the buildings.** Under massing they were 48–69%
+  covered; with façades, 17–56%, and the order changes: The House goes up
+  (its seams and louvers are better than plain wall); the glassiest buildings
+  — the Graduate, Bloomberg, Tata — go down the most; the plain precast
+  service building barely moves.
+
+The two rows measure different things. A building's figure is the share of
+all its cells that are grown; the campus figure is the share of *growable*
+cells, so glass leaves its denominator. That is why the campus can read
+higher with all six façades (54.1%) than it did with three (46.9%) while no
+building went up: Bloomberg went from 32.8% on the old massing rules to 31.0%,
+the Graduate from 18.3% to 17.0%, and only 8 North Loop Road rose (42.5% to
+50.9%, jointed precast being a better surface than the plain panel) — but
+their new glass left the campus count.
+
+The first coefficients were too harsh: with the vine at 0.55 on panels and
+0.3 on metal, entering a cell — which goes with suitability squared — fell to
+roughly a third, and the vine nearly vanished (29.6% to 3.5% of the campus).
+Softened as above, it holds 21.5%.
+
+Everything measured in the earlier sections — growth, seasons, die-back, the
+by-building tables — was measured on the massing model, which the switch
+keeps.
+
+### Why the Graduate Hotel stays bare
+
+Its cells and what grew on each, four years in, against The House, the
+other tower:
+
+| Surface | Graduate: share | grown | The House: share | grown |
+| --- | --- | --- | --- | --- |
+| Glass | 39% | 0% | 24% | 0% |
+| Seam / frame (fins, slab edges) | 32% | 49% | 51% | 96% |
+| Smooth metal | 19% | 4% | 14% | 20% |
+| Roof | 8% | 0% | 7% | 5% |
+
+Three things compound. **Less to hold**: 58% of the Graduate is glass or
+smooth metal, against 38% of The House. **Paths that don't connect**: The
+House's seams are a grid — bay lines, floor lines and a frame round every
+window — so a climber blocked on one line steps across to the next and 96%
+of them fill. The Graduate's fins are separate vertical lines with glass on
+both sides, joined only by a slab edge every floor; half of them fill. And
+every climber has to get up through a 5.5 m glass storefront that offers a
+mullion only every 3 m, and when die-back takes a stem low on a fin it takes
+everything above. **Nothing reaches the top**: 70 m up, the roof and its edge
+stay at 0%. Its walls also get a little less sun than The House's — 4.7 h a
+day on its seams against 5.5 h.
+
 ## Limitations
 
-- **Massing, not architecture.** Every building is a single extruded footprint.
-  There are no windows, ledges or setbacks, and those features are what the
-  growth model follows. The Bloomberg Center's roof is a large solar canopy in
-  reality; here it is a flat roof.
-- **Flat ground.** Ground elevation is ignored, and the Roosevelt Island Bridge's
-  roadbed lies on the water, at the same level as the island.
+- **Façades are rules, not drawings.** All six buildings have procedural
+  façades from published descriptions and photographs; their proportions are
+  plausible, not surveyed, and 8 North Loop Road's are generic. Tata's
+  cantilever and the Bloomberg solar canopy are drawn but are not in the
+  cells — the computed sun still sees plain prisms, so the shade under them
+  comes from the surface's light multiplier.
+- **Flat ground, but for the south.** Ground elevation is ignored except in the
+  south's landscape, whose relief is drawn but flattened to zero at every
+  path, road and building; the buildings and the growth stand on flat ground.
+  The Roosevelt Island Bridge's roadbed lies on the water, at the same level
+  as the island.
+- **The south mixes sources.** Its green areas, paths and most of its trees
+  are OpenStreetMap's, volunteers' mapping rather than the city's survey; the
+  procedural planting fills only what neither maps. The city's roadbed layer
+  draws some of the parks' paths — Southpoint's loops, Four Freedoms' edge —
+  as asphalt, and they stay that way.
 - **One building has no height.** A parking structure (BIN 1089349) has no roof
   height on record and is drawn at 3 m, which the sidebar says when it is
   selected.
@@ -714,10 +1233,13 @@ scratch: no cell differs.
 - **Context is massing too.** The other island buildings cast shadows from
   their single-height footprints. Trees, which in reality shade the low campus
   buildings, aren't in the data at all.
-- **The final view's light is a stand-in.** In the Final display the scene is
-  lit from a fixed south-west direction, unrelated to the computed sun.
-- **No glass.** The footprints don't say how much of each wall is glazed, so
-  every wall is growable. On a real glass wall a vine needs a trellis.
+- **The light you see is one moment; the growth is a whole day.** The scene's
+  sun is exact for its date and hour, but the growth reads sun hours over a
+  day, blended from three traced days; the two agree on the season, not the
+  moment. The scene has no clouds and no diffuse sky shading either.
+- **Glass is assumed.** The footprints don't say how much of each wall is
+  glazed; the façade rules decide it. With façades off (Massing), every wall
+  is growable.
 - **A year is three days.** The year's light is interpolated between the
   solstices and the equinox by declination, not traced for every day, and
   warmth is a cosine, not temperature data.
@@ -728,11 +1250,17 @@ scratch: no cell differs.
   because the factors say so. Seeding along pavement is an assumption too, and
   the controls show it makes most of the roadside pattern at normal rain.
 - **The ground is flat and 1 m.** No slope, so runoff goes to whatever is
-  unpaved within 3 m; and 1 m cells are coarse against a curb strip. No
-  leaves on the ground — coloured cells only.
-- **Leaves only near the camera.** From further away the growth is coloured
-  cells; see *Up close, and by building*. Leaves carry no age and don't
-  animate.
+  unpaved within 3 m; and 1 m cells are coarse against a curb strip. On the
+  ground only the far level of detail: plant masses, no stems or leaves.
+- **The trees north of the loop road are generic.** They are placeholders for
+  mood, not data; the city has only 52 mapped trees there, too few to stand
+  for the planting. South of it the trees are mapped (see *The south: lawns
+  and parks*). The far shores are real
+  footprints but plain prisms: no setbacks, no roof shapes.
+- **Leaves only near the camera.** Beyond 160 m the growth is masses and,
+  at medium range, stems and clusters; see *Vegetation at three distances*.
+  Leaves are rebuilt at most once a second while growth plays, so they step
+  rather than animate.
 
 ## Next steps
 

@@ -1,4 +1,5 @@
-import { SPECIES, SPECIES_IDS, SPECIES_LOOK } from '../green/species'
+import { SPECIES, SPECIES_IDS } from '../green/species'
+import { SITE_SPECIES } from './siteLook'
 import { STEPS_PER_YEAR, yearPhase, type HistoryPoint } from './campusSim'
 
 const W = 268
@@ -38,7 +39,7 @@ export function SiteHistory({ history, cycling }: { history: HistoryPoint[]; cyc
           <line key={v} x1={PAD} x2={W - PAD} y1={y(v)} y2={y(v)} className="site-history-grid" />
         ))}
         {SPECIES_IDS.map((id, k) => (
-          <path key={id} d={line((p) => p.bySpecies[k] ?? 0)} fill="none" stroke={SPECIES_LOOK[id].swatch} strokeWidth={1.4} />
+          <path key={id} d={line((p) => p.bySpecies[k] ?? 0)} fill="none" stroke={SITE_SPECIES[SPECIES_IDS.indexOf(id)].css} strokeWidth={1.4} />
         ))}
         <path d={line((p) => p.coverage)} fill="none" className="site-history-total" strokeWidth={1.6} />
       </svg>
@@ -47,7 +48,7 @@ export function SiteHistory({ history, cycling }: { history: HistoryPoint[]; cyc
         {SPECIES_IDS.map((id) => (
           <span key={id}>
             {' '}
-            <span className="site-history-key" style={{ background: SPECIES_LOOK[id].swatch }} /> {SPECIES[id].name.toLowerCase()}
+            <span className="site-history-key" style={{ background: SITE_SPECIES[SPECIES_IDS.indexOf(id)].css }} /> {SPECIES[id].name.toLowerCase()}
           </span>
         ))}
         {cycling && <>; winters shaded</>}

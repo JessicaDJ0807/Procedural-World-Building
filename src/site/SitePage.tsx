@@ -4,14 +4,15 @@ import { ViewControls } from '../ViewControls'
 import { Slider } from '../Slider'
 import { ROOF } from '../green/building'
 import { DEFAULT_PARAMS, ENVIRONMENT_SLIDERS, type GrowthParams } from '../green/params'
-import { SPECIES, SPECIES_IDS, SPECIES_LOOK, type SpeciesId } from '../green/species'
+import { SPECIES, SPECIES_IDS, type SpeciesId } from '../green/species'
 import { SEASONS, type Season } from '../green/sunPath'
 import { CAMPUS_CELL, type Campus } from './campus'
 import type { WorkerReply, WorkerRequest } from './campus.worker'
 import { loadSite, polygonArea, ringArea, type Site, type SurfaceKind } from './siteData'
 import { FULL_LIGHT_HOURS, STEPS_PER_YEAR, type SimMode, type SunSet } from './campusSim'
 import type { Roadside } from './roadside'
-import { HOURS_RAMP, MOISTURE_RAMP, SUN_RAMP, SURFACE_COLOURS, rampGradient } from './siteLook'
+import { SURFACE_TYPES, SURFACES } from './facadeSurfaces'
+import { HOURS_RAMP, MOISTURE_RAMP, SITE_SPECIES, SUN_RAMP, SURFACE_COLOURS, rampGradient } from './siteLook'
 import {
   MAX_SUN_HOURS,
   SITE_STALL_STEPS,
@@ -20,16 +21,19 @@ import {
   type SiteDisplay,
   type SiteLayer,
   type SiteReport,
+  type SunMoment,
   type SiteView,
   type Study,
   type Tally,
 } from './SiteViewport'
 import { SiteHistory } from './SiteHistory'
+import { SunDial } from './SunDial'
+import { formatClock, formatDay, lateAfternoon, sunTimes } from './sunClock'
 import '../green/green.css'
 import './site.css'
 
 const LAYERS: { id: SiteLayer; label: string; kinds: SurfaceKind[]; swatch: string }[] = [
-  { id: 'buildings', label: 'Buildings', kinds: [], swatch: '#c9c3b8' },
+  { id: 'buildings', label: 'Buildings', kinds: [], swatch: '#dccbb0' },
   { id: 'green', label: 'Green space', kinds: ['recreation', 'park', 'openSpace', 'vacant'], swatch: SURFACE_COLOURS.recreation },
   { id: 'roads', label: 'Roads', kinds: ['roadbed', 'median'], swatch: SURFACE_COLOURS.roadbed },
   { id: 'sidewalks', label: 'Sidewalks', kinds: ['sidewalk'], swatch: SURFACE_COLOURS.sidewalk },
@@ -63,6 +67,18 @@ const DISPLAYS: { value: SiteDisplay; label: string; legend?: string }[] = [
       'Rain caught on the walls and carried down them, more on the roofs and at their edges, water running off a tall wall onto a lower roof — less where the sun dries it. The same rule as Explore; the city data has no ledges or windows to mark it further.',
   },
   {
+    value: 'surfaces',
+    label: 'Surfaces',
+    legend:
+      "Debug: what each campus cell is, from its building's façade rules — the surface type the growth reads. Glass can't be grown on; seams, louvers, ledges and railings are paths to follow; ground contact and recesses are damp; roof gardens are where planting starts.",
+  },
+  {
+    value: 'suitability',
+    label: 'Suitability',
+    legend:
+      'Debug: how much the species chosen under Planting wants each cell now — light, moisture and the surface, combined. What a growing tip ranks its neighbours by.',
+  },
+  {
     value: 'light',
     label: 'Sunlight',
     legend:
@@ -94,7 +110,7 @@ function SpeciesBar({ tally }: { tally: Tally }) {
   return (
     <span className="site-sunbar site-speciesbar" aria-hidden="true">
       {SPECIES_IDS.map((id, k) => (
-        <span key={id} style={{ flexGrow: tally.grown[k], background: SPECIES_LOOK[id].swatch }} />
+        <span key={id} style={{ flexGrow: tally.grown[k], background: SITE_SPECIES[SPECIES_IDS.indexOf(id)].css }} />
       ))}
       <span style={{ flexGrow: bare }} />
     </span>
@@ -116,12 +132,15 @@ const speciesName = (id: SpeciesId) => SPECIES[id].name
  * popover holds what is painted, the camera and the layer switches, which
  * change nothing but what is drawn.
  */
+/** How long Play the day takes, sunrise to sunset. */
+const DAY_PLAY_MS = 9000
+
 export function SitePage() {
   const [site, setSite] = useState<Site | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [layers, setLayers] = useState(ALL_ON)
   const [selected, setSelected] = useState<number | null>(null)
-  const [view, setView] = useState<SiteView>('island')
+  const [view, setView] = useState<SiteView>('campus')
   const [viewToken, setViewToken] = useState(0)
   const [focus, setFocus] = useState<{ index: number; token: number } | null>(null)
   const [season, setSeason] = useState<Season | 'year'>('year')
@@ -136,6 +155,10 @@ export function SitePage() {
   const [plantSpecies, setPlantSpecies] = useState(0)
   const [report, setReport] = useState<SiteReport | null>(null)
   const [stalledAt, setStalledAt] = useState<number | null>(null)
+  // The scene's sun: null follows the growth's day; paused, a chosen day and hour.
+  const [sunMoment, setSunMoment] = useState<SunMoment | null>(null)
+  // A day played sunrise to sunset: the day, while it plays.
+  const [dayPlay, setDayPlay] = useState<number | null>(null)
   const onStall = useCallback((step: number) => {
     setRunning(false)
     setStalledAt(step)
@@ -172,6 +195,8 @@ export function SitePage() {
   const [suns, setSuns] = useState<SunSet | null>(null)
   const [roadside, setRoadside] = useState<{ data: Roadside; suns: SunSet } | null>(null)
   const [study, setStudy] = useState<Study>('campus')
+  const [rawCells, setRawCells] = useState(false)
+  const [facades, setFacades] = useState(true)
   /** The fixed day the sun bars and sun views describe; over a year, the equinox — the year's middle. */
   const barDay: Season = season === 'year' ? 'equinox' : season
   const daySun = suns?.[barDay] ?? null
@@ -223,6 +248,27 @@ export function SitePage() {
     setFocus((f) => ({ index, token: (f?.token ?? 0) + 1 }))
   }
 
+  const lat = site?.origin.lat ?? 40.76
+  const lon = site?.origin.lon ?? -73.95
+  useEffect(() => {
+    if (dayPlay === null) return
+    const t = sunTimes(lat, lon, dayPlay)
+    // From a quarter of an hour before sunrise to as long after sunset.
+    const from = t.sunrise - 0.25
+    const span = t.length + 0.5
+    const start = performance.now()
+    let frame = 0
+    const tick = (now: number) => {
+      const f = Math.min(1, (now - start) / DAY_PLAY_MS)
+      setSunMoment({ day: dayPlay, hour: from + f * span })
+      if (f < 1) frame = requestAnimationFrame(tick)
+      else setDayPlay(null)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [dayPlay, lat, lon])
+  const shownSun = sunMoment ?? (report && report.sun.day >= 0 ? report.sun : null)
+
   return (
     <div className="workspace green-workspace">
       <div className="workspace-canvas">
@@ -232,6 +278,8 @@ export function SitePage() {
             campus={campus}
             suns={suns}
             study={study}
+            facades={facades}
+            rawCells={rawCells}
             roadside={roadside}
             mode={mode}
             display={display}
@@ -250,7 +298,10 @@ export function SitePage() {
             view={view}
             viewToken={viewToken}
             focus={focus}
-          />
+            sunMoment={sunMoment}
+          >
+            {shownSun && <SunDial lat={lat} lon={lon} day={shownSun.day} hour={shownSun.hour} chosen={sunMoment !== null} />}
+          </SiteViewport>
         ) : (
           <p className="site-status">
             {error
@@ -268,7 +319,7 @@ export function SitePage() {
             <div className="green-legend-species">
               {SPECIES_IDS.map((id) => (
                 <span key={id}>
-                  <span className="green-swatch" style={{ background: SPECIES_LOOK[id].swatch }} aria-hidden="true" />
+                  <span className="green-swatch" style={{ background: SITE_SPECIES[SPECIES_IDS.indexOf(id)].css }} aria-hidden="true" />
                   {SPECIES[id].name}
                 </span>
               ))}
@@ -277,7 +328,21 @@ export function SitePage() {
           </div>
         )}
 
-        {legend?.legend && (
+        {display === 'surfaces' && (
+          <div className="green-legend" aria-live="polite">
+            <div className="site-surface-legend">
+              {SURFACE_TYPES.map((t) => (
+                <span key={t}>
+                  <span className="green-swatch" style={{ background: SURFACES[t].debug }} aria-hidden="true" />
+                  {SURFACES[t].label}
+                </span>
+              ))}
+            </div>
+            <p>{study === 'roadside' ? 'On the roadside: the ground surfaces, as drawn.' : legend?.legend}</p>
+          </div>
+        )}
+
+        {legend?.legend && display !== 'surfaces' && (
           <div className="green-legend" aria-live="polite">
             <div className="green-legend-head">
               <strong>
@@ -359,6 +424,14 @@ export function SitePage() {
               />
             </label>
           ))}
+          <label className="control control-toggle">
+            <span className="control-label">
+              <InfoTip text="Debug: draw the growth as the simulation holds it — one square per cell — instead of as plant masses. The masses are drawn from exactly these cells; this is for checking that they match.">
+                Show simulation cells
+              </InfoTip>
+            </span>
+            <input type="checkbox" checked={rawCells} onChange={(e) => setRawCells(e.target.checked)} />
+          </label>
           <p className="hint">Drag to move, right-drag or ⌘-drag to orbit, scroll to zoom. Hover a building to name it; click to select.</p>
         </ViewControls>
       </div>
@@ -391,9 +464,32 @@ export function SitePage() {
                   </button>
                 ))}
               </div>
+              {study === 'campus' && (
+                <div className="segmented site-facade-toggle" role="radiogroup" aria-label="Façades">
+                  {([true, false] as const).map((on) => (
+                    <button
+                      key={String(on)}
+                      type="button"
+                      role="radio"
+                      aria-checked={facades === on}
+                      className={`segmented-option${facades === on ? ' is-active' : ''}`}
+                      title={on ? 'Procedural façades: windows, seams, louvers, ledges, terraces — and what each means to a plant' : 'The plain footprint massing the earlier studies used'}
+                      onClick={() => {
+                        setRunning(false)
+                        setStalledAt(null)
+                        setFacades(on)
+                      }}
+                    >
+                      {on ? 'Detailed façades' : 'Massing'}
+                    </button>
+                  ))}
+                </div>
+              )}
               <p className="hint">
                 {study === 'campus'
-                  ? 'Ivy, moss and a flowering vine on the Cornell Tech buildings.'
+                  ? facades
+                    ? 'Ivy, moss and a flowering vine on the Cornell Tech buildings, with procedural façades: glass stays clear, seams, louvers and ledges are what plants hold on to.'
+                    : 'Ivy, moss and a flowering vine on the Cornell Tech buildings as plain massing — every wall the same surface.'
                   : 'The same three plants on the ground: ivy as ground cover, moss in damp shade, and the vine standing in for bindweed along sunny verges. Seeds start along the edges of pavement.'}
               </p>
 
@@ -408,6 +504,11 @@ export function SitePage() {
                   className="reset-button is-primary"
                   onClick={() => {
                     setStalledAt(null)
+                    // Playing hands the scene's sun back to the growth.
+                    if (!running) {
+                      setDayPlay(null)
+                      setSunMoment(null)
+                    }
                     setRunning((r) => !r)
                   }}
                 >
@@ -488,7 +589,7 @@ export function SitePage() {
                         className={`site-plant${plantSpecies === k ? ' is-active' : ''}`}
                         onClick={() => setPlantSpecies(k)}
                       >
-                        <span className="green-swatch" style={{ background: SPECIES_LOOK[id].swatch }} aria-hidden="true" />
+                        <span className="green-swatch" style={{ background: SITE_SPECIES[SPECIES_IDS.indexOf(id)].css }} aria-hidden="true" />
                         {speciesName(id)}
                       </button>
                     ))}
@@ -501,7 +602,7 @@ export function SitePage() {
               )}
 
               <h3 className="control-group">
-                <InfoTip text="The sun's real path over Roosevelt Island (40.76° N) on a clear day, every half hour, with a shadow ray from every campus cell through every building on the island. Open View → Display to paint it on the campus.">
+                <InfoTip text="The sun's real path over Roosevelt Island (40.76° N) on a clear day, every half hour, with a shadow ray from every campus cell through every building on the island. Open View → Display to paint it on the campus. The scene is lit by the real sun on the day showing, late in the afternoon; pause to choose any date and hour.">
                   Sunlight
                 </InfoTip>
               </h3>
@@ -538,6 +639,54 @@ export function SitePage() {
                   </p>
                 )
               )}
+              {shownSun &&
+                (running ? (
+                  <p className="hint">The light follows the growth&apos;s day, late in the afternoon. Pause to choose a date and hour.</p>
+                ) : (
+                  <div className="site-sun-scrub">
+                    <Slider
+                      label="Light on"
+                      info="Only what you see: the sun, sky and shadows. The growth keeps its own day."
+                      value={shownSun.day}
+                      display={formatDay(shownSun.day)}
+                      min={0}
+                      max={364}
+                      step={1}
+                      onChange={(day) => {
+                        setDayPlay(null)
+                        setSunMoment({ day, hour: sunMoment ? sunMoment.hour : lateAfternoon(lat, lon, day) })
+                      }}
+                    />
+                    <Slider
+                      label="At"
+                      value={shownSun.hour}
+                      display={formatClock(shownSun.hour)}
+                      min={4}
+                      max={21}
+                      step={0.25}
+                      onChange={(hour) => {
+                        setDayPlay(null)
+                        setSunMoment({ day: shownSun.day, hour })
+                      }}
+                    />
+                    <div className="button-row">
+                      <button type="button" className="reset-button" onClick={() => setDayPlay(shownSun.day)}>
+                        {dayPlay !== null ? 'Playing…' : 'Play the day'}
+                      </button>
+                      <button
+                        type="button"
+                        className="reset-button"
+                        disabled={sunMoment === null}
+                        onClick={() => {
+                          setDayPlay(null)
+                          setSunMoment(null)
+                        }}
+                      >
+                        Follow growth
+                      </button>
+                    </div>
+                  </div>
+                ))}
               <label className="control control-toggle">
                 <span className="control-label">
                   <InfoTip text="Grown cells wither where their species can't live, and a climber's stem takes everything above it when it goes. Roots survive and regrow when conditions turn. Off, nothing ever dies, and growth only adds.">
@@ -591,7 +740,7 @@ export function SitePage() {
                         setParams((p) => ({ ...p, species: { ...p.species, [id]: { ...p.species[id], enabled } } }))
                       }}
                     />
-                    <span className="green-swatch" style={{ background: SPECIES_LOOK[id].swatch }} aria-hidden="true" />
+                    <span className="green-swatch" style={{ background: SITE_SPECIES[SPECIES_IDS.indexOf(id)].css }} aria-hidden="true" />
                     <span className="green-species-name">{SPECIES[id].name}</span>
                     <span className="green-species-share">
                       {report && params.species[id].enabled ? `${(report.bySpecies[k] * 100).toFixed(1)}%` : 'off'}

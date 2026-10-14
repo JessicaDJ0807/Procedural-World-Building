@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { ROOF, inside } from '../green/building'
 import { shellGeometry } from '../green/buildingMesh'
 import type { GrowthParams } from '../green/params'
-import { SPECIES_IDS, SPECIES_LOOK } from '../green/species'
+import { SPECIES_IDS } from '../green/species'
 import { SEASONS } from '../green/sunPath'
 import { NO_SPECIES } from '../green/growth'
 import { applyMapDrag, clampTarget } from '../mapDrag'
@@ -14,15 +14,38 @@ import { VIEWPORT_BACKGROUND, VIZ_ACCENT } from '../theme'
 import type { Campus } from './campus'
 import { CampusSim, type HistoryPoint, type SimMode, type SunSet } from './campusSim'
 import { LEAF_RANGE, SiteLeaves } from './siteLeaves'
+import { vegetationOverlay, writeVegetation } from './siteVegetation'
+import { STRUCTURE_RANGE, SiteStructure } from './siteStructure'
+import { buildFacade, facadeBuilding } from './facade'
+import { SURFACE_TYPES, SURFACES } from './facadeSurfaces'
 import type { Roadside } from './roadside'
 import { RoadsideLayer } from './roadsideLayer'
 import { centroid, type Polygon, type Site, type SiteBuilding, type SurfaceKind } from './siteData'
-import { HOURS_RAMP, MOISTURE_RAMP, SUN_RAMP, SURFACE_COLOURS, rampColour } from './siteLook'
+import {
+  BUILDING_STONE,
+  CAMPUS_STONE,
+  FADE_STEPS,
+  FLOWER_STEPS,
+  FRESH_STEPS,
+  HOURS_RAMP,
+  MOISTURE_RAMP,
+  SCENE,
+  SITE_SPECIES,
+  SUN_RAMP,
+  SURFACE_COLOURS,
+  flowering,
+  growthColour,
+  rampColour,
+} from './siteLook'
+import { SunsetLight, contextTrees, fitHaze, glassMaterial, haze, skyDome } from './siteAtmosphere'
+import { SEASON_DAY, dayOfPhase, lateAfternoon, sunAtClock } from './sunClock'
+import { loadContext, massingMesh } from './siteContext'
+import { buildLandscape, loadLandscape, type Landscape } from './siteLandscape'
 
 export type SiteLayer = 'buildings' | 'green' | 'roads' | 'sidewalks' | 'parking'
 export type SiteView = 'island' | 'campus'
 /** How the campus is painted. Final is the buildings and what has grown on them; the rest are fields. */
-export type SiteDisplay = 'final' | 'species' | 'hours' | 'light' | 'moisture'
+export type SiteDisplay = 'final' | 'species' | 'hours' | 'light' | 'moisture' | 'surfaces' | 'suitability'
 export type Seeding = 'auto' | 'manual'
 
 /** Which study is running: growth on the Cornell Tech buildings, or along the island's roads. */
@@ -50,7 +73,11 @@ export type SiteReport = {
   leaves: number
   /** Roadside only: what has grown by surface, then near pavement and farther. */
   bySurface: Tally[]
+  /** The sun the scene is lit by: day of the year (1 January = 0) and clock hour. */
+  sun: SunMoment
 }
+
+export type SunMoment = { day: number; hour: number }
 
 export type Tally = { key: string | number; cells: number; grown: number[] }
 
@@ -92,10 +119,9 @@ const SURFACE_LAYER: Record<SurfaceKind, SiteLayer> = {
 const SURFACE_ORDER: SurfaceKind[] = ['recreation', 'park', 'openSpace', 'vacant', 'parking', 'roadbed', 'median', 'sidewalk']
 
 const COLOURS = {
-  water: new THREE.Color('#2c3a43'),
-  land: new THREE.Color('#8c877a'),
-  building: new THREE.Color('#c9c3b8'),
-  campus: new THREE.Color('#dcb77a'),
+  water: new THREE.Color(SCENE.water),
+  land: new THREE.Color(SCENE.land),
+  campus: new THREE.Color(CAMPUS_STONE),
   selected: new THREE.Color(VIZ_ACCENT),
 }
 
@@ -107,11 +133,19 @@ const COLOURS = {
  */
 const VIEWS: Record<SiteView, { position: [number, number, number]; target: [number, number, number] }> = {
   island: { position: [1740, 3390, 1220], target: [0, 0, 0] },
-  campus: { position: [-90, 260, 900], target: [-405, 20, 615] },
+  // Low and close, from the south-west, with the low sun behind the camera:
+  // the campus's faces lit gold, Queens across the river behind it. The page
+  // opens here — the island view from 3 km up made the towers nearest the
+  // camera look like stretched boxes.
+  campus: { position: [-680, 105, 850], target: [-405, 28, 612] },
 }
 
 type Props = {
   study: Study
+  /** Detailed façades (windows, louvers, ledges, with their effect on growth), or the plain massing. */
+  facades: boolean
+  /** Debug: draw the simulation's cells as squares instead of plant masses. */
+  rawCells: boolean
   /** The ground and its three days of sun, once the worker has built them. */
   roadside: { data: Roadside; suns: SunSet } | null
   site: Site
@@ -137,6 +171,10 @@ type Props = {
   viewToken: number
   /** Frame one building. A new token flies again, even to the same building. */
   focus: { index: number; token: number } | null
+  /** Light the scene at this day and hour; null follows the growth's day, late in the afternoon. */
+  sunMoment: SunMoment | null
+  /** Overlays drawn over the scene, such as the sun dial. */
+  children?: ReactNode
 }
 
 /** A polygon as a flat triangulated shape on the ground plane. */
@@ -210,6 +248,8 @@ export function SiteViewport(props: Props) {
     paint: (display: SiteDisplay) => void
     attachRoadside: (data: Roadside, suns: SunSet) => void
     setStudy: (study: Study) => void
+    setRaw: (raw: boolean) => void
+    setFacades: (on: boolean) => void
     setMode: (mode: SimMode) => void
     setParams: (params: GrowthParams, previous: GrowthParams | null) => void
     reset: () => void
@@ -231,15 +271,32 @@ export function SiteViewport(props: Props) {
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(container.clientWidth, container.clientHeight)
+    // Filmic tone mapping, for a sunset's range: a bright orange sun on pale
+    // stone would clip to flat white without it. The data views opt out.
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.12
+    // Shadows from the low sun, drawn on demand: the sun never moves, so the
+    // map changes only when the view moves far enough to refit it.
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.PCFShadowMap
+    renderer.shadowMap.autoUpdate = false
     container.prepend(renderer.domElement)
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(VIEWPORT_BACKGROUND)
+    scene.add(skyDome())
+    const fog = haze()
+    scene.fog = fog
     const camera = new THREE.PerspectiveCamera(34, container.clientWidth / Math.max(container.clientHeight, 1), 2, 15000)
-    camera.position.set(...VIEWS.island.position)
+    camera.position.set(...VIEWS.campus.position)
     const controls = new OrbitControls(camera, renderer.domElement)
+    // The hover label describes what was under the pointer; once the view
+    // moves without it — a scroll to zoom — it describes something else.
+    controls.addEventListener('start', () => {
+      if (tipRef.current) tipRef.current.hidden = true
+    })
     controls.enableDamping = true
-    controls.target.set(...VIEWS.island.target)
+    controls.target.set(...VIEWS.campus.target)
     controls.maxPolarAngle = Math.PI * 0.47
     controls.minDistance = 40
     controls.maxDistance = 6000
@@ -247,22 +304,69 @@ export function SiteViewport(props: Props) {
     controls.update()
     const gate = createCameraGate()
 
-    // Low sun from the south-west, so the towers' long faces read apart. A
-    // stand-in until the sunlight field is moved here with the real sun path.
-    scene.add(new THREE.HemisphereLight(0xd6dde6, 0x4a463e, 1.1))
-    const sun = new THREE.DirectionalLight(0xfff1dc, 2.0)
-    sun.position.set(-0.55, 0.62, 0.56)
-    scene.add(sun)
+    // Golden hour: a low orange sun over Manhattan, cool sky light in the
+    // shadows. Mood, not the growth model's sun — see siteAtmosphere.ts.
+    const light = new SunsetLight(scene)
 
     // --- ground: water, the island, then the surfaces in painter's order ---
     const flatMaterial = (colour: THREE.Color | string) =>
       new THREE.MeshLambertMaterial({ color: colour, depthWrite: false })
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(14000, 14000).rotateX(-Math.PI / 2), flatMaterial(COLOURS.water))
+    // The river: plain slate, unlit, taking only the haze. Glossy, with
+    // nothing to reflect, it read as a dark void; lit, the lavender sky light
+    // turned it purple.
+    const water = new THREE.Mesh(
+      new THREE.PlaneGeometry(14000, 14000).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: COLOURS.water, depthWrite: false }),
+    )
     water.position.y = -0.5
     water.renderOrder = -2
     const land = new THREE.Mesh(flat([site.island]), flatMaterial(COLOURS.land))
     land.renderOrder = -1
+    land.receiveShadow = true
     scene.add(water, land)
+    // The island's planted context, as generic trees; and the real buildings
+    // across the river, added when their file arrives (0.26 MB gzipped, about
+    // 50 ms to build).
+    const trees = contextTrees(site)
+    scene.add(trees)
+    let disposed = false
+    // The south's landscape — lawns, parks, relief, mapped and procedural
+    // trees — when its file arrives; the generic trees step aside there.
+    // Buildings study only: the roadside study paints the same ground as its
+    // own 1 m cells, and the two drawn together were a patchwork, the
+    // landscape's mounds poking up through the roadside's flat ground.
+    let landscape: Landscape | null = null
+    let treesOutside: THREE.Group | null = null
+    const showLandscape = () => {
+      const on = landscape !== null && latest.current.study === 'campus'
+      if (landscape) landscape.group.visible = on && latest.current.layers.green
+      trees.visible = !on
+      if (treesOutside) treesOutside.visible = on
+      renderer.shadowMap.needsUpdate = true
+    }
+    loadLandscape().then(
+      (data) => {
+        if (disposed) return
+        landscape = buildLandscape(site, data)
+        treesOutside = contextTrees(site, landscape.covers)
+        scene.add(landscape.group, treesOutside)
+        showLandscape()
+        loop.wake()
+      },
+      () => {
+        // Scenery only: without it the south stays bare ground.
+      },
+    )
+    loadContext().then(
+      (ctx) => {
+        if (disposed) return
+        scene.add(massingMesh(ctx))
+        loop.wake()
+      },
+      () => {
+        // Scenery only: without it the page still works, with an empty shore.
+      },
+    )
 
     const surfaceMeshes: { mesh: THREE.Mesh; layer: SiteLayer }[] = []
     SURFACE_ORDER.forEach((kind, i) => {
@@ -270,6 +374,7 @@ export function SiteViewport(props: Props) {
       if (!polygons?.length) return
       const mesh = new THREE.Mesh(mergeGeometries(polygons.map(flat)), flatMaterial(SURFACE_COLOURS[kind]))
       mesh.renderOrder = i
+      mesh.receiveShadow = true
       surfaceMeshes.push({ mesh, layer: SURFACE_LAYER[kind] })
       scene.add(mesh)
     })
@@ -285,10 +390,25 @@ export function SiteViewport(props: Props) {
       if (k === undefined) return
       for (let v = context.starts[k] * 3; v < context.starts[k + 1] * 3; v++) colour.toArray(colours, v * 3)
     }
-    contextIndices.forEach((i) => paintBuilding(i, COLOURS.building))
-    const buildingMaterial = new THREE.MeshLambertMaterial({ vertexColors: true })
+    // Each building its own stone, by a hash of its index: mostly cream,
+    // sandstone and taupe, now and then clay or terracotta.
+    const stones = BUILDING_STONE.map(([c, share]) => ({ colour: new THREE.Color(c), share }))
+    const stoneOf = (i: number) => {
+      let h = Math.imul((i + 1) ^ 0x9e3779b9, 0x85ebca6b)
+      h ^= h >>> 15
+      let t = (h >>> 0) / 4294967296
+      for (const st of stones) {
+        if (t < st.share) return st.colour
+        t -= st.share
+      }
+      return stones[0].colour
+    }
+    contextIndices.forEach((i) => paintBuilding(i, stoneOf(i)))
+    const buildingMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.88, metalness: 0 })
     const buildings = new THREE.Mesh(context.geo, buildingMaterial)
     buildings.renderOrder = 20
+    buildings.castShadow = true
+    buildings.receiveShadow = true
     // Outlines at the creases of every building, campus included, so a block
     // of towers reads as separate volumes from far enough away that shading
     // alone runs them together — and so the campus keeps its shape when it is
@@ -296,13 +416,45 @@ export function SiteViewport(props: Props) {
     const allPrisms = merged(site, site.buildings.map((_, i) => i))
     const edges = new THREE.LineSegments(
       new THREE.EdgesGeometry(allPrisms.geo, 30),
-      new THREE.LineBasicMaterial({ color: 0x3a3833, transparent: true, opacity: 0.45 }),
+      new THREE.LineBasicMaterial({ color: SCENE.edges, transparent: true, opacity: 0.22 }),
     )
     allPrisms.geo.dispose()
     edges.renderOrder = 21
 
     // --- the campus, from its cells ---
     const cells = campus.building
+    // The procedural façades: a surface type per cell, and the boxes that show them.
+    const facade = buildFacade(campus, site)
+    const facadeMesh = new THREE.Group()
+    for (const mesh of [
+      new THREE.Mesh(facade.geometry, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0 })),
+      new THREE.Mesh(facade.glass, glassMaterial()),
+    ]) {
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+      mesh.renderOrder = 20
+      facadeMesh.add(mesh)
+    }
+    facadeMesh.visible = latest.current.facades
+    scene.add(facadeMesh)
+    const surfaceDebug = SURFACE_TYPES.map((t) => new THREE.Color(SURFACES[t].debug))
+    // Each campus building's façade, as its three largest surface types.
+    const facadeMix = new Map<number, string>()
+    {
+      const counts = new Map<number, number[]>()
+      for (let i = 0; i < cells.count; i++) {
+        const o = campus.owner[i]
+        if (o < 0) continue
+        const row = counts.get(o) ?? new Array(SURFACE_TYPES.length).fill(0)
+        row[facade.surface[i]]++
+        counts.set(o, row)
+      }
+      for (const [o, row] of counts) {
+        const total = row.reduce((a, b) => a + b, 0)
+        const top = row.map((n, k) => [n, k]).sort((a, b) => b[0] - a[0]).slice(0, 3)
+        facadeMix.set(o, top.map(([n, k]) => `${Math.round((100 * n) / total)}% ${SURFACES[SURFACE_TYPES[k]].label.toLowerCase()}`).join(', '))
+      }
+    }
     const shellGeo = shellGeometry(cells)
     // Which building each shell vertex belongs to, for the selection tint:
     // walls come first, six vertices per segment in segment order; roof
@@ -319,13 +471,20 @@ export function SiteViewport(props: Props) {
       vertexOwner[v] = vertexOwner[v + 1] = vertexOwner[v + 2] = o
     }
     const shellColours = shellGeo.attributes.color.array as Float32Array
-    // The final view's colours are in its texture; the vertex colour only
-    // tints the selected building toward the accent.
-    const tint = new THREE.Color(1, 1, 1).lerp(COLOURS.selected, 0.6)
-    const white = new THREE.Color(1, 1, 1)
+    // The stone is vertex colour — walls, and roofs a shade darker — tinted
+    // toward the accent on the selected building. The plants are a separate
+    // layer over it (siteVegetation.ts).
+    const wallBase = COLOURS.campus
+    const roofBase = COLOURS.campus.clone().multiplyScalar(0.88)
+    const tinted = new THREE.Color()
+    const wallVertices = cells.segments.length * 6
     const paintCampus = (selectedIndex: number | null) => {
       for (let v = 0; v < shellPos.count; v++) {
-        ;(vertexOwner[v] === selectedIndex && selectedIndex !== null ? tint : white).toArray(shellColours, v * 3)
+        const own = vertexOwner[v]
+        const facadeWall = latest.current.facades && own >= 0 ? facade.wallColour.get(own) : undefined
+        tinted.copy(v < wallVertices ? (facadeWall ?? wallBase) : roofBase)
+        if (vertexOwner[v] === selectedIndex && selectedIndex !== null) tinted.lerp(COLOURS.selected, 0.5)
+        tinted.toArray(shellColours, v * 3)
       }
       shellGeo.attributes.color.needsUpdate = true
     }
@@ -345,33 +504,57 @@ export function SiteViewport(props: Props) {
     }
     const texData = new Uint8Array(texW * texH * 4)
     const fieldTexture = cellTexture(texData)
-    const finalData = new Uint8Array(texW * texH * 4)
-    const finalTexture = cellTexture(finalData)
+    // The plants at Site scale: masses drawn from the cells, over the stone.
+    const overlay = vegetationOverlay(texW, texH)
     const texelCell = new Int32Array(texW * texH).fill(-1)
     for (let i = 0; i < cells.count; i++) texelCell[cells.texel[i]] = i
-    const campusPlain = new THREE.MeshLambertMaterial({ map: finalTexture, vertexColors: true })
+    const campusPlain = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 })
     // Flat, not lit: a shaded face would read as less sun, which is the one
-    // thing the field is there to say.
-    const campusField = new THREE.MeshBasicMaterial({ map: fieldTexture })
+    // thing the field is there to say. Nor hazed or tone-mapped, so a colour
+    // on screen is the colour in the legend.
+    const campusField = new THREE.MeshBasicMaterial({ map: fieldTexture, fog: false, toneMapped: false })
     const shell = new THREE.Mesh<THREE.BufferGeometry, THREE.Material>(shellGeo, campusPlain)
     shell.renderOrder = 20
-    scene.add(buildings, shell, edges)
+    shell.castShadow = true
+    shell.receiveShadow = true
+    const plants = new THREE.Mesh(shellGeo, overlay.material)
+    plants.renderOrder = 21
+    plants.receiveShadow = true
+    scene.add(buildings, shell, plants, edges)
 
+    // Three levels of detail over the same growth: masses (the plant layer)
+    // everywhere, stems and clusters at medium range, full leaves close up.
     const leaves = new SiteLeaves(cells)
     scene.add(...leaves.meshes)
     let leavesBuiltAt = 0
+    const structure = new SiteStructure(cells)
+    scene.add(structure.group)
+    let structureBuiltAt = 0
 
     // --- the simulation ---
-    const sim = new CampusSim(campus, latest.current.suns, latest.current.params, latest.current.mode)
+    // With façades the growth runs on the same cells and neighbours with the
+    // façade's flags, seeds and coefficients; the seed and tip counts stay the
+    // massing's, so the two compare at the same planting density.
+    const massScale = (cells.ground.length * cells.cell) / 64
+    const makeSim = (on: boolean) =>
+      on
+        ? new CampusSim(
+            {
+              building: facadeBuilding(cells, facade),
+              scale: massScale,
+              habitatBySpecies: facade.habitat,
+              moistureBonus: facade.moisture,
+              lightScale: facade.light,
+            },
+            latest.current.suns,
+            latest.current.params,
+            latest.current.mode,
+          )
+        : new CampusSim(campus, latest.current.suns, latest.current.params, latest.current.mode)
+    let sim = makeSim(latest.current.facades)
     sim.reset(latest.current.seeding === 'auto')
-    const growth = sim.growth
-    const looks = SPECIES_IDS.map((id) => ({
-      lush: new THREE.Color(SPECIES_LOOK[id].lush),
-      dry: new THREE.Color(SPECIES_LOOK[id].dry),
-      swatch: new THREE.Color(SPECIES_LOOK[id].swatch),
-    }))
-    const wallBase = COLOURS.campus
-    const roofBase = COLOURS.campus.clone().multiplyScalar(0.86)
+    let growth = sim.growth
+    const looks = SITE_SPECIES
     // THREE.Color holds linear values; the textures are sRGB, so each colour
     // is converted on the way in. Writing the linear values straight in made
     // every cell darker than its colour — the campus brown instead of amber,
@@ -386,17 +569,19 @@ export function SiteViewport(props: Props) {
       data[t + 3] = 255
     }
     /**
-     * A grown cell's colour in the final view: its species' lush green, pulled
-     * toward the dry one where the cell is dry, and nudged per cell in
-     * lightness so a covered wall reads as foliage rather than paint. The
-     * same rule Explore applies per leaf, applied per cell.
+     * A grown cell into the plant layer: its colour by species, age and
+     * stress (siteLook's growthColour; flowers are the layer's own flecks),
+     * its species, and whether it is in flower.
      */
-    const plantColour = (cell: number, out: THREE.Color) => {
+    const paintCell = (cell: number) => {
       const sp = growth.species[cell]
-      const wet = Math.min(1, sim.fields.moisture[cell] * 1.4)
-      out.copy(looks[sp].dry).lerp(looks[sp].lush, wet)
-      const h = Math.imul(cell ^ 0x9e3779b9, 0x85ebca6b) >>> 0
-      return out.offsetHSL(((h & 255) / 255 - 0.5) * 0.03, 0, (((h >>> 8) & 255) / 255 - 0.5) * 0.16)
+      const age = growth.step - growth.birth[cell]
+      growthColour(sp, age, sim.fields.env[sp][cell], cell, colour, false)
+      writeVegetation(overlay, cells.texel[cell], colour, 1, sp, flowering(sp, age, cell))
+    }
+    const plantsChanged = () => {
+      overlay.colour.needsUpdate = true
+      overlay.kind.needsUpdate = true
     }
     const colour = new THREE.Color()
     // The grown cells listed first in `growth.order` that are already painted,
@@ -405,15 +590,16 @@ export function SiteViewport(props: Props) {
     const shown = new Uint8Array(cells.count)
     const paintFinal = (full: boolean) => {
       if (full || growth.grown < painted) {
-        for (let i = 0; i < cells.count; i++) write(finalData, i, cells.flags[i] & ROOF ? roofBase : wallBase)
+        overlay.colourData.fill(0)
+        overlay.kindData.fill(0)
         shown.fill(0)
         painted = 0
       }
       for (let k = painted; k < growth.grown; k++) {
-        write(finalData, growth.order[k], plantColour(growth.order[k], colour))
+        paintCell(growth.order[k])
         shown[growth.order[k]] = 1
       }
-      if (full || growth.grown !== painted) finalTexture.needsUpdate = true
+      if (full || growth.grown !== painted) plantsChanged()
       painted = growth.grown
     }
     paintFinal(true)
@@ -422,18 +608,21 @@ export function SiteViewport(props: Props) {
     const empty = new THREE.Color('#2a2b2d')
     const paint = (mode: SiteDisplay) => {
       shell.material = mode === 'final' ? campusPlain : campusField
+      plants.visible = mode === 'final' && latest.current.layers.buildings
       if (mode !== 'final') {
         texData.fill(90)
         for (let i = 0; i < cells.count; i++) {
           if (mode === 'hours') rampColour(HOURS_RAMP, sim.hours[i], ramp)
           else if (mode === 'light') rampColour(SUN_RAMP, sim.energy[i], ramp)
           else if (mode === 'moisture') rampColour(MOISTURE_RAMP, sim.fields.moisture[i], ramp)
+          else if (mode === 'surfaces') ramp.copy(surfaceDebug[facade.surface[i]])
+          else if (mode === 'suitability') rampColour(SUN_RAMP, sim.fields.suitability[latest.current.plantSpecies][i], ramp)
           else ramp.copy(growth.species[i] === NO_SPECIES ? empty : looks[growth.species[i]].swatch)
           write(texData, i, ramp)
         }
         fieldTexture.needsUpdate = true
       }
-      road?.setDisplay(mode)
+      road?.setDisplay(mode, latest.current.plantSpecies)
       loop.wake()
     }
     /** After growth changes: the final texture always, the species view if it is showing. */
@@ -448,6 +637,43 @@ export function SiteViewport(props: Props) {
     let pending = 0
     let stallReported = false
     let fieldsSeen = sim.fieldsVersion
+
+    // --- growth that changes colour as it ages ---
+    // Dying cells, as [cell, species, step of death], fading out.
+    let fading: number[] = []
+    /**
+     * After each advance: the growth front settles from fresh to its
+     * species' green, young vine cells come into flower, and dead cells fade
+     * from withered brown-grey back to bare wall. All three touch only the
+     * cells still changing — the youngest few thousand at the end of the
+     * birth-ordered list, and the dying — never the whole campus.
+     */
+    const animate = (steps: number) => {
+      const step = growth.step
+      // Wide enough to catch every cell that crossed an age threshold in this advance.
+      const horizon = Math.max(FRESH_STEPS, FLOWER_STEPS) + steps + 1
+      for (let k = growth.grown - 1; k >= 0; k--) {
+        const cell = growth.order[k]
+        if (step - growth.birth[cell] > horizon) break
+        paintCell(cell)
+      }
+      if (fading.length) {
+        const keep: number[] = []
+        for (let i = 0; i < fading.length; i += 3) {
+          const cell = fading[i]
+          // Regrown since: the growth paints it.
+          if (growth.birth[cell] >= 0) continue
+          // Withered brown-grey, thinning: its occupancy falls to nothing over
+          // FADE_STEPS, so the mass shrinks back from the dying cells.
+          const since = step - fading[i + 2]
+          const sp = fading[i + 1]
+          writeVegetation(overlay, cells.texel[cell], SITE_SPECIES[sp].withered, 1 - since / FADE_STEPS, sp, false)
+          if (since < FADE_STEPS) keep.push(cell, sp, fading[i + 2])
+        }
+        fading = keep
+      }
+      plantsChanged()
+    }
 
     // --- the roadside study, once its ground arrives ---
     let road: RoadsideLayer | null = null
@@ -465,6 +691,7 @@ export function SiteViewport(props: Props) {
     }
     const setStudy = (study: Study) => {
       if (road) road.mesh.visible = study === 'roadside'
+      showLandscape()
       stallReported = false
       pending = 0
       dirty = true
@@ -484,15 +711,13 @@ export function SiteViewport(props: Props) {
       // Within one call cells can grow, die, and others grow after them, so
       // the painted survivors are the painted count less the painted dead.
       const died = sim.takeDied()
-      if (died.length) {
-        for (const cell of died) {
-          write(finalData, cell, cells.flags[cell] & ROOF ? roofBase : wallBase)
-          if (shown[cell]) {
-            shown[cell] = 0
-            painted--
-          }
+      for (let d = 0; d < died.length; d += 3) {
+        const cell = died[d]
+        fading.push(cell, died[d + 1], died[d + 2])
+        if (shown[cell]) {
+          shown[cell] = 0
+          painted--
         }
-        finalTexture.needsUpdate = true
       }
       // Over a year the light, and with it the moisture, changes every 200
       // steps: every green shifts, and a field on screen is out of date.
@@ -502,6 +727,7 @@ export function SiteViewport(props: Props) {
         const d = latest.current.display
         if (d === 'hours' || d === 'light' || d === 'moisture') paint(d)
       } else repaintGrowth()
+      animate(steps)
     }
     const reset = () => {
       stallReported = false
@@ -513,6 +739,7 @@ export function SiteViewport(props: Props) {
         return
       }
       sim.reset(latest.current.seeding === 'auto')
+      fading = []
       repaintGrowth(true)
     }
     const setMode = (m: SimMode) => {
@@ -534,7 +761,7 @@ export function SiteViewport(props: Props) {
 
     let current: number | null = null
     const setSelected = (index: number | null) => {
-      if (current !== null) paintBuilding(current, COLOURS.building)
+      if (current !== null) paintBuilding(current, stoneOf(current))
       current = index
       if (current !== null) paintBuilding(current, COLOURS.selected)
       context.geo.attributes.color.needsUpdate = true
@@ -544,7 +771,10 @@ export function SiteViewport(props: Props) {
 
     const setLayers = (l: Record<SiteLayer, boolean>) => {
       buildings.visible = edges.visible = shell.visible = l.buildings
+      facadeMesh.visible = l.buildings && latest.current.facades
+      plants.visible = l.buildings && latest.current.display === 'final'
       for (const { mesh, layer } of surfaceMeshes) mesh.visible = l[layer]
+      showLandscape()
       loop.wake()
     }
 
@@ -617,6 +847,15 @@ export function SiteViewport(props: Props) {
         else if (mode === 'light') text = `${name} · ${Math.round(sim.energy[c] * 100)}% of June's open-ground sun · ${day}`
         else if (mode === 'moisture') text = `${name} · moisture ${Math.round(sim.fields.moisture[c] * 100)}% · ${hours}`
         else if (growth.species[c] !== NO_SPECIES) text = `${name} · ${SPECIES_IDS[growth.species[c]]} · ${hours}`
+      }
+      // With façades on, what this piece of wall is and what it means to a
+      // plant, and the building's façade mix: why a building is bare is
+      // usually there — the Graduate Hotel is 39% glass.
+      if (c >= 0 && latest.current.facades) {
+        const info = SURFACES[SURFACE_TYPES[facade.surface[c]]]
+        text += `\n${info.label}: ${info.note}`
+        const mix = facadeMix.get(hovered.building)
+        if (mix) text += `\nFaçade: ${mix}`
       }
       tip.hidden = false
       tip.textContent = text
@@ -712,6 +951,18 @@ export function SiteViewport(props: Props) {
       return { byBuilding: [...byBuilding.values()], byFacing }
     }
 
+    // The sun the scene shows: the growth's day (whole days, so a playing year
+    // redraws shadows once a simulated day, not every frame), late in the
+    // afternoon — or the paused page's chosen moment.
+    const lit: SunMoment = { day: -1, hour: -1 }
+    const sunMoment = (): SunMoment => {
+      const chosen = latest.current.sunMoment
+      if (chosen) return chosen
+      const d = latest.current.mode.day
+      const day = d === 'year' ? Math.floor(dayOfPhase(activeSim().phase)) : SEASON_DAY[d]
+      return { day, hour: lateAfternoon(site.origin.lat, site.origin.lon, day) }
+    }
+
     let since = performance.now()
     const loop = startRenderLoop((delta) => {
       const { running, speed, onReport, onStall } = latest.current
@@ -740,9 +991,23 @@ export function SiteViewport(props: Props) {
       }
       controls.update()
       clampTarget(controls, camera, PAN_BOUNDS)
+      const viewDistance = camera.position.distanceTo(controls.target)
+      fitHaze(fog, viewDistance)
+      const moment = sunMoment()
+      if (moment.day !== lit.day || moment.hour !== lit.hour) {
+        lit.day = moment.day
+        lit.hour = moment.hour
+        light.setSun(sunAtClock(site.origin.lat, site.origin.lon, moment.day, moment.hour), fog)
+        renderer.shadowMap.needsUpdate = true
+        dirty = true
+      }
+      if (light.fit(controls.target, viewDistance)) renderer.shadowMap.needsUpdate = true
       // Leaves only close up, in the final view, with the buildings shown.
       const close =
-        camera.position.distanceTo(controls.target) < LEAF_RANGE && latest.current.display === 'final' && latest.current.layers.buildings
+        camera.position.distanceTo(controls.target) < LEAF_RANGE &&
+        latest.current.display === 'final' &&
+        latest.current.layers.buildings &&
+        !latest.current.rawCells
       leaves.visible = close
       let leavesPending = false
       if (close && leaves.stale(controls.target, growth, sim.fieldsVersion)) {
@@ -751,9 +1016,24 @@ export function SiteViewport(props: Props) {
         // rebuilds at once when paused.
         const now = performance.now()
         if (!running || now - leavesBuiltAt > 1000) {
-          leaves.rebuild(controls.target, growth, sim.fields.moisture, sim.fieldsVersion)
+          leaves.rebuild(controls.target, growth, sim.fields.env, sim.fieldsVersion, latest.current.facades ? facade.lift : null)
           leavesBuiltAt = now
           dirty = true
+        } else leavesPending = true
+      }
+      // The middle level: stems, the growth front and leaf clusters, at medium range.
+      const middle =
+        viewDistance > STRUCTURE_RANGE[0] &&
+        viewDistance < STRUCTURE_RANGE[1] &&
+        latest.current.display === 'final' &&
+        latest.current.layers.buildings &&
+        !latest.current.rawCells
+      structure.visible = middle
+      if (middle && structure.stale(growth, sim.fieldsVersion)) {
+        const now = performance.now()
+        if (!running || now - structureBuiltAt > 1000) {
+          structure.rebuild(growth, sim.fields.env, sim.fieldsVersion, latest.current.facades ? facade.lift : null)
+          structureBuiltAt = now
         } else leavesPending = true
       }
       renderer.render(scene, camera)
@@ -781,6 +1061,7 @@ export function SiteViewport(props: Props) {
           ...tallies(),
           leaves: close ? leaves.count : 0,
           bySurface: road && roadActive() ? road.tallies() : [],
+          sun: { ...lit },
         })
       }
       return running || flying || leavesPending || gate(camera.position, controls.target)
@@ -817,22 +1098,50 @@ export function SiteViewport(props: Props) {
       // the number of cells whose texel differs. Should always be 0.
       ;(window as unknown as { __siteCheckPaint?: () => number }).__siteCheckPaint = () => {
         if (road && roadActive()) return road.checkPaint()
-        const before = finalData.slice()
+        const before = overlay.colourData.slice()
         paintFinal(true)
         let wrong = 0
+        // Cells mid-fade differ from a fresh repaint on purpose.
+        const fadingNow = new Set(fading.filter((_, i) => i % 3 === 0))
         for (let i = 0; i < cells.count; i++) {
+          if (fadingNow.has(i)) continue
           const t = cells.texel[i] * 4
-          if (before[t] !== finalData[t] || before[t + 1] !== finalData[t + 1] || before[t + 2] !== finalData[t + 2]) wrong++
+          const now = overlay.colourData
+          if (before[t] !== now[t] || before[t + 1] !== now[t + 1] || before[t + 2] !== now[t + 2] || before[t + 3] !== now[t + 3]) wrong++
         }
         return wrong
       }
     }
 
     paint(latest.current.display)
+    // Detailed or massing: a new simulation on the chosen surface, from the start.
+    const setFacades = (on: boolean) => {
+      sim = makeSim(on)
+      growth = sim.growth
+      sim.reset(latest.current.seeding === 'auto')
+      fading = []
+      stallReported = false
+      pending = 0
+      fieldsSeen = sim.fieldsVersion
+      facadeMesh.visible = on && latest.current.layers.buildings
+      paintCampus(current)
+      repaintGrowth(true)
+      paint(latest.current.display)
+    }
+
+    const setRaw = (raw: boolean) => {
+      overlay.setRaw(raw)
+      road?.setRaw(raw)
+      loop.wake()
+    }
+    if (latest.current.rawCells) overlay.setRaw(true)
+
     api.current = {
       paint,
       attachRoadside,
       setStudy,
+      setRaw,
+      setFacades,
       setMode,
       setParams,
       reset,
@@ -846,6 +1155,7 @@ export function SiteViewport(props: Props) {
 
     return () => {
       api.current = null
+      disposed = true
       stopWaking()
       loop.dispose()
       observer.disconnect()
@@ -855,15 +1165,20 @@ export function SiteViewport(props: Props) {
       renderer.domElement.removeEventListener('pointerdown', onDown)
       renderer.domElement.removeEventListener('pointerup', onUp)
       scene.traverse((object) => {
-        if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) object.geometry.dispose()
+        if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) {
+          object.geometry.dispose()
+          for (const m of Array.isArray(object.material) ? object.material : [object.material]) (m as THREE.Material).dispose()
+        }
       })
-      for (const m of [buildingMaterial, campusPlain, campusField, edges.material, water.material, land.material, ...surfaceMeshes.map((s) => s.mesh.material)]) {
-        ;(m as THREE.Material).dispose()
-      }
+      // The shell swaps materials with the display; the one not on it now isn't in the scene.
+      campusPlain.dispose()
+      campusField.dispose()
       fieldTexture.dispose()
-      finalTexture.dispose()
+      overlay.dispose()
       leaves.dispose()
+      structure.dispose()
       road?.dispose()
+      landscape?.dispose()
       renderer.dispose()
       renderer.domElement.remove()
     }
@@ -882,6 +1197,27 @@ export function SiteViewport(props: Props) {
   useEffect(() => {
     api.current?.setStudy(study)
   }, [study])
+
+  const { rawCells } = props
+  useEffect(() => {
+    api.current?.setRaw(rawCells)
+  }, [rawCells])
+
+  const { facades } = props
+  const firstFacades = useRef(true)
+  useEffect(() => {
+    if (firstFacades.current) {
+      firstFacades.current = false
+      return
+    }
+    api.current?.setFacades(facades)
+  }, [facades])
+
+  // The suitability view is for the species chosen to plant; repaint when it changes.
+  const { plantSpecies } = props
+  useEffect(() => {
+    if (latest.current.display === 'suitability') api.current?.paint('suitability')
+  }, [plantSpecies])
 
   // A new day, a year, or die-back switched carries the growth on under it,
   // as a parameter change does on Explore; only Reset, a new roster or a new
@@ -922,7 +1258,7 @@ export function SiteViewport(props: Props) {
 
   useEffect(() => {
     api.current?.wake()
-  }, [props.running])
+  }, [props.running, props.sunMoment, props.mode])
 
   useEffect(() => {
     api.current?.setLayers(layers)
@@ -950,6 +1286,7 @@ export function SiteViewport(props: Props) {
           <span>N</span>
         </div>
       </div>
+      {props.children}
     </div>
   )
 }

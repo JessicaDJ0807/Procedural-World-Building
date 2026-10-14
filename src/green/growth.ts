@@ -140,6 +140,8 @@ export class Growth {
   private readonly seeds: number[]
   /** Cells removed by the last `dieBack`, for a renderer to clear. `diedCount` of them are valid. */
   readonly died: Int32Array
+  /** The species each of those cells held. */
+  readonly diedSpecies: Uint8Array
   diedCount = 0
   private readonly dead: Uint8Array
 
@@ -163,6 +165,7 @@ export class Growth {
     this.nextSp = new Uint8Array(capacity)
     const n = b.count
     this.died = new Int32Array(n)
+    this.diedSpecies = new Uint8Array(n)
     this.dead = new Uint8Array(n)
     this.birth = new Int32Array(n)
     this.parent = new Int32Array(n)
@@ -428,6 +431,7 @@ export class Growth {
         order[w++] = cell
         continue
       }
+      this.diedSpecies[this.diedCount] = this.species[cell]
       this.died[this.diedCount++] = cell
       this.grownBy[this.species[cell]]--
       this.birth[cell] = -1
