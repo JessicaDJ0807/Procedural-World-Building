@@ -3,8 +3,8 @@
 Coursework for a weekly design course, built with React, TypeScript, and
 Three.js. The app has two halves. **Playground** holds the topics — one per
 body of work, each taking a single technique apart with every parameter it has
-on screen. **Project** puts them back together: one generated world that every
-system reads from, presented rather than dissected.
+on screen. **Project** puts them back together into one system with a question
+behind it: vegetation growing over a building, steered by its environment.
 
 Each topic is a page in the Playground and a chapter in the study notebook
 under [`docs/`](docs/). The app accumulates as the course goes rather than
@@ -15,7 +15,7 @@ runs.
 
 ## Contents
 
-- [The project](#the-project) — the integrated world
+- [The project](#the-project) — Green Architecture
 - [Topics](#topics) — the Playground
   - [Topic 1 — Objects](#topic-1--objects)
   - [Topic 2 — Maps](#topic-2--maps)
@@ -24,7 +24,6 @@ runs.
   - [Topic 5 — Distributions](#topic-5--distributions)
   - [Topic 6 — Paths](#topic-6--paths)
   - [Topic 7 — Vector Fields](#topic-7--vector-fields)
-  - [Topic 8 — Branching](#topic-8--branching)
 - [Study notebook](#study-notebook) — the full documentation index
 - [Keyboard](#keyboard)
 - [Getting started](#getting-started)
@@ -34,58 +33,44 @@ runs.
 
 ## The project
 
-Three worlds — **Volcanic Caldera**, **Frozen Archipelago** and **Verdant
-Valley** — grown from one shared procedural system and built up a layer at a
-time: terrain, then water, lava and ice, then surface materials, procedural
-placement, and atmosphere. The Playground asks how a single technique behaves;
-the project asks what happens when they all have to agree on the same ground.
+**Green Architecture** — vegetation that grows over a building by itself,
+steered by sunlight, moisture and the building's own geometry. Nothing is
+placed by hand: seeds at the foot of the wall, and a growth rule that decides,
+a step at a time, where each plant goes next — up the walls, over the cornices
+and onto the roofs. Three species — ivy, moss and a flowering vine — each with
+their own needs, compete for every surface. The
+question is *how do geometry, sunlight and moisture influence where plants
+grow?*
 
 Three pages, none of them a topic — the project cuts across all of them and is
 numbered by nothing:
 
-- **Overview** — the concept, in the first person. Why the three worlds differ
-  by environmental condition rather than palette, each world with its
-  reference images and what it is meant to explore, a possible direction —
-  islands a player travels between — the one pipeline that produces all three,
-  and the order the layers are being built in.
-- **Explore** — the worlds themselves, walkable in the browser. Chunked terrain
-  from a hashed height function, landmarks that are terms in that function
-  rather than placed meshes, scatter that answers to the ground, and a river
-  traced downhill. <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to walk,
-  <kbd>R</kbd>/<kbd>F</kbd> to fly and <kbd>G</kbd> to land, and <kbd>M</kbd> for
-  an overview of the whole world with a pin where you were standing.
-- **Progress** — the process. Each Playground topic, what Explore actually uses
-  of it today, what it contributes, and what is not there yet.
+- **Overview** — the idea and the question, in the first person, with the
+  system drawn as a flow and one run shown two ways: the building, and which
+  species holds each cell.
+- **Explore** — the simulation. An L-shaped block with a lower wing and its roof
+  terrace, every wall and roof cut into cells that know their neighbours; play,
+  step and reset at 1×/4×/16× (Play stops itself once growth has); rain and sun;
+  three species to switch on and tune; switches for each rule; four presets; and
+  views that paint species territories, moisture, sunlight, geometry and
+  suitability onto the building.
+- **Progress** — the pipeline, five experiments that each add one rule, the
+  three species and the walls they took, the presets side by side, and the
+  decisions with the measurements behind them.
 
-![The Project Overview: the three worlds side by side, each with a hero reference image, a short statement of intent, and two labelled supporting references](docs/images/readme-project-overview.jpg)
+![The Explore page from the Corner view: flowering vine across the sunlit fronts and onto the roofs, dark ivy in the shadow of the inside corner, moss on the wing's west wall, with the growth and species controls on the right](docs/images/readme-project-explore.jpg)
 
-The worlds are one system, not three scenes. Every difference between them is
-a number in a world spec; the terrain builder, the scatter and the renderer are
-the same code:
+Nobody placed those territories. The Species view of the same run: the vine
+(pink) took the walls facing the sun and the roofs, ivy (green) the shade, moss
+(yellow) the wing's shaded west wall.
 
-![One pipeline, three worlds: terrain, environment, surface, placement and atmosphere, and what each stage does in each world](docs/images/readme-project-pipeline.png)
+![The same building with each wall cell coloured by the species holding it](docs/images/readme-project-species.jpg)
 
-Reference images in [`public/inspiration/`](public/inspiration/) are other
-artists' work, collected as inspiration — not output of this project. They are
-served from `public/` so the app and this README use the same files, and each is
-credited under its image on the Overview:
-
-| World | Image | Used for | Source |
-| --- | --- | --- | --- |
-| Volcanic | `volcanic_2.jpg` | Landscape | [Chandler Whalen, ArtStation](https://cdnb.artstation.com/p/assets/images/images/024/858/779/large/chandler-whalen-volcanic-02.jpg?1583772124) |
-| Volcanic | `volcanic_3.jpg` | Atmosphere | [Chandler Whalen, ArtStation](https://cdna.artstation.com/p/assets/images/images/024/858/788/large/chandler-whalen-volcanic-03.jpg?1583772145) |
-| Volcanic | `volcanic_1.jpg` | Lava behaviour | [Tribes of Midgard](https://www.tribesofmidgard.com/wp-content/uploads/2022/08/Volcanic_Biome_1920x1080.jpg) |
-| Frozen | `frozen_1.jpg` | Landscape | [KK Design, Unreal Engine forums](https://forums.unrealengine.com/t/kk-design-scifi-arctic-biome/2673463) |
-| Frozen | `frozen_2.jpeg` | Ice and water | [KK Design, Unreal Engine forums](https://forums.unrealengine.com/t/kk-design-scifi-arctic-biome/2673463) |
-| Frozen | `frozen_3.jpg` | Floating ice | [IT Happy Studios](https://ithappystudios.com/wp-content/uploads/2025/06/4-ice-submarine-arctic-platformer-environment-scaled.webp) |
-| Verdant | `verdant_2.jpg` | Landscape and ecology | [Palia, via Nintendo Everything](https://nintendoeverything.com/palia-free-to-play-adventure-sim-announced-for-switch/) |
-| Verdant | `verdant_3.jpg` | Low-poly detail | Facebook — [image link](https://scontent-lga3-2.xx.fbcdn.net/v/t39.30808-6/677785598_1611527590110550_8246218706645560836_n.jpg?stp=dst-jpg_tt6&cstp=mx1920x1080&ctp=s1920x1080&_nc_cat=107&ccb=1-7&_nc_sid=aa7b47&_nc_ohc=dswjiWvXcKQQ7kNvwFxAsTT&_nc_oc=AdpjhOfVI2ygb3_rPXTmDo669u1eIu4dT8WqXmeOMGkES8_iRUGgly9fobO8jrJ3-gg&_nc_zt=23&_nc_ht=scontent-lga3-2.xx&_nc_gid=CvxG64LT9d3XRks3sStf7Q&_nc_ss=7b2a8&oh=00_AQP_qzFqU7rH3o8m-W6jwiLe1oQDqsrXWPbS0tHb5hIXBA&oe=6ACBB2E2) (expires; original post to be added) |
-| Verdant | `verdant_1.jpeg` | Architecture | [Tiny Glade, via r/pcgaming](https://www.reddit.com/r/pcgaming/comments/1ftzmdm/tiny_glade_players_are_remaking_fantasy_worlds_in/) |
-
-See [`docs/project/app-structure.md`](docs/project/app-structure.md) for how the
-two sections are divided and why the navigation was written rather than
-installed, and [`docs/project/explorable-worlds.md`](docs/project/explorable-worlds.md)
-for how the worlds are built.
+See [`docs/project/green-architecture.md`](docs/project/green-architecture.md)
+for the model, the measurements and the limits, and
+[`docs/project/app-structure.md`](docs/project/app-structure.md) for how the
+two sections are divided. The project's earlier direction — three walkable
+worlds — is in the git history.
 
 ## Topics
 
@@ -261,31 +246,6 @@ field made visible.
 
 ![Topic 7: particle trails flowing left to right and curling around six vortices, blue-white on a dark ground](docs/images/readme-topic-7-flow.jpg)
 
-### [Topic 8 — Branching](docs/topics/topic-8-branching.md)
-
-From a grammar to a forest, one stage at a time: *L-system → branch skeleton →
-tree geometry → levels of detail → distribution → instanced forest*. A string
-is rewritten in parallel, a 3D turtle walks it into a branch graph, the graph
-becomes tapered tubes and leaf clumps, and the tree is scattered over the ground
-and drawn at the detail its distance calls for.
-
-- **Grammar you can edit** — axiom, rules, iterations, angle, variation,
-  branch roll and tropism, with the string's growth per iteration and the
-  string itself on screen. Scrub *turtle progress* to watch it draw.
-- **Teaching views** — skeleton as rods, colour by generation, leaves on or
-  off, and a lineup of the same tree at all four LODs.
-- **Five distributions** — uniform, grid, jittered grid, clustered and Poisson
-  disk, told apart by their measured nearest-neighbour ratio (1.03, 2.00, 1.29,
-  0.70 and 1.58 at 400 trees).
-- **Levels of detail** — auto by distance with hysteresis, or manual; LOD
-  colours and rings on the ground. 76–85% fewer triangles in each preset's
-  opening view, drawn in 19 to 29 instanced draw calls whatever the tree count.
-- **Four presets** — Pine Forest, Ancient Oak Grove, Dense Young Forest, and an
-  Alien Coral Field that is the same machinery with a rule that never keeps a
-  leader.
-
-![Topic 8: an oak grove from above, LOD rings on the ground between the trees, with the presets and grammar in the sidebar](docs/images/readme-topic-8-branching.png)
-
 ## Study notebook
 
 The write-ups are the coursework, not a side effect of it. The full index —
@@ -296,7 +256,7 @@ with a description of what each document covers — is in
 | --- | --- |
 | [`docs/topics/`](docs/topics/) | One chapter per topic: what it does, how it works, and the decisions behind it |
 | [`docs/analysis/`](docs/analysis/) | Measurement and comparison reports that outgrew their chapter |
-| [`docs/project/`](docs/project/) | Infrastructure — the explorable worlds, the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
+| [`docs/project/`](docs/project/) | The project — Green Architecture and the ideas notebook — plus infrastructure: the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
 | [`docs/images/`](docs/images/) | Screenshots, all captured from the running app |
 
 ## Keyboard
@@ -356,8 +316,7 @@ src/
 │   ├── ShaderPage.tsx        Topic 4 — strategy selector and parameters
 │   ├── DistributionPage.tsx  Topic 5 — layer rules, debug view, probe
 │   ├── PathPage.tsx          Topic 6 — path editor and elevation profile
-│   ├── FlowPage.tsx          Topic 7 — field and particle controls
-│   └── BranchingPage.tsx     Topic 8 — grammar, geometry, distribution, LOD, display
+│   └── FlowPage.tsx          Topic 7 — field and particle controls
 ├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
@@ -381,7 +340,7 @@ src/
 │   ├── erosion.ts            Virtual-pipe hydraulic erosion
 │   ├── boids.ts              Fish schooling
 │   └── index.ts              The strategy registry
-├── study/                    Shared by the Topic 5–8 studies
+├── study/                    Shared by the Topic 5–7 studies
 │   ├── terrain.ts            Small eroded terrain: height, slope, distance to water
 │   └── study.css             Viewport overlays, segmented picker, swatches
 ├── maplab/                   Topic 2's Noise tab
@@ -391,6 +350,7 @@ src/
 │   └── maplab.css            The two-view bench, presets, the pseudocode block
 ├── distributions/            Topic 5
 │   ├── rules.ts              The factors, the three layers, their defaults
+│   ├── props.ts              Tree, bush and rock geometry, roughened by hash
 │   ├── scatter.ts            Jittered candidates, acceptance, per-instance variation
 │   └── DistributionViewport.tsx  Terrain, instanced assets, masks, hover probe
 ├── paths/                    Topic 6
@@ -402,30 +362,23 @@ src/
 │   ├── field.ts              Current, vortices, curl noise, stirs; the divergence check
 │   ├── particles.ts          Typed-array particles, midpoint step, segment writer
 │   └── FlowViewport.tsx      Accumulation buffer, arrow and handle overlays, pointer
-├── branching/                Topic 8
-│   ├── lsystem.ts            Parallel rewriting, with a symbol cap
-│   ├── skeleton.ts           The 3D turtle: segments, generations, taper, leaf sites
-│   ├── treeGeometry.ts       Tapered tubes and leaf clumps as typed arrays
-│   ├── lod.ts                Four levels per tree, canopy blobs, chooseLod with hysteresis
-│   ├── distribution.ts       Five point processes, Clark–Evans ratio
-│   ├── ForestRenderer.ts     Instanced buckets, per-tree culling and level, stats
-│   ├── presets.ts            Settings shape, palettes, grammar library, presets
-│   ├── BranchingViewport.tsx Scene, camera, LOD rings; one effect per stage
-│   └── branching.css         Grammar editor, preset grid, derivation and LOD tables
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── Workspace.tsx             Three resizable columns: library, canvas, inspector
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
 ├── ControlSection.tsx        Collapsible sidebar group
 ├── ConfigPanel.tsx           The worlds library — the left column on every topic
-├── explore/                  Three explorable worlds, one system
-│   ├── terrain.ts            Hashed height function, shaping ops, landmarks
-│   ├── chunks.ts             The ring of chunks that follows the camera, and scatter
-│   ├── controls.ts           Pointer-locked WASD flight
-│   ├── relief.ts             Coarse mesh of the height field, shared by the two below
-│   ├── survey.ts             The overview: the whole world, seen from above
-│   ├── worlds.ts             The three specs — no code path branches on which
-│   ├── ExploreViewport.tsx   Scene, fog, lights, water, distant backdrop, render loop
-│   └── ExplorePage.tsx       World cards, the curtain, the debug HUD
+├── hashNoise.ts              Table-free value noise, used by Topics 5–7
+├── green/                    The Project: Green Architecture
+│   ├── building.ts           Walls, roofs, windows, ledges, balconies; cells and their neighbour table
+│   ├── fields.ts             Sunlight (shadow rays), moisture (walls and roofs), geometry; how they combine
+│   ├── growth.ts             Seeded tips of three species that grow, branch, stall, die and compete
+│   ├── species.ts            Ivy, moss, flowering vine: needs, growth traits, colours
+│   ├── params.ts             Environment and species controls, rule switches, four presets
+│   ├── buildingMesh.ts       Shell with a texel per cell, merged detail boxes
+│   ├── vegetation.ts         Stems, a leaf shape per species, flowers; aged and shaded per leaf
+│   ├── GreenViewport.tsx     Scene, sun and shadows, field textures, the step clock
+│   ├── GreenExplorePage.tsx  Controls, species, presets, display and camera
+│   └── green.css             Explore's sidebar, presets and field legend
 ├── showcase/                 Five demonstration worlds, four documents each
 │   ├── worlds.ts             The presets, built from each topic's own defaults
 │   ├── validate.ts           Whether a preset is storable and renderable
@@ -438,12 +391,11 @@ src/
 │   ├── shaderConfig.ts       Topic 4's saved shape
 │   ├── distributionConfig.ts Topic 5's saved shape
 │   ├── pathConfig.ts         Topic 6's saved shape
-│   ├── flowConfig.ts         Topic 7's saved shape
-│   └── branchingConfig.ts    Topic 8's saved shape, and its slider definitions
+│   └── flowConfig.ts         Topic 7's saved shape
 ├── project/                  The Project section — separate from the topics, not a topic itself
-│   ├── ProjectLayout.tsx     Reading shell: measured column (or wide board), own scroller
-│   ├── ProjectOverview.tsx   The three worlds, their references, the pipeline, the layers
-│   ├── ProjectProgress.tsx   Each topic → what Explore uses → what it contributes
+│   ├── ProjectLayout.tsx     Reading shell: measured column (or wide page), own scroller
+│   ├── ProjectOverview.tsx   The idea, the question, the system as a flow, scope
+│   ├── ProjectProgress.tsx   Pipeline, five one-rule experiments, presets, decisions
 │   └── project.css           The Project section's own styling
 ├── firebase/                 App init, auth context and provider, Firestore, Storage
 ├── App.css                   Shell, panel, and canvas styling
@@ -463,7 +415,8 @@ docs/
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
 ├── project/                  Infrastructure and setup
-│   ├── explorable-worlds.md
+│   ├── green-architecture.md
+│   ├── final-project-ideas.md
 │   ├── showcase-worlds.md
 │   ├── visual-system.md
 │   ├── app-structure.md
@@ -472,7 +425,7 @@ docs/
 └── images/                   Screenshots, captured from the running app
 
 public/
-└── inspiration/              Reference images per world, shown on Project Overview
+└── green/                    Figures for the Project pages, captured from Explore
 
 firestore.rules               Owner-scoped Firestore access rules
 storage.rules                 Owner-scoped Storage access rules

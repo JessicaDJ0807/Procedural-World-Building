@@ -5,10 +5,9 @@ import { ObjectViewerPage } from './pages/ObjectViewerPage'
 import { DistributionPage } from './pages/DistributionPage'
 import { PathPage } from './pages/PathPage'
 import { FlowPage } from './pages/FlowPage'
-import { BranchingPage } from './pages/BranchingPage'
 import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
-import { ExplorePage } from './explore/ExplorePage'
+import { GreenExplorePage } from './green/GreenExplorePage'
 import { ProjectOverview } from './project/ProjectOverview'
 import { ProjectProgress } from './project/ProjectProgress'
 import {
@@ -33,12 +32,11 @@ const PLAYGROUND_PAGES: Record<PlaygroundId, () => ReactElement> = {
   distributions: () => <DistributionPage />,
   paths: () => <PathPage />,
   flow: () => <FlowPage />,
-  branching: () => <BranchingPage />,
 }
 
 const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => ReactElement> = {
   overview: (navigate) => <ProjectOverview navigate={navigate} />,
-  explore: () => <ExplorePage />,
+  explore: () => <GreenExplorePage />,
   progress: (navigate) => <ProjectProgress navigate={navigate} />,
 }
 

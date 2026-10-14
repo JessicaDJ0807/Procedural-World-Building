@@ -143,8 +143,9 @@ own probability crossed the draw.
 **Rendering is five `InstancedMesh`es** — two tree silhouettes, one bush, two
 rocks — so a scatter of seven hundred instances is five draw calls. Capacity is
 the candidate count, which no rule can exceed, so a re-scatter never
-reallocates: it rewrites matrices and sets `count`. The geometry is the
-Explore worlds' own `propGeometry`, normalised to one unit tall. A full
+reallocates: it rewrites matrices and sets `count`. The geometry is
+`propGeometry` (`src/distributions/props.ts`), written for the three-worlds
+Project and kept here when that was retired, normalised to one unit tall. A full
 re-scatter, evaluating all three rules at 11,640 candidates, takes 3–8 ms,
 which is why every slider updates live.
 

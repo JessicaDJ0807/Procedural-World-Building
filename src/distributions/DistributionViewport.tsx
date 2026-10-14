@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { propGeometry } from '../explore/props'
+import { propGeometry } from './props'
 import { createCameraGate, startRenderLoop, wakeOnInput, type RenderLoop } from '../renderLoop'
 import { VIEWPORT_BACKGROUND } from '../theme'
 import {

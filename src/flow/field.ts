@@ -1,4 +1,4 @@
-import { valueNoise } from '../explore/terrain'
+import { valueNoise } from '../hashNoise'
 import { mulberry32 } from '../noise'
 
 /**

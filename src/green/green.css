@@ -1,0 +1,225 @@
+/* Project Explore: the growth study. Built on the Workspace's own classes —
+   canvas plus inspector, no library column — so focus mode (H) hides the
+   sidebar here exactly as it does on every topic. */
+
+.green-inspector {
+  width: 300px;
+  border-left: 1px solid var(--border);
+}
+
+.green-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.green-readout {
+  margin: 4px 0 2px;
+}
+
+.green-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.green-preset {
+  padding: 7px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+
+.green-preset:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.green-preset.is-active {
+  border-color: var(--accent-line);
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+}
+
+/* Five displays do not fit one row of the 232px popover, so they wrap. */
+.green-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.green-display .segmented-option {
+  flex: 1 0 30%;
+}
+
+.green-view-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* ---- Field legend, bottom left of the viewport ---- */
+
+.workspace-canvas > .green-legend {
+  flex: none;
+}
+
+.green-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 6;
+  width: min(300px, calc(100% - 24px));
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--surface-float) 90%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  pointer-events: none;
+}
+
+.green-legend p {
+  margin: 6px 0 0;
+}
+
+.green-legend strong {
+  color: var(--text-primary);
+}
+
+.green-legend-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+}
+
+.green-legend-ends {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.green-legend-note {
+  color: var(--text-muted);
+}
+
+/* The same three stops GreenViewport paints with. */
+.green-ramp {
+  height: 8px;
+  border-radius: 4px;
+}
+
+.green-ramp.is-moisture {
+  background: linear-gradient(90deg, #24282c, #3a5870, #a3c8e0);
+}
+
+.green-ramp.is-sun {
+  background: linear-gradient(90deg, #1f2023, #6e5c3a, #f2e0ae);
+}
+
+.green-ramp.is-suitability {
+  background: linear-gradient(90deg, #23261f, #4d6a34, #bcdc90);
+}
+
+.green-ramp.is-geometry {
+  background: linear-gradient(90deg, #222326, #5a4e6d, #d3c1e8);
+}
+
+/* ---- Species: on/off, select to edit, live share ---- */
+
+.green-species {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.green-species-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.green-species-row.is-active {
+  border-color: var(--accent-line);
+  background: var(--accent-subtle);
+}
+
+.green-species-pick {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.green-species-row.is-active .green-species-pick,
+.green-species-pick:hover {
+  color: var(--text-primary);
+}
+
+.green-species-name {
+  flex: 1;
+}
+
+.green-species-share {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.green-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.green-legend-species {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: var(--text-primary);
+}
+
+.green-legend-species > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
+/* The notice that Play stopped itself. Accent-ruled, so it reads as a state
+   of the simulation rather than as help text. */
+.green-stalled {
+  margin-top: 8px;
+  padding-left: 9px;
+  border-left: 2px solid var(--accent-line);
+  color: var(--text-secondary);
+}

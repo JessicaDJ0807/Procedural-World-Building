@@ -24,6 +24,12 @@
 export type RenderLoop = {
   /** Draw at least one more frame, restarting the loop if it had stopped. */
   wake(): void
+  /**
+   * Changes the frame cap from the next frame on. For a view that wants a
+   * lower rate in one state than another — Project Explore draws at 30 while
+   * its simulation plays and at 60 otherwise.
+   */
+  setMaxFps(fps: number): void
   dispose(): void
 }
 
@@ -36,7 +42,7 @@ export function startRenderLoop(
 ): RenderLoop {
   // A millisecond under the exact interval: a frame that arrives a fraction
   // early would otherwise be skipped, halving 60 Hz to 30.
-  const minInterval = 1000 / maxFps - 1
+  let minInterval = 1000 / maxFps - 1
   let handle = 0
   let last = 0
   let disposed = false
@@ -68,6 +74,10 @@ export function startRenderLoop(
       // `schedule` is a no-op while a frame is already pending, so this is
       // safe to call as often as input arrives.
       schedule()
+    },
+    setMaxFps(fps: number) {
+      maxFps = fps
+      minInterval = 1000 / fps - 1
     },
     dispose() {
       disposed = true

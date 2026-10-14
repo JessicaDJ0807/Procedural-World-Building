@@ -11,8 +11,7 @@ holds the two halves apart was written rather than installed.
 - [Navigation](#navigation)
 - [Why no router](#why-no-router)
 - [What the Project pages are](#what-the-project-pages-are)
-- [The integration](#the-integration)
-- [What is deliberately not shared](#what-is-deliberately-not-shared)
+- [Earlier Project directions](#earlier-project-directions)
 - [Notes](#notes)
 
 ## Two experiences, not seven pages
@@ -24,9 +23,10 @@ and exposes every parameter it has, because on those pages the parameter space
 *is* the subject — you cannot learn what carry capacity does without being able
 to set it somewhere destructive.
 
-**Project** is where the techniques are put back together. It generates one
-world and makes every system work from it, so a change to the terrain is a
-change to everything downstream rather than to a separate page of its own.
+**Project** is where the techniques are put back together into one system
+with a question behind it. It is currently [Green Architecture](green-architecture.md):
+vegetation growing over a building, steered by sunlight, moisture and the
+building's own geometry.
 
 The two want opposite things from a user interface. A Playground topic is dense
 on purpose: every pixel within reach of the viewport is worth a control. The
@@ -45,7 +45,7 @@ Two rows in the header:
 ```
 Procedural World Building    [ Playground | Project ]              [ auth ]
 ──────────────────────────────────────────────────────────────────────────
-Topic 1 Objects   Topic 2 Maps   Topic 3 Voxels   Topic 4 Shaders   …   Topic 8 Branching
+Topic 1 Objects   Topic 2 Maps   Topic 3 Voxels   Topic 4 Shaders   …   Topic 7 Vector Fields
 ```
 
 The section row is a pill group — weight and a filled background, because these
@@ -111,78 +111,78 @@ Three pages, each with one job:
 
 | Page | Job |
 | --- | --- |
-| Overview | The concept: three worlds, their references, one pipeline, the build order |
-| Explore | The experience: walk the worlds in the browser |
-| Progress | The process: each Playground topic → what Explore uses → what it contributes |
+| Overview | The concept: the idea, the question, and the system as a flow |
+| Explore | The experiment: the growth simulation, with its fields on view |
+| Progress | The process: the pipeline, one rule at a time, and the decisions |
 
 ### Overview
 
-A presentation board rather than a reading column — the one page that uses
-`ProjectLayout`'s wide variant, because three worlds side by side at an 880px
-measure shrink to thumbnails. It opens in the first person: why the worlds
-differ by environmental condition — heat, cold, a livable middle — rather than
-by palette, and that they are built a layer at a time.
-
-Each world is a hero reference image, a short statement of what the world is
-for and what it explores, and two smaller references; every image is labelled
-with what it informs —
-*Landscape*, *Atmosphere*, *Lava behaviour* — because a wall of mood images
-says nothing about what is being built. Colour identifies a world only as an
-accent line on its hero image and its caption; the UI stays
-neutral. Captions sit under the images, never on them: the references are busy
-enough that no text over them would be reliably readable.
-
-Below the board, **one pipeline, three worlds**: the five stages down the side,
-the three worlds across, and in each cell what that stage actually does in that
-world today, read off the specs in `src/explore/worlds.ts`. It is the page's
-central claim made checkable. Before it, **possible direction**: the worlds as
-islands a player travels between, with climates and resources that give reasons
-to cross. Then **built in layers**, with each layer marked
-*In place*, *In progress* or *Next* by what Explore does today.
-
-The reference images live in `public/inspiration/<world>/` so the app and the
-README read the same files. They are by other artists, and the page says so.
-
-![The Project Overview: three worlds side by side, each with a hero image and two labelled references](../images/readme-project-overview.jpg)
+`ProjectLayout`'s wide variant. It opens in the first person with the idea and
+then the one question the project answers, set apart under the lede. Below it,
+two figures of the **same run** — the building, and which species holds each
+cell — so "the environment sorts the plants" is shown before it is described. Then the
+system as a flow (geometry + sunlight + moisture → growth rules → spread over
+time → the building changes), what I want to explore, the current scope, and
+future directions under a heading tagged *Not built*.
 
 ### Explore
 
-The worlds themselves; see [Explorable worlds](explorable-worlds.md).
+The one Project page that is driven. It reuses the Workspace's own classes —
+canvas and inspector, no library column — so focus mode (H) and the View
+popover behave exactly as on a topic. See
+[Green Architecture](green-architecture.md) for what it simulates.
 
 ### Progress
 
-One entry per Playground topic, each with three things: what Explore actually
-uses of it, what it contributes, and — where there is one — what is not there
-yet. A status marks each: *In Explore*, *Partly*, or *Next*. Two topics are in
-fully, three in part, two not yet, and the page says which rather than listing
-seven techniques beside three worlds and implying all seven are in them.
+The pipeline as six cards, then five experiments that each add one rule to the
+model (ivy alone), then the three species and the walls they took, then the four
+presets side by side, then the decisions with their reasons. Every figure was captured from Explore with the settings named under
+it, and each experiment's numbers were measured on the same run. Figures that
+do not exist yet render as a dashed *Screenshot to add* slot rather than as a
+stand-in image.
 
-![The Project Progress page: each topic with its status and what Explore uses of it](../images/readme-project-progress.png)
+![The Explore page from the Corner view: flowering vine on the sunlit fronts and the roofs, ivy in the shadow of the inside corner, moss on the wing's west wall, with the growth and species controls on the right](../images/readme-project-explore.jpg)
 
-## The Demo page, retired
+## Earlier Project directions
+
+The Project has changed direction twice. Both earlier versions are in the git
+history rather than in the tree — nothing is kept hidden "for reference".
+
+**Three worlds** (Volcanic Caldera, Frozen Archipelago, Verdant Valley): one
+chunked terrain generator, three specs, walkable in the browser. Retired when
+the project pivoted to Green Architecture; its last state is on `main` before
+the pivot, and the watershed simulation that was in progress on top of it is
+on the `verdant-watershed` branch. The hashed value noise it introduced is
+still used by Topics 5–7 and moved to `src/hashNoise.ts`; the tree and rock
+geometry moved to `src/distributions/props.ts`.
+
+### The Demo page
 
 There was a fourth Project page, Demo: Topic 2's droplet erosion and Topic 3's
 CSG caves composed on one 128² heightfield, with nine controls and built-in
 scenarios. It was the first place two topics had to agree on the same data, and
 it is in the git history.
 
-It was removed because Explore became the interactive experience and the two
+It was removed — before the three worlds were — because Explore became the interactive experience and the two
 told different stories — Demo a single eroded tile, Explore three streamed
 worlds that cannot use droplet erosion at all, since droplets need the whole
 grid and chunks cannot see their neighbours. Two interactive pages with two
 terrain systems made the project harder to explain, not easier. Its two
 generators, `world.ts` and `useWorld.ts`, had no other caller and went with it.
 What it proved — that the heightfield can be read as a distance field and cut
-with CSG — is listed on Progress as the route to caves.
+with CSG — still holds.
 
 ## Notes
+
+*The first note is from the three-worlds Overview.*
 
 **Two stylesheets both owned `.world-name`.** The Overview's world titles
 rendered at 13px instead of 22: the Playground's saved-worlds library in
 `App.css` already styles `.world-name`, loads globally, and won the cascade.
 Nothing failed — the page simply looked wrong, and it was found by reading the
-computed style in the browser. The Overview's board classes are prefixed
-`board-` now.
+computed style in the browser. The lesson outlived the page: Project classes
+are prefixed (`project-`, `flow-`, `experiment-`) so they cannot collide with
+the Playground's global ones.
 
 *The notes below are about the retired Demo page and the earlier Overview hero
 that ran its generator. They are kept because the findings outlived the pages.*

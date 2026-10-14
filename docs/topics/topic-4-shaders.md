@@ -114,9 +114,10 @@ interesting; erosion puts real ridges and valley walls in it. The surface is
 
 **What each new strategy is for in the project.** Water is the first strategy
 that needs *time* — it is the reason the shading study can now be animating
-while nothing is simulated — and it is the one the explorable worlds need
-most: their lakes and rivers are flat planes, and depth-from-heightfield is
-exactly the information those planes do not currently use. The contour
+while nothing is simulated — and it was the one the Project's explorable
+worlds needed most, at the time: their lakes and rivers were flat planes, and
+depth-from-heightfield is exactly the information those planes did not use.
+(That Project has since been retired for Green Architecture.) The contour
 strategy is a debugging view as much as a style: banded elevation makes a
 terracing bug or a seam between chunks visible at a glance, where a smooth
 ramp hides it.

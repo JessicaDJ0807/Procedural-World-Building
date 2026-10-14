@@ -1,4 +1,4 @@
-import { valueNoise } from '../explore/terrain'
+import { valueNoise } from '../hashNoise'
 import { sampleField, type StudyTerrain } from '../study/terrain'
 import { atParam, corridor, sampleSpline, smoothProfile, smoothstep, type P2, type Sample } from './spline'
 

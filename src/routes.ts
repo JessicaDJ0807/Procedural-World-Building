@@ -22,15 +22,7 @@ import { useCallback, useEffect, useState } from 'react'
  */
 export type Section = 'playground' | 'project'
 
-export type PlaygroundId =
-  | 'objects'
-  | 'maps'
-  | 'voxels'
-  | 'shaders'
-  | 'distributions'
-  | 'paths'
-  | 'flow'
-  | 'branching'
+export type PlaygroundId = 'objects' | 'maps' | 'voxels' | 'shaders' | 'distributions' | 'paths' | 'flow'
 export type ProjectId = 'overview' | 'explore' | 'progress'
 
 export type Route =
@@ -53,14 +45,13 @@ export const PLAYGROUND: { id: PlaygroundId; topic: string; title: string }[] = 
   { id: 'distributions', topic: 'Topic 5', title: 'Distributions' },
   { id: 'paths', topic: 'Topic 6', title: 'Paths' },
   { id: 'flow', topic: 'Topic 7', title: 'Vector Fields' },
-  { id: 'branching', topic: 'Topic 8', title: 'Branching' },
 ]
 
 /** Project pages carry no topic number — the project is not a topic. */
 export const PROJECT: { id: ProjectId; title: string; blurb: string }[] = [
-  { id: 'overview', title: 'Overview', blurb: 'What the project is and which systems build it' },
-  { id: 'explore', title: 'Explore', blurb: 'Three worlds you can walk around in' },
-  { id: 'progress', title: 'Progress', blurb: 'How each experiment feeds the project' },
+  { id: 'overview', title: 'Overview', blurb: 'Green Architecture: the idea and the question' },
+  { id: 'explore', title: 'Explore', blurb: 'Watch vegetation grow over a building' },
+  { id: 'progress', title: 'Progress', blurb: 'The experiments, rule by rule' },
 ]
 
 export const SECTIONS: { id: Section; title: string; hint: string }[] = [

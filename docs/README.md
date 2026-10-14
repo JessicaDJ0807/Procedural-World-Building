@@ -10,7 +10,7 @@ project itself; this page indexes everything below `docs/`.
 
 - [Topics](#topics) — one chapter per body of work
 - [Analysis](#analysis) — measurement and comparison reports
-- [Project](#project) — infrastructure and setup
+- [Project](#project) — the final project, and infrastructure
 - [Images](#images)
 - [How this is organised](#how-this-is-organised)
 
@@ -29,7 +29,6 @@ the decisions — including the ones that turned out to be wrong.
 | [Topic 5 — Distributions](topics/topic-5-distributions.md) | A scattering study: trees, bushes and rocks placed by per-layer rules over a small eroded terrain. Each rule is a product of soft factors — elevation band, slope window, water preference, cluster noise, and for rocks a "vegetation is sparse" term — and a hover probe prints every factor at the point under the pointer. Covers jittered-grid candidates and per-layer seeded streams, instanced rendering, terrain-driven variation, the measurement that set the relief, and the layer coupling that turned out to come from placement order rather than probability. |
 | [Topic 6 — Paths](topics/topic-6-paths.md) | A spline study: up to four roads and four rivers on one terrain, built from the same 2D curve and opposite in who gives way, meeting as junctions, causeways and tributaries. The road is projected onto the ground, smoothed into a grade, and the corridor is cut and filled to meet it; the river is traced downhill from a source, held to a water surface that only descends, and only ever cuts. Covers centripetal Catmull–Rom at even arc length, the corridor stamp, the grade-smoothing trade (73% → 15% for 2.5× the earth moved), the measured switch in river behaviour between terrain influence 0.5 and 0.6, the debug view that draws the projection literally, and two drag bugs that only appeared on a loaded machine. |
 | [Topic 7 — Vector Fields](topics/topic-7-vector-fields.md) | A particle study: eighteen thousand particles advected through one 2D velocity field — a current, Gaussian-profile vortices, curl noise, and drag-to-stir dipoles — with trails accumulated in a half-float buffer. Covers why every term is divergence-free and the numerical check that confirms it, the measurement for the midpoint method (Euler drifts a vortex orbit outward 78% in ten seconds), frame-rate-independent persistence, the arrow overlay and draggable vortices, and a cutoff that read as divergence until it was moved. |
-| [Topic 8 — Branching](topics/topic-8-branching.md) | A branching and forest lab: an L-system grammar rewritten in parallel, a 3D turtle that turns it into a branch graph, tapered tubes and leaf clumps, five point processes that scatter the tree into a forest, and four levels of detail chosen per tree by distance. Covers why a 2D grammar needs a branch roll to become 3D, the Clark–Evans ratio for each distribution (and why a visibly clustered forest measured as evenly spaced), LOD cut by branch thickness rather than generation after the coral's tips were left floating, the hysteresis band measured against flicker (44 switches to 0), instanced buckets with per-tree culling, and the measured triangle savings — 76–85% in each preset's opening view. |
 
 ## Analysis
 
@@ -43,15 +42,17 @@ produced by running the project's own code over its own scenes.
 
 ## Project
 
-Infrastructure rather than course material: things the app needs in order to
-run, or that were investigated before being built.
+The final project — what it is, and the ideas it was chosen from — and the
+infrastructure the app needs in order to run, or that was investigated before
+being built.
 
 | Document | What it covers |
 | --- | --- |
-| [Explorable worlds](project/explorable-worlds.md) | Three worlds you can fly around in, generated from one system with no per-world code path. Chunked terrain from a hashed height function, scatter that answers to the ground, and the measurements behind it — including two waterlines that were below every point in their world, two spawn headings that faced backwards, and a chunk build that cost a dropped frame a second until the normals stopped asking the height function five times per vertex. Now also macro topography — mountains far from the river, a damped corridor near it — and the coarse backdrop that gives them somewhere to stand, since the chunk ring ends 400 units out. |
+| [Green Architecture](project/green-architecture.md) | The current Project: vegetation growing over a building, steered by sunlight, moisture and geometry. Walls and roofs as cells with a neighbour table (and why the original unrolled grid could not hold a roof), the three fields and the rule behind each, the growth algorithm and the first version of it that filled every wall regardless of the environment, three competing species and the walls each one took (by wall, ten seeds), shades of green, controls, the measured effect of each rule alone and combined, performance, how Play decides growth has stopped, where the energy goes (and the three changes that cut vertex work while playing to 35% of what it was), and what the model cannot yet say — including that given time almost every reachable cell fills. |
 | [Showcase worlds](project/showcase-worlds.md) | Five saved worlds that demonstrate what the four topics can do, each leading with a different mechanism rather than a different palette — with the measurements showing they differ structurally, how they were seeded into an account without weakening the security rules, and the three things the topics genuinely cannot express. |
 | [The visual system](project/visual-system.md) | The design tokens, and the line between application chrome and visualization. Why the interface is neutral and the worlds are not, what desaturating the default colour ramp cost in measured resolving power, why the text scale is three greys rather than four, and the typography fix behind a navigation row that was rendering in Times. |
-| [Playground and Project](project/app-structure.md) | How the app splits into two top-level sections, why the project is not a numbered topic, and why the navigation was written rather than installed — including the measurement that decided against React Router. Covers the three Project pages (Overview as a board of the three worlds and their references, Explore, Progress as each topic's real contribution), why the Demo page was retired, and the bugs that were invisible in the code.
+| [Playground and Project](project/app-structure.md) | How the app splits into two top-level sections, why the project is not a numbered topic, and why the navigation was written rather than installed — including the measurement that decided against React Router. Covers the three Project pages (Overview as the idea and the question, Explore as the simulation, Progress as one rule at a time), the two earlier Project directions and where they live in the history, and the bugs that were invisible in the code. |
+| [Final project ideas](project/final-project-ideas.md) | A running notebook of candidate directions for the final project — contrails, chasing the northern lights, plants taking over a building, and colourful skies — each with what changes over time, what drives it, the question it asks, the smallest prototype, and the main risk. Ends with the combinations, a comparison table, and the prototypes planned for the midterm check-in. |
 | [Firebase setup](project/firebase-setup.md) | How to configure sign-in, what a saved configuration stores and why it is parameters rather than geometry, and the decisions behind the integration — why popup rather than redirect, why loaded documents are treated as untrusted, why Storage is written but switched off, and how a missing `.env` is made harmless. |
 | [Firebase integration report](project/firebase-integration-report.md) | The survey written *before* the integration: a walk through the codebase, what state each page holds, what could be persisted, a proposed data model, and the problems ranked by priority. Kept as the record of the plan the work was measured against. |
 
@@ -63,8 +64,13 @@ question, not by posing a mock-up — so a figure and the numbers printed
 beside it come from the same run.
 
 Names say where an image is used: `readme-*` for the root README's per-topic
-hero shots, `readme-project-*` for the Project area's pages (reference images for the worlds live in `public/inspiration/`, not here — they are not captured from the app), `topic-N-*` for
+hero shots, `readme-project-*` for the Project area's pages, `topic-N-*` for
 figures inside a chapter, and `project-*` for the project documents.
+
+The Project pages' own figures live in [`public/green/`](../public/green/)
+rather than here, because the app serves them: experiment and preset captures
+from Explore, each at a stated seed and step. The Green Architecture document
+links to the same files.
 
 ## How this is organised
 
@@ -76,7 +82,7 @@ docs/
 ├── README.md     this index
 ├── topics/       one chapter per topic
 ├── analysis/     measurement and comparison reports
-├── project/      infrastructure and setup
+├── project/      the final project, and infrastructure and setup
 └── images/       screenshots, captured from the running app
 ```
 
