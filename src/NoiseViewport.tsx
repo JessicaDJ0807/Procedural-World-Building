@@ -500,7 +500,8 @@ export function NoiseViewport({
       // Resizing clears the drawing buffer, and an idle loop would leave it
       // blank until the pointer next moved — which is exactly what happened
       // when Topic 2's hidden view was first shown.
-      loopRef.current?.wake()
+      // Drawn now, not woken: see RenderLoop.drawNow.
+      loopRef.current?.drawNow()
     }
     const observer = new ResizeObserver(resize)
     observer.observe(container)

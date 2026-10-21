@@ -149,7 +149,8 @@ export function DistributionViewport({
       renderer.setSize(w, h)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
-      loop.wake()
+      // Drawn now, not woken: see RenderLoop.drawNow.
+      loop.drawNow()
     }
     const observer = new ResizeObserver(resize)
     observer.observe(container)

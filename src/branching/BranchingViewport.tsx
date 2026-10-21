@@ -139,7 +139,8 @@ export function BranchingViewport({ settings, text, frameToken, onBuild, onScatt
       camera.aspect = w / h
       camera.updateProjectionMatrix()
       forest.markDirty()
-      loop.wake()
+      // Drawn now, not woken: see RenderLoop.drawNow.
+      loop.drawNow()
     }
     const observer = new ResizeObserver(resize)
     observer.observe(container)

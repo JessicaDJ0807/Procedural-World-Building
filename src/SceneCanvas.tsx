@@ -109,6 +109,10 @@ export function SceneCanvas(props: SceneCanvasProps) {
       camera.aspect = clientWidth / clientHeight
       camera.updateProjectionMatrix()
       renderer.setSize(clientWidth, clientHeight)
+      // Drawn now: see RenderLoop.drawNow. `loop` is declared below, which is
+      // safe — an observer never calls back from inside observe(), so the
+      // first resize arrives after this effect has finished.
+      loop.drawNow()
     }
 
     const observer = new ResizeObserver(resize)

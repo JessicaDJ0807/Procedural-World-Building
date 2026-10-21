@@ -75,8 +75,10 @@ chain ticked at **60.0 per second** while the app issued **0** draw calls. The
 loop is asleep, not merely quiet.
 
 Going idle risks a view that never wakes, so waking is deliberately
-over-eager: any pointer movement anywhere on the window wakes every loop, as do
-resize and any parameter change. A frame that wakes, finds nothing to do and
+over-eager: any pointer movement anywhere on the window wakes every loop, as
+does any parameter change. A resize goes further and draws on the spot — waking
+alone painted one blank frame per resize, because a resized canvas is wiped and
+the redraw came a frame late (see the README's Conventions). A frame that wakes, finds nothing to do and
 goes back to sleep costs one check — far cheaper than being wrong about it.
 
 One subtlety cost more than the rest. `OrbitControls.update()` reports movement

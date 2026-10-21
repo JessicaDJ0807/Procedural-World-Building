@@ -62,7 +62,8 @@ export function ShaderViewport({
       if (clientWidth === 0 || clientHeight === 0) return
       renderer.setSize(clientWidth, clientHeight)
       simRef.current?.resize(clientWidth, clientHeight)
-      loopRef.current?.wake()
+      // Drawn now, not woken: see RenderLoop.drawNow.
+      loopRef.current?.drawNow()
     }
     const observer = new ResizeObserver(resize)
     observer.observe(container)

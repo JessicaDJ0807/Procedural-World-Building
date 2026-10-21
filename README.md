@@ -612,6 +612,15 @@ already on screen. Idle is now 0 on every topic. Waking is deliberately
 over-eager — any pointer movement anywhere wakes every loop — because a frame
 that finds nothing to do is far cheaper than a viewport that never wakes.
 
+**A resize draws immediately; it does not wake.** Resizing a canvas wipes it,
+and a `ResizeObserver` is called after every animation-frame callback and
+before the paint — so a resize handler that only woke the loop left that frame
+to paint an empty canvas. Dragging a panel divider resizes on every pointer
+move, and every topic flickered: measured, all 40 steps of a 40-step drag
+painted blank, on all eight. Resize handlers call `loop.drawNow()`, which runs
+the frame inside the observer's callback with the real elapsed time; after it,
+0 of 40 on all eight.
+
 **Every viewport sits on one shared ground.** `VIEWPORT_BACKGROUND` in
 `theme.ts` is the single source; Topics 1–3 previously hardcoded `#111218`
 in three separate files and matched only by accident. It is deliberately not

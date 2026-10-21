@@ -25,6 +25,11 @@ export type RenderLoop = {
   /** Draw at least one more frame, restarting the loop if it had stopped. */
   wake(): void
   /**
+   * Run the next frame now, synchronously, rather than on the next animation
+   * frame. For resize handlers, and only for them — see below.
+   */
+  drawNow(): void
+  /**
    * Changes the frame cap from the next frame on. For a view that wants a
    * lower rate in one state than another — Project Explore draws at 30 while
    * its simulation plays and at 60 otherwise.
@@ -51,13 +56,7 @@ export function startRenderLoop(
     if (handle === 0 && !disposed) handle = requestAnimationFrame(tick)
   }
 
-  const tick = (now: number) => {
-    handle = 0
-    if (disposed) return
-    if (last !== 0 && now - last < minInterval) {
-      schedule()
-      return
-    }
+  const run = (now: number) => {
     // Clamped so a tab resuming after minutes in the background does not
     // advance a simulation by one enormous step.
     const delta = last === 0 ? 1 / maxFps : Math.min((now - last) / 1000, 0.1)
@@ -65,6 +64,16 @@ export function startRenderLoop(
     // Not scheduling is the whole point: when the frame reports nothing is
     // moving, the chain ends here and `wake` is the only thing that restarts it.
     if (frame(delta)) schedule()
+  }
+
+  const tick = (now: number) => {
+    handle = 0
+    if (disposed) return
+    if (last !== 0 && now - last < minInterval) {
+      schedule()
+      return
+    }
+    run(now)
   }
 
   schedule()
@@ -78,6 +87,25 @@ export function startRenderLoop(
     setMaxFps(fps: number) {
       maxFps = fps
       minInterval = 1000 / fps - 1
+    },
+    /**
+     * Resizing a canvas wipes it, and a resize observer is called after every
+     * animation-frame callback and before the paint. So a resize handler that
+     * only wakes the loop leaves that frame to paint an empty canvas, and the
+     * redraw arrives a frame later. Dragging a panel divider resizes the canvas
+     * on every pointer move, and the result was a flicker on every topic:
+     * measured, all 40 steps of a 40-step drag painted blank on each of the
+     * eight. Drawing here, inside the observer's callback, puts the picture in
+     * the frame that paints.
+     *
+     * The frame gets the real elapsed time, so a running simulation advances
+     * exactly as far as it would have; and a frame already scheduled finds
+     * itself inside the frame budget and waits for the next one, so nothing is
+     * drawn twice.
+     */
+    drawNow() {
+      if (disposed) return
+      run(performance.now())
     },
     dispose() {
       disposed = true

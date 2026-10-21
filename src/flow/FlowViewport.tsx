@@ -244,7 +244,8 @@ export function FlowViewport({ settings, running, resetToken, onReport, onVortex
       target = makeTarget()
       displayMaterial.map = target.texture
       clear()
-      loop.wake()
+      // Drawn now, not woken: see RenderLoop.drawNow.
+      loop.drawNow()
     }
     const observer = new ResizeObserver(resize)
     observer.observe(container)
