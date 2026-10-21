@@ -1,0 +1,189 @@
+/* Topic 8. Everything here is built from the same tokens as the rest of the
+   Playground; the only new element is text a user types — the grammar — which
+   is code shown as content and so the one place --font-code is used. */
+
+.grammar-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-family: var(--font-code);
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.grammar-input:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.preset-card {
+  display: flex;
+  align-items: center;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.preset-card:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.preset-card.is-active {
+  border-color: var(--accent-line);
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-strong);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---- The derivation: lengths per rewrite, and the string itself ---- */
+
+.derivation {
+  margin: 4px 0 10px;
+}
+
+.derivation-table,
+.lod-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.derivation-table th,
+.lod-table thead th {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 11px;
+  text-align: right;
+  padding: 0 6px 2px 0;
+}
+
+.derivation-table td,
+.lod-table td {
+  text-align: right;
+  padding: 1px 6px 1px 0;
+}
+
+.derivation-table th:first-child,
+.derivation-table td:first-child {
+  text-align: left;
+  color: var(--text-muted);
+}
+
+.derivation-string {
+  margin-top: 6px;
+  max-height: 96px;
+  overflow: hidden;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  line-height: 1.45;
+  word-break: break-all;
+  color: var(--text-muted);
+}
+
+/* The four roles a symbol can have. Draw is the brightest because it is the
+   only one that leaves a mark; brackets are the structure. */
+.sym-draw {
+  color: var(--text-primary);
+}
+.sym-turn {
+  color: var(--accent-strong);
+}
+.sym-bracket {
+  color: var(--warning);
+}
+.sym-other {
+  color: var(--success);
+}
+.sym-more {
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+}
+
+.readout-warn {
+  margin: 4px 0 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.lod-table {
+  margin-top: 8px;
+}
+
+.lod-table tbody th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.lod-table td.lod-share {
+  color: var(--text-muted);
+}
+
+/* ---- Overlays ---- */
+
+.branching-stats {
+  left: 12px;
+  bottom: 12px;
+}
+
+.lod-counts {
+  display: flex;
+  gap: 12px;
+  margin: 3px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.branching-lineup {
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lineup-label {
+  white-space: nowrap;
+}
+
+.branching-generations {
+  flex-wrap: wrap;
+  max-width: calc(100% - 300px);
+  justify-content: flex-end;
+}
