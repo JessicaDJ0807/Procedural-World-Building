@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { applyViewControls } from '../cameraControls'
 import { rampTexture } from './core'
 import { createCameraGate } from '../renderLoop'
 import { defaults, param, type ParamSpec, type Simulation } from './simulation'
@@ -632,6 +633,7 @@ export function createShading(): Simulation {
       camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100)
       camera.position.set(0, 2.05, 4.35)
       controls = new OrbitControls(camera, canvas)
+      applyViewControls(controls)
       controls.enableDamping = true
       // The plate's visual centre sits above y=0, because relief only ever
       // adds height. Aiming there rather than at the origin is what stops the

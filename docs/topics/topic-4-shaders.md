@@ -117,7 +117,7 @@ that needs *time* — it is the reason the shading study can now be animating
 while nothing is simulated — and it was the one the Project's explorable
 worlds needed most, at the time: their lakes and rivers were flat planes, and
 depth-from-heightfield is exactly the information those planes did not use.
-(That Project has since been retired for Green Architecture.) The contour
+(That Project has since been retired for Overgrowth, then titled Green Architecture.) The contour
 strategy is a debugging view as much as a style: banded elevation makes a
 terracing bug or a seam between chunks visible at a glance, where a smooth
 ramp hides it.

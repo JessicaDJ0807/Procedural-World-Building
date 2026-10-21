@@ -12,6 +12,100 @@ const PIPELINE = [
   { name: 'Vegetation', detail: 'Instanced stems, a leaf shape per species, flowers on the vine; every leaf its own shade. Five draw calls.' },
 ]
 
+type Phase = {
+  number: string
+  title: string
+  lede: string
+  experiments: string[]
+  learning: string
+  figures: { src: string; alt: string }[]
+  /** Where to see what is left of it. */
+  see?: { label: string; route: Route }
+}
+
+/**
+ * How Wildform emerged, phase by phase. No dates: the course meets weekly but
+ * the phases don't line up with weeks, and the git history has the real ones.
+ * Each phase is told by what it tried and what it taught — the lesson is the
+ * reason for the next phase. Figures are from the app: the Playground topics'
+ * own captures, the Site, the archived midterm, and Build.
+ */
+const PHASES: Phase[] = [
+  {
+    number: '01',
+    title: 'Procedural Foundations',
+    lede: 'Technique studies in the Playground, then three generated worlds put together from them.',
+    experiments: [
+      'Noise terrain: layered noise, domain warping, thermal and hydraulic erosion',
+      'Shaders: four GPU simulations and stylised shading',
+      'Voxels: density fields and four meshers',
+      'Scattering: a rule-driven distribution of trees, bushes and rocks',
+      'Roads, rivers and vector fields shaping terrain',
+      'Three generated environments — Volcanic Inferno, Frozen Archipelago, Verdant River Valley',
+    ],
+    learning: 'Procedural generation could create environments, but the project still lacked a clear player goal.',
+    figures: [
+      { src: '/project/progress-terrain.jpg', alt: 'A noise map beside the terrain it raises: green lowlands, pale peaks, blue water.' },
+      { src: '/project/progress-voxels.jpg', alt: 'A volcano meshed from a voxel density field, its crater open at the top.' },
+      { src: '/project/progress-shaders.jpg', alt: 'Terraced terrain drawn with a stylised contour shader.' },
+      { src: '/project/progress-scatter.jpg', alt: 'A valley with a lake, trees and rocks scattered by slope and height.' },
+    ],
+    see: { label: 'Open the Playground', route: { section: 'playground', page: 'flow' } },
+  },
+  {
+    number: '02',
+    title: 'Site Simulation',
+    lede: 'A pivot to plants growing over architecture — first an invented building, then Roosevelt Island and Cornell Tech.',
+    experiments: [
+      'Real geographic data: 68 buildings, parks, roads and sidewalks from NYC Open Data',
+      'Building massing cut into growth cells, walls and roofs alike',
+      'Vegetation growth by one rule, three species sorted by their needs',
+      'Sunlight from the real sun path, moisture from rain on walls and roofs',
+      'Plant–environment relationships: die-back through a simulated year',
+      'Procedural façades whose glass, seams and louvers decide where a plant can hold',
+    ],
+    learning: 'A technically interesting simulation was not automatically an interesting experience.',
+    figures: [
+      { src: '/green/species-final.jpg', alt: 'The invented L-shaped building covered by three species: vine on the sunlit fronts, ivy in the shaded corner, moss on the wing.' },
+      { src: '/project/campus-final.jpg', alt: 'The Cornell Tech campus at golden hour after four simulated years, the shorter buildings green along their seams, the Graduate Hotel mostly bare.' },
+    ],
+    see: { label: 'Open the Site', route: { section: 'project', page: 'site' } },
+  },
+  {
+    number: '03',
+    title: 'Living Architecture',
+    lede: 'Plants began changing architecture rather than only covering it.',
+    experiments: [
+      'Plant collisions: two species growing over each other in layers',
+      'A Living Platform grown out of the wall where they meet, whose shade changes where each can grow — the midterm prototype',
+      'Mutation nodes growing bridges, balconies, scaffolds, terraces and canopies, shaped by the plants and the space around them',
+      'Vegetation drawn at three levels of detail — masses, stems, leaves',
+    ],
+    learning: 'Plant interactions could become a procedural architectural grammar.',
+    figures: [
+      { src: '/project/progress-living-platform.jpg', alt: 'The midterm prototype at step 870: a slab grown out of the invented building’s front at the third floor, labelled Living Platform formed.' },
+      { src: '/project/build-close.jpg', alt: 'A living bridge meeting the stepping-stone tower in Build, with Draper curtains hanging from it.' },
+    ],
+    see: { label: 'Open the archived midterm prototype', route: { section: 'project', page: 'explore' } },
+  },
+  {
+    number: '04',
+    title: 'Wildform',
+    lede: 'The current direction: a game. The player builds, plants and sets the weather; the plants do the rest.',
+    experiments: [
+      'Building with a limited budget of rigid blocks, after Townscaper',
+      'Planting growth behaviors where they will matter',
+      'Manipulating environmental conditions: rain and the sun’s direction',
+      'Letting living architecture emerge, then adapting the building to the outcome',
+      'A goal: join two buildings too far apart for plants alone',
+      'Growth vocabulary: Climber, Spreader, Draper — and Layered, the interaction state',
+    ],
+    learning: 'How much control should the player have over a system whose value comes from emergence?',
+    figures: [{ src: '/project/build-hero.jpg', alt: 'Build after 1,100 steps: two buildings joined by living bridges through a stepping-stone tower, with Draper curtains and ground cover.' }],
+    see: { label: 'Play Build', route: { section: 'project', page: 'build' } },
+  },
+]
+
 type Figure = { src?: string; alt: string }
 
 type Experiment = {
@@ -165,17 +259,63 @@ export function ProjectProgress({ navigate }: ProjectProgressProps) {
     <ProjectLayout
       wide
       title="Progress"
-      lede="How a building, three fields and one growth rule became three plants competing for a wall — and what each rule turned out to contribute."
+      lede="Wildform was not the plan from the start. It emerged through iteration: each phase below answered the problem the one before it left open."
     >
-      <section className="project-section" aria-labelledby="question-heading">
-        <h2 id="question-heading">Question</h2>
-        <p className="project-question is-inline">
-          How can architecture and environmental fields shape procedural plant growth?
+      <section className="project-section" aria-label="Timeline">
+        <ol className="timeline">
+          {PHASES.map((p, k) => (
+            <li className={`phase${k === PHASES.length - 1 ? ' is-current' : ''}`} key={p.number}>
+              <div className="phase-marker" aria-hidden="true">
+                <span className="phase-number">{p.number}</span>
+              </div>
+              <div className="phase-body">
+                <h2>
+                  {p.number} — {p.title}
+                  {k === PHASES.length - 1 && <span className="project-tag">Current</span>}
+                </h2>
+                <p className="phase-lede">{p.lede}</p>
+                <div className="phase-columns">
+                  <div>
+                    <ul className="phase-list">
+                      {p.experiments.map((e) => (
+                        <li key={e}>{e}</li>
+                      ))}
+                    </ul>
+                    <p className="phase-learning">
+                      <span>{k === PHASES.length - 1 ? 'Current design question' : 'Key learning'}</span>
+                      {p.learning}
+                    </p>
+                    {p.see && (
+                      <div className="project-actions">
+                        <button type="button" className={`project-button${k === PHASES.length - 1 ? ' is-primary' : ''}`} onClick={() => navigate(p.see!.route)}>
+                          {p.see.label}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className={`phase-figures${p.figures.length === 1 ? ' is-single' : ''}`}>
+                    {p.figures.map((f) => (
+                      <img key={f.src} src={f.src} alt={f.alt} loading="lazy" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="project-section project-archive-head" aria-labelledby="detail-heading">
+        <h2 id="detail-heading">Phase 02 in detail: the growth model, rule by rule</h2>
+        <p className="project-note">
+          The measured record of the site-simulation phase, kept as it was written: the growth model the Site still runs,
+          built up one rule at a time on an invented building. Its environment fields — sunlight, moisture, geometry — are
+          the ones Build’s plants read today.
         </p>
       </section>
 
       <section className="project-section" aria-labelledby="pipeline-heading">
-        <h2 id="pipeline-heading">Current pipeline</h2>
+        <h2 id="pipeline-heading">The pipeline</h2>
         <ol className="pipeline-steps">
           {PIPELINE.map((stage, index) => (
             <li key={stage.name}>
@@ -191,8 +331,9 @@ export function ProjectProgress({ navigate }: ProjectProgressProps) {
         <h2 id="experiments-heading">Experiments</h2>
         <p className="project-note">
           One rule at a time, with ivy alone — the original single plant — at the Balanced
-          settings. Seed 1, step 300, from the Corner view: choose Balanced, switch Moss and the
-          vine off, set the Rules named under each, and step to 300 to reproduce any of them.
+          settings, seed 1, step 300, from the Corner view. These ran on the first Explore page (three
+          species, presets and rule switches), which the midterm prototype replaced; that page is in
+          the git history, at commit 1912b17, if any of them needs reproducing.
         </p>
         <ol className="experiments">
           {EXPERIMENTS.map((exp, index) => (
@@ -314,27 +455,15 @@ export function ProjectProgress({ navigate }: ProjectProgressProps) {
       </section>
 
       <section className="project-section" aria-labelledby="next-heading">
-        <h2 id="next-heading">Next experiment</h2>
+        <h2 id="next-heading">Where phase 02 ended</h2>
         <p>
-          Die-back, the experiment this page used to end on, is built — on the Site page, where the
-          Cornell Tech buildings have a real year of sun to die back through. Grown cells wither where
-          their species cannot live, a climber&rsquo;s stem takes everything above it, and roots
-          survive the winter. Over ten simulated years it moved the share of grown wall held by the
-          species suited to it from 73% to 85–89%: the flowering vine climbs into part-sun walls each
-          summer and is cut back each winter, and ivy keeps them. It is not on this building yet.
-        </p>
-        <p>
-          Next: let the plants change their environment. A vine shades the wall under it and holds
-          water against it; feeding growth back into the fields would make the system respond to
-          itself.
+          Die-back was built on the Site, where the Cornell Tech buildings have a real year of sun to die back through:
+          over ten simulated years it moved the share of grown wall held by the species suited to it from 73% to 85–89%.
+          The next step this page named — letting the plants change their environment — became phase 03.
         </p>
         <div className="project-actions">
-          <button
-            type="button"
-            className="project-button is-primary"
-            onClick={() => navigate({ section: 'project', page: 'explore' })}
-          >
-            Open Explore
+          <button type="button" className="project-button is-primary" onClick={() => navigate({ section: 'project', page: 'decisions' })}>
+            Why each pivot happened, in Decisions
           </button>
         </div>
       </section>

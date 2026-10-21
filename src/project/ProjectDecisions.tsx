@@ -24,6 +24,76 @@ type Decision = {
   see: { label: string; route: Route }
 }
 
+/** A design decision, written for critique: the question, what was decided, and why. */
+type DesignDecision = {
+  title: string
+  question?: string
+  /** What came before, and what was wrong with it — when there was one. */
+  earlier?: string
+  problem?: string
+  decision: string
+  /** A list under the decision, when it has parts. */
+  parts?: string[]
+  why?: string
+  principle?: string
+  /** Still open — the thing to push on in a review. */
+  discuss?: string
+  future?: boolean
+}
+
+/**
+ * The decisions behind Wildform's pivots, in the order they were made. These
+ * are design decisions, not implementation details; the measured ones they
+ * rest on are in docs/project/build.md and on Progress. The growth-model
+ * decisions from phase 02 follow, kept as they were written.
+ */
+const DESIGN: DesignDecision[] = [
+  {
+    title: 'Simulation → gameplay',
+    question: 'Is watching vegetation grow enough?',
+    decision: 'No. Growth became the mechanism underneath a playable build → plant → grow → adapt loop.',
+    why: 'The player needs goals and consequential decisions rather than only observing a simulation. The site simulation answered real questions — which walls green, and why — but there was nothing for a visitor to decide.',
+    discuss: 'Does a goal (join two buildings) narrow the experience too far, or is it what makes the growth matter?',
+  },
+  {
+    title: 'Unlimited building → constrained building',
+    question: 'Should players have Townscaper-like unlimited freedom?',
+    decision: 'Simple, expressive modular building — the rules decide walls, roofs, arches — but from a budget of 30 rigid blocks.',
+    why: 'Freedom makes construction expressive; constraints make choices meaningful. With the two buildings first four columns apart, the plants joined them without a block spent and there was no decision to make; at eight apart, the player has to choose what to build.',
+    discuss: 'Three blocks of thirty win today — a stepping-stone tower. Should the budget tighten, or the challenge ask for more?',
+  },
+  {
+    title: 'The player designs conditions, not outcomes',
+    decision: 'The player controls:',
+    parts: ['the starting architecture', 'where each plant starts', 'the environment — rain and the sun’s direction'],
+    why: 'Living architecture emerges procedurally from how the plants meet. The player can make a bridge likely, not draw one.',
+    principle: 'The player controls the conditions, but not the exact final form.',
+  },
+  {
+    title: 'A vocabulary of plant behaviors',
+    decision: 'Each plant is a behavior, defined by the direction it grows:',
+    parts: ['Climber — vertical, attachment-driven', 'Spreader — horizontal, light-seeking', 'Draper — downward, gravity-driven', 'Layered — the derived overlap state, not a species'],
+    why: 'Separate behaviors make placement a real choice: planting a Climber or a Spreader decides which way growth goes, and where they overlap is what the mutation rules read. Draper adds the direction that was missing, and the elevated edges — roofs, ledges, living decks — that nothing else used.',
+    discuss: 'Draper isn’t in the mutation rules yet. What should a Draper meeting another behavior grow?',
+  },
+  {
+    title: 'Generic balcony → living mutations',
+    question: 'What should happen when plants interact?',
+    earlier: 'The midterm prototype spawned a standard rectangular platform where the plants met.',
+    problem: 'It looked prefab rather than grown — the same slab wherever it formed.',
+    decision: 'Architecture derives from the meeting:',
+    parts: ['which behaviors met, and how deep their layers are', 'the geometry where they collided', 'the direction they were growing', 'nearby architecture in reach', 'the free space in front'],
+    why: 'A bridge reaches for another building, a balcony curls out from the wall, a scaffold climbs past the roof — each a set of curves, so no two come out alike.',
+  },
+  {
+    title: 'Roosevelt Island → baseline + future environments',
+    decision: 'Keep Roosevelt Island as the real-site application, while Build becomes a general gameplay sandbox that starts on a simple lawn.',
+    why: 'A real campus is too large and too fixed to learn the game on; a lawn makes every effect readable. The Site keeps the same environmental logic at full scale.',
+    parts: ['Mountain', 'Beach', 'Wetland', 'Dense urban conditions'],
+    future: true,
+  },
+]
+
 /**
  * Every number here is from the runs documented in docs/project/ — the
  * Explore experiments (Progress page, green-architecture.md) and the campus
@@ -50,7 +120,7 @@ const DECISIONS: Decision[] = [
       { src: '/green/exp-1-none.jpg', alt: 'The invented building almost entirely covered in an even layer of ivy.', caption: 'No environmental rules: a race, 93.5% covered by step 300.' },
       { src: '/green/exp-5-combined.jpg', alt: 'A few strands of ivy in the shaded inside corner, most of the building bare.', caption: 'All three fields multiplied: 15.7%, all of it in the shade and along edges.' },
     ],
-    see: { label: 'Try it in Explore', route: { section: 'project', page: 'explore' } },
+    see: { label: 'Open the Site', route: { section: 'project', page: 'site' } },
   },
   {
     title: 'Species differ only in what they need',
@@ -81,7 +151,7 @@ const DECISIONS: Decision[] = [
     formula: 'light = min(1, direct-sun hours ÷ 8)\nyear: hours interpolated by declination between 21 Dec, 20 Mar, 21 Jun\nvigour = 0.1 + 0.9 · warmth',
     why: 'The building is real, so its shade should be too: The House shades its neighbours, the gaps between buildings get little sun, and Verizon goes from 36% of its walls in full sun in June to 1% in December. A made-up sun would have made the species’ territories made up as well.',
     before:
-      'The invented building in Explore has one fixed sun at 38°, enough to show the rules working. Tracing every day of the year was the alternative to three days; the year’s light changes smoothly with the sun’s declination, so three traced days interpolate it, and the tracing runs once, in a background worker, when the page opens.',
+      'The invented building of phase 02 has one fixed sun at 38°, enough to show the rules working. Tracing every day of the year was the alternative to three days; the year’s light changes smoothly with the sun’s declination, so three traced days interpolate it, and the tracing runs once, in a background worker, when the page opens.',
     evidence: [
       '71% of campus walls get 6 h or more of sun in June, 27% in December.',
       '8 North Loop Road, at the foot of The House, has no wall cell reaching 3 h in December.',
@@ -158,9 +228,100 @@ export function ProjectDecisions({ navigate }: ProjectDecisionsProps) {
     <ProjectLayout
       wide
       title="Decisions"
-      lede="The five choices that shape what grows where — each with the rule, why it is that way, what came first, the evidence, and the question still open."
+      lede="The design decisions behind Wildform’s pivots — each with the question it answered, what was decided, and why — and what is still open for discussion."
     >
-      <nav className="decision-index" aria-label="Decisions">
+      <section className="project-section" aria-label="Design decisions">
+        <div className="design-decisions">
+          {DESIGN.map((d, i) => (
+            <article className="design-decision" key={d.title} aria-labelledby={`design-${i + 1}`}>
+              <h3 id={`design-${i + 1}`}>
+                <span className="experiment-index">{i + 1}</span>
+                {d.title}
+              </h3>
+              <dl>
+                {d.question && (
+                  <div>
+                    <dt>Question</dt>
+                    <dd>{d.question}</dd>
+                  </div>
+                )}
+                {d.earlier && (
+                  <div>
+                    <dt>Earlier version</dt>
+                    <dd>{d.earlier}</dd>
+                  </div>
+                )}
+                {d.problem && (
+                  <div>
+                    <dt>Problem</dt>
+                    <dd>{d.problem}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>{d.earlier ? 'Current direction' : 'Decision'}</dt>
+                  <dd>
+                    {d.decision}
+                    {d.parts && !d.future && (
+                      <ul>
+                        {d.parts.map((p) => (
+                          <li key={p}>{p}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </dd>
+                </div>
+                {d.why && (
+                  <div>
+                    <dt>Why</dt>
+                    <dd>{d.why}</dd>
+                  </div>
+                )}
+                {d.principle && (
+                  <div className="is-principle">
+                    <dt>Principle</dt>
+                    <dd>{d.principle}</dd>
+                  </div>
+                )}
+                {d.future && d.parts && (
+                  <div>
+                    <dt>
+                      Future environments <span className="project-tag">Not built</span>
+                    </dt>
+                    <dd>
+                      {d.parts.join(' · ')} — each would bring its own constraints to build and grow against.
+                    </dd>
+                  </div>
+                )}
+                {d.discuss && (
+                  <div>
+                    <dt>To discuss</dt>
+                    <dd>{d.discuss}</dd>
+                  </div>
+                )}
+              </dl>
+            </article>
+          ))}
+        </div>
+        <div className="project-actions">
+          <button type="button" className="project-button is-primary" onClick={() => navigate({ section: 'project', page: 'build' })}>
+            Try them in Build
+          </button>
+          <button type="button" className="project-button" onClick={() => navigate({ section: 'project', page: 'progress' })}>
+            How the project evolved
+          </button>
+        </div>
+      </section>
+
+      <section className="project-section project-archive-head" aria-labelledby="model-heading">
+        <h2 id="model-heading">The growth model underneath</h2>
+        <p className="project-note">
+          Five decisions from the site-simulation phase that still shape what grows where — the rule, why it is that way,
+          what came first, the evidence, and the question still open. The Site runs this model; its sunlight, moisture and
+          geometry fields are the ones Build’s plants read.
+        </p>
+      </section>
+
+      <nav className="decision-index" aria-label="Growth-model decisions">
         <ol>
           {DECISIONS.map((d, i) => (
             <li key={d.title}>

@@ -1,0 +1,166 @@
+/* Wildform: Explore for the midterm. Same workspace shell as before — canvas
+   and inspector — with a quiet title over the scene, the grammar's checklist,
+   and an event log. Neutral greys, slate-blue accents. */
+
+.wild-intro {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 340px;
+  pointer-events: none;
+}
+
+.wild-intro strong {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.wild-intro span {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* The label beside what just happened: "Living Platform formed". */
+.wild-note {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, #7f9bc4 55%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface-float) 90%, transparent);
+  color: var(--text-primary);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.wild-note[hidden] {
+  display: none;
+}
+
+.wild-head h2 {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.wild-head p {
+  margin: 0 0 6px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.wild-seed {
+  align-self: center;
+  margin: 0;
+}
+
+.wild-species {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.wild-species-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.wild-species-name {
+  color: var(--text-primary);
+}
+
+.wild-species-note {
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+.wild-species-share {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.wild-checks {
+  display: grid;
+  gap: 3px;
+  margin: 2px 0 6px;
+  padding: 0;
+  list-style: none;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.wild-checks li {
+  display: flex;
+  gap: 7px;
+}
+
+.wild-checks li.is-ok {
+  color: var(--text-secondary);
+}
+
+.wild-checks li.is-ok span {
+  color: #8fb08a;
+}
+
+.wild-events {
+  display: grid;
+  gap: 4px;
+  margin: 2px 0 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.wild-events li {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 6px;
+}
+
+.wild-event-step {
+  color: #7f9bc4;
+  font-variant-numeric: tabular-nums;
+}
+
+.wild-timeline {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.wild-timeline .reset-button {
+  padding-inline: 4px;
+  font-size: 12px;
+}
+
+.wild-advanced {
+  margin-top: 10px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.wild-advanced summary {
+  cursor: pointer;
+  color: var(--text-muted);
+}

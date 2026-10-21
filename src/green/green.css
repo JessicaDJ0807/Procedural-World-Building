@@ -119,7 +119,7 @@
   color: var(--text-muted);
 }
 
-/* The same three stops GreenViewport paints with. */
+/* The same three stops the viewports paint with. */
 .green-ramp {
   height: 8px;
   border-radius: 4px;

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { applyViewControls } from './cameraControls'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { createGeometry, type ShapeName } from './shapes'
 import { createCameraGate, startRenderLoop, wakeOnInput, type RenderLoop } from './renderLoop'
@@ -70,6 +71,8 @@ export function SceneCanvas(props: SceneCanvasProps) {
     room.dispose()
 
     const controls = new OrbitControls(camera, renderer.domElement)
+
+    applyViewControls(controls)
     controls.enableDamping = true
     controls.target.set(0, 0, 0)
     controls.update()

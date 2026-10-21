@@ -451,7 +451,7 @@ export function NoiseLabPage({
               </>
             )}
           </p>
-          <p className="hint">Drag the terrain to orbit, scroll to zoom. Click the map to move the profile.</p>
+          <p className="hint">Drag the terrain to rotate, right-drag to move, scroll to zoom. Click the map to move the profile.</p>
         </aside>
       }
     >

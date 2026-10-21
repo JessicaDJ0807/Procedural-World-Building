@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { applyViewControls } from '../cameraControls'
 import { Field, createPass, dataTexture, runPass, seedField, type Uniforms } from './core'
 import { createCameraGate } from '../renderLoop'
 import { DUSK, GLSL_DUSK, createBackdrop, srgb } from './style'
@@ -400,6 +401,7 @@ export function createBoids(): Simulation {
       camera = new THREE.PerspectiveCamera(52, 1, 0.1, 100)
       camera.position.set(0, 1.5, 11.2)
       controls = new OrbitControls(camera, canvas)
+      applyViewControls(controls)
       controls.enableDamping = true
       controls.enablePan = false
 

@@ -1,4 +1,18 @@
-# Green Architecture
+# Overgrowth
+
+> Titled *Green Architecture* until 2026-10-14. Renamed because that phrase
+> usually means sustainable building design — energy, materials, ratings —
+> while this project is about where plants can grow over a building. The
+> file keeps its old name so existing links still work.
+>
+> **This is phase 02 of the project, now called Wildform.** The current
+> project is [Build](build.md); this document is the growth model underneath
+> it and the Site, as it was built. Explore became the
+> [Wildform midterm](wildform.md), since archived. The
+> growth model below is still the one the Site runs, and Wildform's rule is
+> this one cut down to two species; but the three-species Explore page, its
+> presets and rule switches described here were replaced, and are in the git
+> history at commit `1912b17`.
 
 Jessica Hsiao · Procedural World Building
 
@@ -310,7 +324,7 @@ Simulation decides *where*; rendering decides *how it looks*.
 | Species | On/off for ivy, moss, flowering vine; select one to edit its Light preference, Moisture need, Edge preference, Upward tendency | Who is growing, and what the selected species needs. Switching a species on or off replants |
 | Model | Randomness; Moisture, Sunlight, Geometry switches | Randomness for every species; switch a whole term off |
 | View | Final / Species / Moisture / Sunlight / Suitability / Geometry; Front / Corner; Show leaves | Display only — the growth is unchanged. Suitability is the selected species' |
-| Camera | Drag to move; right-drag, or ⌘/Ctrl/Shift-drag, to orbit; scroll to zoom | Map-style, as on the Site page: the building is a place to move around, and on a trackpad right-drag is the awkward gesture. Panning stays on the ground and can't leave the building behind |
+| Camera | Drag to rotate; right-drag, or ⌘/Ctrl/Shift-drag, to move; scroll to zoom | The app's one convention (`cameraControls.ts`). This page once dragged map-style — left-drag moved — which made the same gesture mean the opposite of the Playground's. Moving stays on the ground and can't leave the building behind |
 
 Changing a parameter mid-run recomputes the fields and carries on — the growth
 continues under the new conditions — so a change can be watched taking effect.

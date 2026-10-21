@@ -24,9 +24,10 @@ and exposes every parameter it has, because on those pages the parameter space
 to set it somewhere destructive.
 
 **Project** is where the techniques are put back together into one system
-with a question behind it. It is currently [Green Architecture](green-architecture.md):
-vegetation growing over a building, steered by sunlight, moisture and the
-building's own geometry.
+with a question behind it. It is currently **Wildform**: a procedural building
+game where the player builds the starting architecture, plants growth
+behaviors and sets the environment, and plants grow living architecture the
+player does not directly design.
 
 The two want opposite things from a user interface. A Playground topic is dense
 on purpose: every pixel within reach of the viewport is worth a control. The
@@ -56,7 +57,8 @@ which is what it was before. Switching section never shows both sets at once.
 | --- | --- |
 | `/` | Project Overview |
 | `/project` | Project Overview |
-| `/project/explore` | Project Explore |
+| `/project/explore` | Project Explore — archived, out of the tabs |
+| `/project/build` | Project Build |
 | `/project/site` | Project Site |
 | `/project/progress` | Project Progress |
 | `/project/decisions` | Project Decisions |
@@ -109,80 +111,90 @@ to reconsider — and swapping a library in would touch one file.
 
 ## What the Project pages are
 
-Five pages, each with one job:
+Five tabs, in the order a reviewer should read them:
 
-| Page | Job |
+| Page | Question it answers |
 | --- | --- |
-| Overview | The concept: the idea, the question, and the system as a flow |
-| Explore | The experiment: the growth simulation, with its fields on view |
-| Site | The real place: Roosevelt Island and Cornell Tech, from NYC Open Data |
-| Progress | The process: the pipeline, one rule at a time, and the decisions |
-| Decisions | The argument: the five design decisions, one card each, for discussing with others |
+| Overview | What is Wildform? |
+| Build | Can I play with the core system? — the main prototype |
+| Site | How does the same idea scale to a real place? |
+| Progress | How did the project evolve? |
+| Decisions | Why were these design choices made? |
+
+The rule that keeps them coherent: **current pages describe the current
+direction; Progress holds the history; Decisions holds the reasoning behind
+the pivots.** Earlier text that is still true but no longer current — the
+phase-02 growth experiments, the growth-model decisions — moved down those two
+pages under its own heading rather than being deleted.
 
 ### Overview
 
-`ProjectLayout`'s wide variant. It opens in the first person with the idea and
-then the one question the project answers, set apart under the lede. Below it,
-two figures of the **same run** — the building, and which species holds each
-cell — so "the environment sorts the plants" is shown before it is described. Then the
-system as a flow (geometry + sunlight + moisture → growth rules → spread over
-time → the building changes), what I want to explore, the current scope, and
-future directions under a heading tagged *Not built*.
+`ProjectLayout`'s wide variant. The title, *Wildform*, and the tagline — *grow
+architecture by shaping how plants behave* — then the longer description and
+the principle (*the player controls the conditions, but not the exact final
+form*), with buttons to Build, the Site and Decisions. Then a hero capture
+from Build, the loop as a chain (build → plant → grow → interact → mutate →
+adapt), the growth behaviors as four cards (Climber, Spreader, Draper, and
+Layered — dashed, as a derived state rather than a species), living
+architecture with a close-up, the current challenge, campus scale, and future
+environments under a heading tagged *Not built*.
 
-### Explore
+### Build
 
-The one Project page that is driven. It reuses the Workspace's own classes —
-canvas and inspector, no library column — so focus mode (H) and the View
-popover behave exactly as on a topic. See
-[Green Architecture](green-architecture.md) for what it simulates.
+The main playable prototype: a lawn with two buildings to join, a budget of
+blocks placed Townscaper-style, Climber, Spreader and Draper to plant, and
+living architecture growing where they meet. Building and growing are one
+loop. A one-line goal card greets a first visit, top left of the scene, and
+stays dismissed per browser. See [Build](build.md).
 
 ### Site
 
-The second driven page, on the same workspace shell as Explore. Roosevelt
-Island from a saved snapshot of NYC Open Data: buildings extruded from their
-footprints, the planimetric ground layers, and the Cornell Tech buildings cut
-into cells, lit by the real sun through a simulated year and grown on by
-Explore's three species — planted automatically or by clicking — with
-die-back; and a second study, Roadside, on the island's ground. Like Explore, it drags like a
-map: left-drag moves, right-drag orbits. See
-[Roosevelt Island](roosevelt-island.md).
+*Wildform at campus scale*, on the same workspace shell as Build. Roosevelt
+Island from a saved snapshot of NYC Open Data, the Cornell Tech buildings cut
+into cells with procedural façades, lit by the real sun through a simulated
+year. The sidebar follows Build's order — an intro, the study, plant
+behavior, environment, growth — and then the campus readouts. Its plants are
+the three species of the growth model Wildform grew from, so the intro says
+so: Build's behaviors and living architecture are not on the campus yet. What
+stands between them is written down in [Roosevelt Island](roosevelt-island.md#wildform-at-campus-scale).
 
 ### Progress
 
-The pipeline as six cards, then five experiments that each add one rule to the
-model (ivy alone), then the three species and the walls they took, then the four
-presets side by side, then the decisions with their reasons. Every figure was captured from Explore with the settings named under
-it, and each experiment's numbers were measured on the same run. Figures that
-do not exist yet render as a dashed *Screenshot to add* slot rather than as a
-stand-in image.
+A timeline of four phases — 01 Procedural Foundations, 02 Site Simulation,
+03 Living Architecture, 04 Wildform — each with what it tried, figures from
+the app, and the lesson that set up the next (the current phase ends on the
+design question instead). No dates: the phases don't line up with weeks.
+Below it, *Phase 02 in detail*: the pipeline, the five one-rule experiments,
+the three species, the presets and the decisions, as measured at the time.
 
 ### Decisions
 
-Written to be discussed with people who haven't read the notebook. Five
-cards — one growth rule for every plant, species that differ only in their
-needs, light from the real sun, die-back, and the surface deciding where a
-plant can hold — each with the same five headings: **the rule** (in words,
-then as computed), **why**, **what came first** (the version that was wrong,
-and how it showed), **evidence**, and an **open question**. A jump list at
-the top, a figure pair per card, a button to the page where the decision can
-be seen working, and at the end a table of the numbers that are *chosen, not
-measured* — the cutoff, the light scale, the die-back rate, winter, the
-surface multipliers, the façades — the first places to push. It measures
-nothing new: every number is from the runs documented in Progress,
-[Green Architecture](green-architecture.md) and
-[Roosevelt Island](roosevelt-island.md). The Site figures it shows are copies
-in `public/project/`, since `docs/images/` isn't served.
+Six design decisions, for critique, as cards with **question**, **decision**
+(or earlier version → problem → current direction), **why**, and where it is
+still open, **to discuss**: simulation → gameplay, unlimited → constrained
+building, conditions not outcomes, the plant-behavior vocabulary, generic
+balcony → living mutations, and a lawn baseline with future environments
+(tagged *Not built*). Below, *The growth model underneath*: the five
+phase-02 decisions with their rules, evidence and open questions, and the
+table of numbers chosen rather than measured.
 
-![The Explore page from the Corner view: flowering vine on the sunlit fronts and the roofs, ivy in the shadow of the inside corner, moss on the wing's west wall, with the growth and species controls on the right](../images/readme-project-explore.jpg)
+### Explore (archived)
+
+The midterm prototype — a Climber and a Spreader on the invented building,
+growing one Living Platform — is out of the tabs but not deleted. Its address
+still works, linked from Progress's phase 03, under a banner that says what it
+is and points to Build. It is the one exception to keeping earlier directions
+in the history only: its simulation (`src/wildform/`) is the one Build runs,
+and the page is the midterm's record. See [Wildform midterm](wildform.md).
 
 ## Earlier Project directions
 
 The Project has changed direction twice. Both earlier versions are in the git
-history rather than in the tree — nothing is kept hidden "for reference".
+history rather than in the tree — nothing is kept hidden "for reference", with the one exception of the archived Explore above.
 
 **Three worlds** (Volcanic Caldera, Frozen Archipelago, Verdant Valley): one
 chunked terrain generator, three specs, walkable in the browser. Retired when
-the project pivoted to Green Architecture; its last state is on `main` before
+the project pivoted to plants growing over buildings (then titled Green Architecture, later Overgrowth, now Wildform); its last state is on `main` before
 the pivot, and the watershed simulation that was in progress on top of it is
 on the `verdant-watershed` branch. The hashed value noise it introduced is
 still used by Topics 5–7 and moved to `src/hashNoise.ts`; the tree and rock

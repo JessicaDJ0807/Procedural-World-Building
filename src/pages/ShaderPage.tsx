@@ -238,7 +238,7 @@ export function ShaderPage() {
 
         <p className="hint">
           {simulationId === 'shading'
-            ? 'Drag to orbit the surface. Nothing here is simulated — the terrain is fixed so the shaders can be compared.'
+            ? 'Drag to rotate the surface. Nothing here is simulated — the terrain is fixed so the shaders can be compared.'
             : simulationId === 'boids'
               ? 'Drag on the view to interact — the pointer is a predator the school avoids.'
               : 'Drag on the view to interact.'}

@@ -69,7 +69,7 @@ export function DistributionPage() {
             <span className="control-label">Show water</span>
             <input type="checkbox" checked={showWater} onChange={(e) => setShowWater(e.target.checked)} />
           </label>
-          <p className="hint">Drag to orbit, scroll to zoom. Hover the ground to probe it.</p>
+          <p className="hint">Drag to rotate, right-drag to move, scroll to zoom. Hover the ground to probe it.</p>
         </ViewControls>
       }
       inspector={

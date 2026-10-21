@@ -31,7 +31,7 @@ export type PlaygroundId =
   | 'paths'
   | 'flow'
   | 'branching'
-export type ProjectId = 'overview' | 'explore' | 'site' | 'progress' | 'decisions'
+export type ProjectId = 'overview' | 'explore' | 'build' | 'site' | 'progress' | 'decisions'
 
 export type Route =
   | { section: 'playground'; page: PlaygroundId }
@@ -56,13 +56,28 @@ export const PLAYGROUND: { id: PlaygroundId; topic: string; title: string }[] = 
   { id: 'branching', topic: 'Topic 8', title: 'Branching' },
 ]
 
-/** Project pages carry no topic number — the project is not a topic. */
+/**
+ * The Project's tabs, in reading order: what Wildform is, the playable
+ * prototype, the same idea on a real site, how it evolved, and why.
+ * Project pages carry no topic number — the project is not a topic.
+ */
 export const PROJECT: { id: ProjectId; title: string; blurb: string }[] = [
-  { id: 'overview', title: 'Overview', blurb: 'Green Architecture: the idea and the question' },
-  { id: 'explore', title: 'Explore', blurb: 'Watch vegetation grow over a building' },
-  { id: 'site', title: 'Site', blurb: 'Roosevelt Island and Cornell Tech, from NYC Open Data' },
-  { id: 'progress', title: 'Progress', blurb: 'The experiments, rule by rule' },
-  { id: 'decisions', title: 'Decisions', blurb: 'The five design decisions, with their reasons and open questions' },
+  { id: 'overview', title: 'Overview', blurb: 'Wildform: grow architecture by shaping how plants behave' },
+  { id: 'build', title: 'Build', blurb: 'The playable prototype: build, plant, grow, and let living architecture emerge' },
+  { id: 'site', title: 'Site', blurb: 'Wildform at campus scale: Cornell Tech on Roosevelt Island' },
+  { id: 'progress', title: 'Progress', blurb: 'How the project evolved, phase by phase' },
+  { id: 'decisions', title: 'Decisions', blurb: 'The design decisions behind the pivots' },
+]
+
+/**
+ * Pages kept but no longer in the tabs. Explore was the midterm prototype —
+ * two species on an invented building, one Living Platform — and Build now
+ * does everything it did, on architecture the player makes. Its address still
+ * works, from Progress, with a banner saying what it is; its simulation code
+ * is the one Build runs, so nothing of it is deleted.
+ */
+export const ARCHIVE: { id: ProjectId; title: string; blurb: string }[] = [
+  { id: 'explore', title: 'Explore (archived)', blurb: 'The midterm prototype: two species meet on an invented building and grow a Living Platform' },
 ]
 
 export const SECTIONS: { id: Section; title: string; hint: string }[] = [
@@ -103,7 +118,7 @@ export function parsePath(pathname: string): Route {
   }
   if (parts[0] === 'project') {
     if (parts.length === 1) return DEFAULT_PROJECT
-    const page = PROJECT.find((entry) => entry.id === parts[1])
+    const page = [...PROJECT, ...ARCHIVE].find((entry) => entry.id === parts[1])
     return page ? { section: 'project', page: page.id } : DEFAULT_PROJECT
   }
   return HOME

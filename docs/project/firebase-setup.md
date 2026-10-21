@@ -73,6 +73,10 @@ specific billable project, not because they are confidential.
 | `src/firebase/auth.ts` | `signInWithGoogle()`, `signOutUser()`, error translation |
 | `src/AuthBar.tsx` | Header UI — sign in, signed-in identity, sign out |
 | `src/firebase/configs.ts` | Firestore CRUD over `users/{uid}/configs` |
+| `src/firebase/worlds.ts` | Saved Wildform worlds over `users/{uid}/worlds`, in chunks |
+| `src/firebase/memoryDocs.ts` | A document store in memory with the rules' checks and the 1 MiB limit, for tests |
+| `src/build/worldState.ts` | A Wildform world as data: serialize, read back, versions |
+| `src/build/WorldMenu.tsx` | Build's world bar: Save, New world, Save as, My worlds |
 | `src/firebase/storage.ts` | JSON upload, plus the local download that works without Storage |
 | `src/ConfigPanel.tsx` | The worlds library — the left column, on every topic |
 | `src/Workspace.tsx` | The three resizable columns |
@@ -116,6 +120,55 @@ ramp are all absent, because every one of them is reproducible from `settings`
 field is 3.4 MB of `Float32Array` and the Firestore document limit is 1 MB, so
 storing the sampled world would not fit. The largest default document, Topic 2's, is
 **2,504 bytes**.
+
+## Wildform worlds
+
+A saved Build world is a whole game, not a topic's settings, so it has its own
+collection:
+
+    users/{uid}/worlds/{worldId}               name, ownerUid, version, createdAt, updatedAt,
+                                               scenario, seed, step, env, summary, snapshot
+    users/{uid}/worlds/{worldId}/chunks/{id}   ownerUid, snapshot, index, data
+
+**State, never scene.** What is saved is in `src/build/worldState.ts`:
+- the town, one byte per grid cell;
+- the living architecture as planned;
+- every plant layer (by cell position, not index, so it lands on the rebuilt
+  building) and the growing tips;
+- the Drapers;
+- the weather, seed, step and the game's counters.
+
+Walls, roofs, every growth cell, meshes and leaves are rebuilt. Loading
+takes the same path as an edit, so a loaded world is a continuing simulation:
+in Node, a world loaded at step 1,600 or 6,000 matched the original exactly
+(same layers, structures, Drapers, weather), and its next 400 steps hashed
+the same as the original rebuilt in place.
+
+**Why chunks.** The world's body was 101 KB at step 1,600 and 175 KB at step
+6,000 of the stepping-stone run. It grows with the plants: a town grown solid
+is about 36,000 layers at 22 bytes, past a megabyte as base64, and a document
+stops at 1 MiB. So the body is stored in chunks of at most 800,000
+characters. In a test, a 2.5-million-character body went into 4 chunks, the
+largest document 800,059 bytes, and read back exactly.
+
+**Why a snapshot id.** A save writes new chunks first, then points the world
+document at them, then deletes the old snapshot's chunks by id. A save that
+fails half-way leaves the world on its last complete snapshot; tested with a
+batch failing mid-save.
+
+**Versions.** Every world carries `version` (1). A newer version is refused
+with a message saying so, and older ones go through `migrate()` in
+`worldState.ts`, where a v1 → v2 step will go.
+
+**Rules.** `worlds` and `chunks` follow `configs`:
+- the uid in the path must be the signed-in user;
+- `ownerUid` must match it;
+- a world needs a 1–120 character name and an integer version;
+- a chunk needs a string `data` of at most 1,000,000 characters and an
+  integer index.
+
+The world's contents are not validated by the rules — the schema will change
+— but by the app when it reads them.
 
 ## Layout
 
@@ -210,6 +263,20 @@ the node-id collision the counter used to produce — see the Notes below. There
 is no figure of the signed-in panel for the same reason; a stubbed screenshot
 would be a mock-up rather than a capture, and this notebook's figures come from
 the running app.
+
+**Wildform worlds are in the same position.** Their save, list, open, rename,
+duplicate and delete logic runs against a `Docs` interface. It was exercised
+end to end on `memoryDocs`, which refuses what the rules would and what a
+1 MiB document would:
+- in Node: save, save over, list, open, continue, duplicate, rename, delete,
+  chunking, names the rules reject, and a failed save;
+- in the browser, through the real menu and dialogs with a dev-only hook
+  standing in for sign-in: save, reload the page, open, compare, continue,
+  the unsaved-changes warning, duplicate, delete, rename.
+
+The Firestore adapter itself — `firestoreDocs()`, five calls — has not run
+against a live project, and `firestore.rules` with the worlds rules has not
+been deployed.
 
 **To finish the check:** sign in, save a world, reload the page, click it in
 the library, and confirm the shape list and every slider match. Then edit a

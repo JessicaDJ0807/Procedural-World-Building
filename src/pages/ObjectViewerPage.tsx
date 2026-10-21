@@ -141,7 +141,7 @@ export function ObjectViewerPage() {
           onChange={setRoughness}
         />
 
-        <p className="hint">Drag the canvas to orbit the view.</p>
+        <p className="hint">Drag to rotate, right-drag to move, scroll to zoom.</p>
         </aside>
       }
     >

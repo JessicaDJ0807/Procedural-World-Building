@@ -1,155 +1,209 @@
 import { ProjectLayout } from './ProjectLayout'
 import type { Route } from '../routes'
+import { WILD_SPECIES } from '../wildform/species'
+import { DRAPER_SWATCH } from '../build/draperMesh'
 
 type ProjectOverviewProps = { navigate: (route: Route) => void }
 
-const INPUTS = [
-  { name: 'Building geometry', detail: 'corners, window frames, ledges, balconies, roof edges' },
-  { name: 'Sunlight', detail: 'which walls face the sun, and what shades them' },
-  { name: 'Moisture', detail: 'where rain lands, runs, and collects on the roofs' },
+/** The core loop, as the player meets it. */
+const LOOP = ['build', 'plant', 'grow', 'interact', 'mutate', 'adapt']
+
+/** What the player does, in order. */
+const ACTIONS = [
+  'construct a starting structure from a limited budget of rigid blocks',
+  'place plants where they will matter',
+  'change the rain and the direction of the sun',
+  'run the growth, and watch the plants interact',
+  'see living architecture grow where they meet',
+  'modify the building, and grow again',
 ]
 
-const STAGES = [
-  { name: 'Growth rules', detail: 'three species — ivy, moss, a flowering vine — each scoring the building by its own needs' },
-  { name: 'Vegetation spreads over time', detail: 'a step at a time, from seeds at the foot of the wall, competing for space' },
-  { name: 'The building gradually changes', detail: 'some walls and roofs disappear under leaves; others stay bare' },
+const BEHAVIOURS = [
+  { name: 'Climber', arrow: '↑', swatch: WILD_SPECIES[0].look.swatch, text: 'Climbs surfaces and follows architectural edges.' },
+  { name: 'Spreader', arrow: '↔', swatch: WILD_SPECIES[1].look.swatch, text: 'Expands across surfaces and seeks light.' },
+  { name: 'Draper', arrow: '↓', swatch: DRAPER_SWATCH, text: 'Hangs from elevated edges and grows downward with gravity.' },
 ]
 
-const QUESTIONS = [
-  'How does facade geometry guide vine growth?',
-  'Do edges, corners, ledges and windows change the pattern?',
-  'How do sunlight and moisture change where vegetation survives?',
-  'Can simple local rules create believable organic growth?',
-]
+/** What living architecture grows today, in Build. */
+const OUTCOMES = ['bridges', 'balconies', 'scaffolds', 'terraces', 'canopies']
 
-// Several buildings, seasons, die-back and the roadside moved off this list
-// when they were built, on the Site page.
-const FUTURE = [
-  'Plants that change their surroundings — shading the wall, holding water against it',
-  'Abandoned or reclaimed architecture, where the plants have had decades',
-]
+/** Not built: environments that would change the constraints. */
+const FUTURE = ['Mountain — slopes and height to bridge', 'Beach — wind, sand and salt', 'Wetland — standing water and soft ground', 'Dense urban site — little light, tight gaps between buildings']
 
 /**
- * The idea, the question, and how the system answers it.
- *
- * Written in the first person because it is a statement of intent, not
- * documentation; the mechanism is on Progress and in docs/. The two figures
- * are the same run seen two ways — the building, and which species holds each
- * cell — because "the environment sorts the plants" is easier to see than to
- * read.
+ * What Wildform is, for someone arriving cold: the idea in a line, what the
+ * player does, the plant behaviours, what their meeting grows, the current
+ * challenge, and where it could go. The figures are captured from Build —
+ * the stepping-stone run from docs/project/build.md at step 1,100 — and from
+ * the Site. History belongs on Progress, reasons on Decisions.
  */
 export function ProjectOverview({ navigate }: ProjectOverviewProps) {
-  const explore = () => navigate({ section: 'project', page: 'explore' })
-  const progress = () => navigate({ section: 'project', page: 'progress' })
+  const go = (page: 'build' | 'site' | 'progress' | 'decisions') => () => navigate({ section: 'project', page })
 
   return (
     <ProjectLayout
       wide
-      title="Green Architecture"
+      title="Wildform"
       lede={
         <>
+          <p className="project-tagline">Grow architecture by shaping how plants behave.</p>
           <p>
-            I’m interested in what happens when architecture is not static. Instead of manually
-            placing plants on a building, I want to explore how vegetation could gradually grow
-            across it based on the building’s shape and its environment.
+            Wildform is a procedural building game where players construct the starting architecture, plant different
+            growth behaviors, and shape environmental conditions. Plants grow, interact, and generate new living
+            structures that the player does not directly design.
           </p>
         </>
       }
       aside={
         <>
-          <p className="project-question">
-            How do geometry, sunlight, and moisture influence where plants grow?
-          </p>
+          <p className="project-question">The player controls the conditions, but not the exact final form.</p>
           <div className="project-actions">
-            <button type="button" className="project-button is-primary" onClick={explore}>
-              Watch it grow
+            <button type="button" className="project-button is-primary" onClick={go('build')}>
+              Play Build
             </button>
-            <button type="button" className="project-button" onClick={progress}>
-              See the experiments
+            <button type="button" className="project-button" onClick={go('site')}>
+              See it at campus scale
+            </button>
+            <button type="button" className="project-button" onClick={go('decisions')}>
+              The design decisions
             </button>
           </div>
         </>
       }
     >
-      <section className="project-section" aria-labelledby="pair-heading">
-        <h2 id="pair-heading">One run, two ways of looking at it</h2>
-        <div className="figure-pair">
-          <figure className="project-figure">
-            <img src="/green/species-final.jpg" alt="An L-shaped five-storey building with a two-storey wing, covered in three kinds of plant: a pale flowering vine on the sunlit fronts and the roofs, dark ivy in the shadow of the inside corner, and yellow-green moss on the wing's shaded west wall." />
-            <figcaption>The building after 900 steps of the Balanced preset, with all three species growing.</figcaption>
-          </figure>
-          <figure className="project-figure">
-            <img src="/green/species-map.jpg" alt="The same building with each cell coloured by the species holding it: pink vine on the sunlit faces and roofs, green ivy in the shade, yellow moss on the wing's west wall." />
-            <figcaption>
-              The same moment, coloured by species. Nobody placed these territories: the vine took
-              the walls facing the sun and the roofs, ivy the shadow of the inside corner, moss the
-              wing’s shaded west wall.
-            </figcaption>
-          </figure>
+      <section className="project-section" aria-label="Build, after 1,100 steps">
+        <figure className="project-figure">
+          <img
+            src="/project/build-hero.jpg"
+            alt="Build after 1,100 steps: two buildings on a lawn joined by living bridges through a one-column stepping-stone tower. Teal Draper curtains hang from the roof edges and from under the west bridge; Climber and Spreader cover the tower and the east building; patchy ground cover spreads from their feet."
+          />
+          <figcaption>
+            Build after 1,100 steps. The player placed three blocks — a stepping-stone tower — and planted; the plants
+            grew the two bridges that join the buildings.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section className="project-section" aria-labelledby="loop-heading">
+        <h2 id="loop-heading">How it plays</h2>
+        <ol className="loop-chain" aria-label="The core loop">
+          {LOOP.map((step) => (
+            <li key={step}>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="project-columns">
+          <div>
+            <p>Players begin with limited rigid building blocks and several procedural plant behaviors. They can:</p>
+            <ul className="question-list">
+              {ACTIONS.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p>
+              The player does not directly design the final architecture. They decide where the rigid blocks go, where
+              each plant starts, and what the weather does — and the plants decide the rest.
+            </p>
+            <p>
+              Building and growing are one loop, not two modes: editing the town mid-growth carries every plant onto the
+              new building, and the new walls are open to growth.
+            </p>
+          </div>
         </div>
       </section>
 
-      <section className="project-section" aria-labelledby="system-heading">
-        <h2 id="system-heading">The system</h2>
-        <div className="flow" role="list">
-          <div className="flow-inputs" role="listitem">
-            {INPUTS.map((input, index) => (
-              <div className="flow-input-wrap" key={input.name}>
-                {index > 0 && (
-                  <span className="flow-plus" aria-hidden="true">
-                    +
-                  </span>
-                )}
-                <div className="flow-node is-input">
-                  <strong>{input.name}</strong>
-                  <span>{input.detail}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          {STAGES.map((stage) => (
-            <div className="flow-step" role="listitem" key={stage.name}>
-              <span className="flow-arrow" aria-hidden="true" />
-              <div className="flow-node">
-                <strong>{stage.name}</strong>
-                <span>{stage.detail}</span>
-              </div>
+      <section className="project-section" aria-labelledby="behaviour-heading">
+        <h2 id="behaviour-heading">Growth behaviors</h2>
+        <div className="behaviour-grid">
+          {BEHAVIOURS.map((b) => (
+            <div className="behaviour-card" key={b.name} style={{ ['--behaviour' as string]: b.swatch }}>
+              <span className="behaviour-arrow" aria-hidden="true">
+                {b.arrow}
+              </span>
+              <strong>{b.name}</strong>
+              <span>{b.text}</span>
             </div>
           ))}
+          <div className="behaviour-card is-derived">
+            <span className="behaviour-arrow" aria-hidden="true">
+              ≋
+            </span>
+            <strong>Layered</strong>
+            <span>Not a plant species: a derived state, where one plant has grown over another and growth accumulates.</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="project-section" aria-labelledby="living-heading">
+        <h2 id="living-heading">Living architecture</h2>
+        <div className="figure-pair is-text-first">
+          <div>
+            <p>
+              When compatible growth meets — enough Climber and Spreader together, or a plant grown over layered growth —
+              a mutation node forms, and architecture grows from it: {OUTCOMES.join(', ')}. Which one, and its shape, come
+              from what met there, the way the plants were growing, the walls nearby and the space in front.
+            </p>
+            <p>
+              Once mature, a structure is part of the building: it shades the plants under it, gives Climbers something to
+              climb, and gives Drapers an edge to hang from — new conditions for the next round of growth.
+            </p>
+          </div>
+          <figure className="project-figure">
+            <img
+              src="/project/build-close.jpg"
+              alt="Close on a living bridge where it meets the stepping-stone tower: a fibrous deck on root braces, Draper curtains hanging under it and down the west building's façade, the tower covered in Climber and Spreader."
+            />
+            <figcaption>A living bridge at the tower, with Draper curtains hanging from its deck and the façade beside it.</figcaption>
+          </figure>
         </div>
       </section>
 
       <div className="project-columns">
-        <section className="project-section" aria-labelledby="explore-heading">
-          <h2 id="explore-heading">What I want to explore</h2>
-          <ul className="question-list">
-            {QUESTIONS.map((q) => (
-              <li key={q}>{q}</li>
-            ))}
-          </ul>
+        <section className="project-section" aria-labelledby="goal-heading">
+          <h2 id="goal-heading">The current challenge</h2>
+          <p className="project-question is-inline">
+            Use limited rigid construction and procedural growth to connect separated buildings with living architecture.
+          </p>
+          <p>
+            Two buildings stand eight columns apart on a lawn; a living bridge reaches about five. Blocks have to bring them
+            within reach — and if blocks join them outright, they become one building and it doesn’t count.
+          </p>
+          <div className="project-actions">
+            <button type="button" className="project-button is-primary" onClick={go('build')}>
+              Try it in Build
+            </button>
+          </div>
         </section>
 
-        <section className="project-section" aria-labelledby="scope-heading">
-          <h2 id="scope-heading">Current scope</h2>
+        <section className="project-section" aria-labelledby="scale-heading">
+          <h2 id="scale-heading">At campus scale</h2>
           <p>
-            One building and three species. The building is simple on purpose: it is there to give
-            growth something to respond to — a sheltered inside corner, walls that face different
-            ways, windows to route around, ledges that hold water, two flat roofs, and a terrace
-            where a wall rises from a roof.
+            <strong>Site</strong> takes the same environment rules — moisture, the geometry of every wall — to a real place:
+            the six Cornell Tech buildings on Roosevelt Island, from NYC Open Data, with procedural façades, the real sun
+            and a simulated year. Build’s behaviors and living architecture are the next step there.
           </p>
-          <p>
-            Ivy likes shade and follows edges; moss needs a wet, dark wall and spreads in patches; a
-            flowering vine wants sun and tolerates drought. They start from seeds at the foot of the
-            walls, climb onto the roofs, and compete for every cell, and the same seed and settings
-            always grow the same building.
-          </p>
+          <div className="project-actions">
+            <button type="button" className="project-button" onClick={go('site')}>
+              Open the Site
+            </button>
+            <button type="button" className="project-button" onClick={go('progress')}>
+              How it got here
+            </button>
+          </div>
         </section>
       </div>
 
       <section className="project-section project-future" aria-labelledby="future-heading">
         <h2 id="future-heading">
-          Possible future direction <span className="project-tag">Not built</span>
+          Future environments <span className="project-tag">Not built</span>
         </h2>
+        <p className="project-note">
+          The lawn is a baseline: flat, open, evenly lit. Other environments would bring their own constraints to build and
+          grow against.
+        </p>
         <ul className="question-list is-muted">
           {FUTURE.map((f) => (
             <li key={f}>{f}</li>

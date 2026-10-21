@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// users/{uid}/configs/{configId}
+// users/{uid}/configs/{configId} and users/{uid}/worlds/{worldId}
 //
 // The owner's uid is in the path, so the check is a path comparison: no
 // document can be read or written unless the signed-in uid matches the segment
@@ -27,6 +27,37 @@ service cloud.firestore {
           && request.resource.data.name.size() > 0
           && request.resource.data.name.size() <= 120
           && request.resource.data.settings is map;
+      }
+
+      // users/{uid}/worlds/{worldId}: a saved Wildform world (Build).
+      //
+      // The same ownership rule as configs. Only what every version of the
+      // format will have is checked — owner, name, an integer version — and
+      // not the world itself, whose schema will change; the app validates and
+      // migrates it when it reads it (src/build/worldState.ts).
+      match /worlds/{worldId} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+
+        allow create, update: if request.auth != null
+          && request.auth.uid == uid
+          && request.resource.data.ownerUid == uid
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.version is int;
+
+        // The world's body, in chunks of at most 800,000 characters
+        // (src/firebase/worlds.ts): same owner, same path check.
+        match /chunks/{chunkId} {
+          allow read, delete: if request.auth != null && request.auth.uid == uid;
+
+          allow create, update: if request.auth != null
+            && request.auth.uid == uid
+            && request.resource.data.ownerUid == uid
+            && request.resource.data.data is string
+            && request.resource.data.data.size() <= 1000000
+            && request.resource.data.index is int;
+        }
       }
     }
   }

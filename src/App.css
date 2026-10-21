@@ -240,6 +240,56 @@
   min-height: 0;
 }
 
+/* An archived Project page: a thin banner above it saying what it is, and the
+   page filling the rest. */
+.archive-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.archive-page > .workspace {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
+.archive-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.archive-banner strong {
+  color: var(--text-primary);
+}
+
+.archive-banner span {
+  flex: 1 1 320px;
+}
+
+.archive-banner button {
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.archive-banner button:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
 .scene-canvas {
   width: 100%;
   height: 100%;

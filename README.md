@@ -3,8 +3,8 @@
 Coursework for a weekly design course, built with React, TypeScript, and
 Three.js. The app has two halves. **Playground** holds the topics — one per
 body of work, each taking a single technique apart with every parameter it has
-on screen. **Project** puts them back together into one system with a question
-behind it: vegetation growing over a building, steered by its environment.
+on screen. **Project** puts them back together: **Wildform**, a procedural building game
+where plants grow living architecture from conditions the player sets.
 
 Each topic is a page in the Playground and a chapter in the study notebook
 under [`docs/`](docs/). The app accumulates as the course goes rather than
@@ -15,7 +15,7 @@ runs.
 
 ## Contents
 
-- [The project](#the-project) — Green Architecture
+- [The project](#the-project) — Wildform
 - [Topics](#topics) — the Playground
   - [Topic 1 — Objects](#topic-1--objects)
   - [Topic 2 — Maps](#topic-2--maps)
@@ -34,73 +34,60 @@ runs.
 
 ## The project
 
-**Green Architecture** — vegetation that grows over a building by itself,
-steered by sunlight, moisture and the building's own geometry. Nothing is
-placed by hand: seeds at the foot of the wall, and a growth rule that decides,
-a step at a time, where each plant goes next — up the walls, over the cornices
-and onto the roofs. Three species — ivy, moss and a flowering vine — each with
-their own needs, compete for every surface. The
-question is *how do geometry, sunlight and moisture influence where plants
-grow?*
+**Wildform** — *grow architecture by shaping how plants behave.* A procedural
+building game: the player constructs the starting architecture from a limited
+budget of rigid blocks, plants growth behaviors, and shapes the environment;
+the plants grow, interact, and generate living architecture the player does
+not directly design. **The player controls the conditions, but not the exact
+final form.**
 
-Four pages, none of them a topic — the project cuts across all of them and is
+    build → plant → grow → interact → mutate → adapt
+
+Five pages, none of them a topic — the project cuts across all of them and is
 numbered by nothing:
 
-- **Overview** — the idea and the question, in the first person, with the
-  system drawn as a flow and one run shown two ways: the building, and which
-  species holds each cell.
-- **Explore** — the simulation. An L-shaped block with a lower wing and its roof
-  terrace, every wall and roof cut into cells that know their neighbours; play,
-  step and reset at 1×/4×/16× (Play stops itself once growth has); rain and sun;
-  three species to switch on and tune; switches for each rule; four presets; and
-  views that paint species territories, moisture, sunlight, geometry and
-  suitability onto the building.
-- **Site** — Roosevelt Island from NYC Open Data, the real place the model is
-  moving onto: 68 buildings extruded from their footprints, parks, roads and
-  sidewalks. The six Cornell Tech buildings are cut into cells like the invented
-  building, lit by the real sun for a clear day in June, at an equinox or in
-  December, and grown on by the same three species, planted automatically along
-  every wall or by clicking, through a simulated year in which plants die back
-  where they can't live. The species sort themselves the way a gardener would
-  plant them — vine on full-sun walls, ivy on part sun and shade — and each
-  winter cuts the vine back out of the walls it can't keep. Close up, real
-  leaves; in the sidebar, coverage by building and wall direction. Each
-  building has a procedural façade — windows, seams, louvers, fins, ledges, a
-  solar canopy — that tells the plants where they can hold on, so glass stays
-  clear and the glassy hotel greens least. South of the campus, the lawn
-  and parks are a landscape: mapped trees, paths and lawns from city data and
-  OpenStreetMap, relief from the city's spot heights, and slope-aware groves
-  and shrubs where the data is silent. A second
-  study, **Roadside**, grows the same plants on the island's ground and tests
-  whether verges are greener because roads bring seeds or because pavement
-  sheds water (seeds, at normal rain; water, in a dry year). The page is
-  styled after the island at golden hour: the real sun for the chosen day,
-  late in the afternoon (paused, any date and hour, with a sun-path dial), cool
-  shadows, stone-coloured buildings, hazy far shores, and the simulated plants
-  as the cool, deep greens in a warm scene.
-  See [`docs/project/roosevelt-island.md`](docs/project/roosevelt-island.md).
-- **Progress** — the pipeline, five experiments that each add one rule, the
-  three species and the walls they took, the presets side by side, and the
-  decisions with the measurements behind them.
-- **Decisions** — the five design decisions on one page, for discussion: one
-  growth rule for every plant, species that differ only in their needs, light
-  from the real sun, die-back, and the surface deciding where a plant can
-  hold. Each has the rule, why, what came first, the evidence and an open
-  question; a closing table lists the numbers that were chosen, not measured.
+- **Overview** — what Wildform is: the loop, the growth behaviors, living
+  architecture, the current challenge, and future environments (not built).
+- **Build** — the playable prototype, and the page to try first. Two buildings
+  stand on a lawn too far apart for plants to join; the player spends blocks
+  from a budget of 30 (Townscaper-style — walls, roofs, arches and ledges work
+  themselves out), plants **Climber** (climbs, follows edges), **Spreader**
+  (spreads, seeks light) and **Draper** (hangs from edges, follows gravity),
+  and sets the rain and sun. Where Climber and Spreader grow over each other —
+  **Layered**, a derived state, not a species — a mutation node grows living
+  architecture in stages: a bridge, balcony, scaffold, terrace or canopy,
+  shaped by what met and the space around it, which then shades and supports
+  the plants — and becomes a surface itself, its deck tops favouring the
+  Spreader, its ribs the Climber, its rims the Draper, so architecture grows
+  on architecture. Pitched roofs are surfaces too: flat roofs fill, steep ones
+  shed water and grow at their eaves. Drapers root where they reach the lawn; patchy ground cover
+  creeps from wall feet and roots. Goal: join the two buildings with living
+  architecture, and keep them two. Signed in, a world can be saved, reopened
+  paused where it was, duplicated to experiment, renamed and deleted — its
+  state, not its scene. See [`docs/project/build.md`](docs/project/build.md).
+- **Site** — *Wildform at campus scale.* The same environment logic on a real
+  place: Roosevelt Island from NYC Open Data, the six Cornell Tech buildings cut
+  into growth cells with procedural façades, lit by the real sun through a
+  simulated year with die-back, and a landscaped south of the island. Its plants
+  are the three species of the growth model Wildform grew from — ivy, moss and
+  a flowering vine — planted automatically or by clicking; Build's behaviors and
+  living architecture are the next step for the campus. A second study,
+  Roadside, grows the plants on the island's ground. See
+  [`docs/project/roosevelt-island.md`](docs/project/roosevelt-island.md).
+- **Progress** — how the project evolved, as four phases: procedural
+  foundations, site simulation, living architecture, Wildform — each with what
+  it tried and what it taught; then the phase-02 growth experiments in detail.
+- **Decisions** — the design decisions behind the pivots, for critique
+  (simulation → gameplay, constrained building, conditions not outcomes, the
+  plant-behavior vocabulary, living mutations, a lawn baseline with future
+  environments), then the five growth-model decisions underneath.
 
-![The Explore page from the Corner view: flowering vine across the sunlit fronts and onto the roofs, dark ivy in the shadow of the inside corner, moss on the wing's west wall, with the growth and species controls on the right](docs/images/readme-project-explore.jpg)
+The midterm prototype, **Explore** — two species on an invented building
+growing one Living Platform — is archived: out of the tabs, still reachable
+from Progress, and its simulation is the one Build runs. See
+[`docs/project/wildform.md`](docs/project/wildform.md).
 
-Nobody placed those territories. The Species view of the same run: the vine
-(pink) took the walls facing the sun and the roofs, ivy (green) the shade, moss
-(yellow) the wing's shaded west wall.
-
-![The same building with each wall cell coloured by the species holding it](docs/images/readme-project-species.jpg)
-
-See [`docs/project/green-architecture.md`](docs/project/green-architecture.md)
-for the model, the measurements and the limits, and
-[`docs/project/app-structure.md`](docs/project/app-structure.md) for how the
-two sections are divided. The project's earlier direction — three walkable
-worlds — is in the git history.
+![Build after 1,100 steps: two buildings joined by living bridges through a stepping-stone tower, Draper curtains hanging from the roof edges and under a bridge, ground cover at the feet of the walls](docs/images/build-living.jpg)
 
 ## Topics
 
@@ -311,7 +298,7 @@ with a description of what each document covers — is in
 | --- | --- |
 | [`docs/topics/`](docs/topics/) | One chapter per topic: what it does, how it works, and the decisions behind it |
 | [`docs/analysis/`](docs/analysis/) | Measurement and comparison reports that outgrew their chapter |
-| [`docs/project/`](docs/project/) | The project — Green Architecture, the Roosevelt Island site and the ideas notebook — plus infrastructure: the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
+| [`docs/project/`](docs/project/) | The project — Wildform: Build, the Roosevelt Island site, the archived midterm, the growth model underneath and the ideas notebook — plus infrastructure: the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
 | [`docs/images/`](docs/images/) | Screenshots, all captured from the running app |
 
 ## Keyboard
@@ -321,7 +308,7 @@ with a description of what each document covers — is in
 | `H` | Hide every panel and give the whole window to the object. Press again to bring them back |
 | `Esc` | Always restores the panels, never hides them |
 
-Focus mode works on every topic and on Explore — it hides both
+Focus mode works on every topic and on the archived Explore — it hides both
 navigation rows, both side panels and the dividers between them, leaving the
 viewport the whole window. `Esc` only
 ever restores, which is what makes hiding the UI safe to try, and a small
@@ -434,20 +421,43 @@ src/
 ├── ControlSection.tsx        Collapsible sidebar group
 ├── ConfigPanel.tsx           The worlds library — the left column on every topic
 ├── hashNoise.ts              Table-free value noise, used by Topics 5–7
-├── mapDrag.ts                Map-style dragging for the Project's Explore and Site views
-├── green/                    The Project: Green Architecture
+├── cameraControls.ts         One mouse convention for every 3D view: drag rotates, right-drag moves
+├── green/                    The growth model underneath: cells, fields, and the Site's three species
 │   ├── building.ts           The invented building as a spec; any spec into cells and neighbours
 │   ├── fields.ts             Sunlight (shadow rays), moisture (walls and roofs), geometry; how they combine
 │   ├── growth.ts             Seeded tips of three species that grow, branch, stall, die and compete
 │   ├── species.ts            Ivy, moss, flowering vine: needs, growth traits, colours
-│   ├── params.ts             Environment and species controls, rule switches, four presets
+│   ├── params.ts             Growth parameters and species defaults, shared by the Site
 │   ├── buildingMesh.ts       Shell with a texel per cell, merged detail boxes
-│   ├── vegetation.ts         Stems, a leaf shape per species, flowers; aged and shaded per leaf
-│   ├── GreenViewport.tsx     Scene, sun and shadows, field textures, the step clock
+│   ├── vegetation.ts         Stems, leaf shapes, the age shader and instance batches
 │   ├── fromFootprints.ts     Cells for real buildings, from outlines and heights
 │   ├── sunPath.ts            The real sun's path over a day, and each cell's sun hours
-│   ├── GreenExplorePage.tsx  Controls, species, presets, display and camera
-│   └── green.css             Explore's sidebar, presets and field legend
+│   └── green.css             Shared sidebar, legend and ramp styles for Build, Explore and Site
+├── build/                    Project Build: the gameplay prototype
+│   ├── town.ts               The grid, existing blocks, the budget, masses, the lawn scenario
+│   ├── townMesh.ts           The rigid rules: walls, windows, roofs, arches, stilts, ledges
+│   ├── townBuilding.ts       The town as growth cells for the plants
+│   ├── lawn.ts               The lawn
+│   ├── living.ts             Mutation nodes and what grows from each combination
+│   ├── livingMesh.ts         Living architecture drawn, grown in stages
+│   ├── draper.ts             The Draper: edges, gravity-led strands, rooting, the veil, spreading
+│   ├── draperMesh.ts         Drapers drawn: stems, hanging leaves, the lip
+│   ├── groundCover.ts        Ground spread from wall feet, roots and Draper roots
+│   ├── sky.ts                The clear-day sky
+│   ├── game.ts               One game, carried through every edit; the goal
+│   ├── BuildViewport.tsx     The scene, tools and picking
+│   └── BuildPage.tsx         The sidebar: goal, mode, plant behavior, interaction, environment, growth, living architecture, events
+├── wildform/                 The Wildform simulation Build runs, and the archived midterm Explore page
+│   ├── names.ts              Every name the page shows: title, species, mutation
+│   ├── species.ts            Climber and Spreader: needs, directions, looks
+│   ├── world.ts              The building, its fields, and the architecture plants add
+│   ├── growth.ts             The two species in stacks of layers: substrate, shade, withering
+│   ├── grammar.ts            Interaction rules: sites and conditions → mutation
+│   ├── sim.ts                One run: steps, mutations, events, the Midterm Demo
+│   ├── platformMesh.ts       The Living Platform as geometry, grown in
+│   ├── wildVegetation.ts     The two species drawn by shape
+│   ├── WildViewport.tsx      Scene, views, annotations, timeline re-runs
+│   └── WildformPage.tsx      The presentation sidebar
 ├── site/                     Project Site: Roosevelt Island from NYC Open Data
 │   ├── siteData.ts           The snapshot's types, loader and area helpers
 │   ├── campus.ts             The Cornell Tech buildings as growth-model cells
@@ -519,8 +529,8 @@ docs/
 └── images/                   Screenshots, captured from the running app
 
 public/
-├── green/                    Figures for the Project pages, captured from Explore
-├── project/                  Figures for the Decisions page: Site captures, served copies of docs figures
+├── green/                    Figures for Progress and Decisions, captured from the first Explore
+├── project/                  Figures for Overview, Progress and Decisions: Build and Site captures, served copies of docs figures
 └── site/                     The Roosevelt Island snapshot, the far shores' buildings, the south's landscape
 
 scripts/
@@ -551,6 +561,15 @@ surfaces, one slate blue for interaction, and nothing else. What a topic
 `gpu/style.ts`, and is as saturated as its subject needs. The two used to share
 constants, which meant restraining a button would have washed out a lit surface.
 See [the visual system](docs/project/visual-system.md).
+
+**One mouse convention in every 3D view.** Left-drag rotates, right-drag (or
+⌘/Ctrl/Shift-drag) moves, scroll zooms — the web's 3D default, set in one
+place (`src/cameraControls.ts`) that every viewport calls. The Explore page and Site
+once dragged "like a map", left-drag moving and right-drag rotating, so the
+same gesture meant opposite things on neighbouring pages; they and Build now
+follow the rest. In scenes that are places — the island, a building, a town —
+moving slides along the ground, so a drag can't lift the view up a tower or
+sink it under the ground.
 
 **One font family, and the hierarchy comes from size and weight.** The Project
 pages are more spacious than the Playground; that difference is carried by size,

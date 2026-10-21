@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { applyViewControls } from '../cameraControls'
 import { createCameraGate, startRenderLoop, wakeOnInput, type RenderLoop } from '../renderLoop'
 import { VIEWPORT_BACKGROUND } from '../theme'
 import {
@@ -99,6 +100,7 @@ export function PathViewport({ settings, showRoad, showRiver, onReport, onMovePo
     )
     camera.position.set(0, 8.6, 11.8)
     const controls = new OrbitControls(camera, renderer.domElement)
+    applyViewControls(controls)
     controls.enableDamping = true
     controls.target.set(0, 0.4, 0)
     controls.maxPolarAngle = Math.PI * 0.47

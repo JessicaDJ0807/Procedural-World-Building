@@ -261,6 +261,6 @@ between two kinds of work, not a reduction in work.
 
 - [Topic 4 — Shaders](../topics/topic-4-shaders.md), whose `## Notes` section
   covers the render loop as part of the page it belongs to.
-- [Green Architecture](../project/green-architecture.md#where-the-energy-goes),
+- [Overgrowth](../project/green-architecture.md#where-the-energy-goes),
   where the same probe measured the Project's Explore page, and the render loop
   gained `setMaxFps` so a view can draw at 30 while its simulation plays.

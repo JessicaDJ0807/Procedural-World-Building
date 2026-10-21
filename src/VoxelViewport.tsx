@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { applyViewControls } from './cameraControls'
 import { DOMAIN } from './density'
 import type { Mesh as VoxelMesh } from './mesher'
 import { rampIndex, type Ramp } from './palette'
@@ -79,6 +80,8 @@ export function VoxelViewport({ mesh, ramp, spin, showBounds }: VoxelViewportPro
     container.appendChild(renderer.domElement)
 
     const controls = new OrbitControls(camera, renderer.domElement)
+
+    applyViewControls(controls)
     controls.enableDamping = true
     controls.minDistance = 0.8
     controls.maxDistance = 16

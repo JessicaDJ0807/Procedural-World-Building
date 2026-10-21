@@ -8,7 +8,7 @@ import type { GrowthParams } from '../green/params'
 import { SPECIES_IDS } from '../green/species'
 import { SEASONS } from '../green/sunPath'
 import { NO_SPECIES } from '../green/growth'
-import { applyMapDrag, clampTarget } from '../mapDrag'
+import { applyViewControls, clampTarget } from '../cameraControls'
 import { createCameraGate, startRenderLoop, wakeOnInput } from '../renderLoop'
 import { VIEWPORT_BACKGROUND, VIZ_ACCENT } from '../theme'
 import type { Campus } from './campus'
@@ -290,6 +290,7 @@ export function SiteViewport(props: Props) {
     const camera = new THREE.PerspectiveCamera(34, container.clientWidth / Math.max(container.clientHeight, 1), 2, 15000)
     camera.position.set(...VIEWS.campus.position)
     const controls = new OrbitControls(camera, renderer.domElement)
+    applyViewControls(controls, { ground: true })
     // The hover label describes what was under the pointer; once the view
     // moves without it — a scroll to zoom — it describes something else.
     controls.addEventListener('start', () => {
@@ -300,7 +301,6 @@ export function SiteViewport(props: Props) {
     controls.maxPolarAngle = Math.PI * 0.47
     controls.minDistance = 40
     controls.maxDistance = 6000
-    applyMapDrag(controls)
     controls.update()
     const gate = createCameraGate()
 
@@ -1081,7 +1081,7 @@ export function SiteViewport(props: Props) {
     const stopWaking = wakeOnInput(loop)
 
     // Dev only: run to an exact step, so a captured figure and the numbers
-    // beside it describe the same state, as Explore's __greenAdvanceTo does.
+    // beside it describe the same state, as Explore's __wildAdvanceTo does.
     if (import.meta.env.DEV) {
       // A camera anywhere, for close-up figures.
       ;(window as unknown as { __siteCamera?: (p: number[], t: number[]) => void }).__siteCamera = (p, t) => {

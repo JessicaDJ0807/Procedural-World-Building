@@ -2,21 +2,23 @@
 
 Jessica Hsiao · Procedural World Building
 
-The real site the growth model is moving onto: Roosevelt Island and the Cornell
-Tech campus, built from NYC Open Data rather than modelled by hand. This
+**Wildform at campus scale:** the project's environment logic on a real
+place — Roosevelt Island and the Cornell Tech campus, built from NYC Open Data
+rather than modelled by hand. This
 document covers where each layer comes from, what the data does and does not
 contain, how it becomes a scene, how the campus buildings become cells the
 growth model can use, how much sun each wall gets over a real day, and what
 grows where when the three species are let loose on the campus, through a
 simulated year with plants that die back where they can't live — and the
 roadside study, the same plants on the island's ground.
-The growth model itself is in [Green Architecture](green-architecture.md).
+The growth model itself is in [the phase-02 growth model](green-architecture.md); how the Site relates to Build is [below](#wildform-at-campus-scale).
 
 ![Roosevelt Island from the east-south-east at golden hour: stone-coloured buildings extruded from their footprints, sage lawns, roads and sidewalks, and at the south end the campus lawn and the parks, green and wooded, on a slate river between the real buildings of Manhattan and Queens](../images/project-site-island.jpg)
 
 ## Contents
 
 - [Why a real site](#why-a-real-site)
+- [Wildform at campus scale](#wildform-at-campus-scale)
 - [The page](#the-page)
 - [Sources](#sources)
 - [What the data contains](#what-the-data-contains)
@@ -60,6 +62,43 @@ different setting:
 They are studies inside the Project, not numbered topics: topics belong to the
 Playground (see [Playground and Project](app-structure.md)).
 
+## Wildform at campus scale
+
+Build is the small, controlled prototype; the Site asks what happens when the
+same idea operates at campus scale over time. The two share a lot, but not
+everything yet, and the page says which:
+
+| | Build | Site |
+| --- | --- | --- |
+| Architecture | the player's blocks, edited live | six real buildings, fixed, with procedural façades |
+| Cells | `townToBuilding` → a `Building` | `fromFootprints` → a `Building` |
+| Moisture and geometry | `computeMoisture`, `computeGeometry` (`green/fields.ts`) | the same functions |
+| Light | one sun at 38°, turned by the slider | the real sun: hours of direct sun, through a year |
+| Plants | Climber, Spreader (Wildform's rule, in layers), Draper | ivy, moss, flowering vine (the phase-02 rule) |
+| Living architecture | mutation nodes → bridges, balconies, scaffolds, terraces, canopies | not yet |
+
+The sidebar follows Build's order — study, plant behavior, environment,
+growth — and describes each species as a behavior (*ivy ↑ climbs in strands
+· part shade*), so the two pages read as one system.
+
+**What it would take to run Build's system here.** Read from the code, not
+estimated:
+
+- `WildSim`, `World` and `WildVegetation` take any `Building`, so Climber and
+  Spreader could grow on the campus cells as they are.
+- `draper.ts` asks the town one thing: whether a grid cell is filled
+  (`town.filled`), for its edges and for what a strand lands on.
+- `living.ts` needs more of the town: `filled`, its masses (`town.masses()`,
+  which building a block belongs to, for whether a bridge connects two), and
+  the town's grid indexing (`Town.index`, `toTown`).
+
+So the seam is an occupancy grid: the six buildings voxelised at a storey-sized
+grid, answering `filled` and `masses` the way the town does. Nothing has been
+measured for it — the campus is 202,639 cells at 0.5 m, and Wildform's
+growth has only ever run on Build's town and the invented building — so cost
+is the first thing to find out. That would be one implementation of the
+mutation system, reused, rather than a second one written for the Site.
+
 ## The page
 
 **Project → Site** shows the island from the snapshot, with two studies of
@@ -77,8 +116,8 @@ belong to (Roadside unlocks once its ground has been built, after the campus).
 - The page **opens on Cornell Tech**, close and low from the south-west, with
   the low sun behind the camera lighting the campus's faces; the View
   popover's Island camera shows the whole island.
-- **Drag to move** around, like a map. Right-drag, or ⌘/Ctrl/Shift-drag, to
-  orbit; scroll to zoom. A compass in the corner points north, because the
+- **Drag to rotate**; right-drag, or ⌘/Ctrl/Shift-drag, to move around
+  (along the ground); scroll to zoom — the app's one convention. A compass in the corner points north, because the
   island runs south-west to north-east and the views follow it rather than
   north.
 - **Growth**: Play / Pause, Step, Reset, at 1×, 4×, 16× or 64× (1× is 8 steps
@@ -1264,9 +1303,10 @@ day on its seams against 5.5 h.
 
 ## Next steps
 
-1. **Feedback:** let plants shade and hold water against what they grow on.
-2. **Die-back on Explore,** so the invented building's results survive a year
-   too.
+1. **Build's system on the campus:** an occupancy grid for the six buildings,
+   so Wildform's behaviors and living architecture can run here (see
+   [above](#wildform-at-campus-scale)).
+2. **Feedback:** let plants shade and hold water against what they grow on.
 
 ## Notes
 

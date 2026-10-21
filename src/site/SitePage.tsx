@@ -64,7 +64,7 @@ const DISPLAYS: { value: SiteDisplay; label: string; legend?: string }[] = [
     value: 'moisture',
     label: 'Moisture',
     legend:
-      'Rain caught on the walls and carried down them, more on the roofs and at their edges, water running off a tall wall onto a lower roof — less where the sun dries it. The same rule as Explore; the city data has no ledges or windows to mark it further.',
+      'Rain caught on the walls and carried down them, more on the roofs and at their edges, water running off a tall wall onto a lower roof — less where the sun dries it. The same moisture rule Build’s plants read; the city data has no ledges or windows to mark it further.',
   },
   {
     value: 'surfaces',
@@ -115,6 +115,16 @@ function SpeciesBar({ tally }: { tally: Tally }) {
       <span style={{ flexGrow: bare }} />
     </span>
   )
+}
+
+/**
+ * Each species as a behavior, in Build's terms: the way it grows, and what it
+ * needs — from its parameters in green/species.ts.
+ */
+const BEHAVIOUR: Record<SpeciesId, { arrow: string; note: string }> = {
+  ivy: { arrow: '↑', note: 'climbs in strands · part shade' },
+  moss: { arrow: '↔', note: 'spreads into patches · deep shade, wet' },
+  vine: { arrow: '↑', note: 'climbs fast in long runs · full sun' },
 }
 
 /** 64× because the campus is sixteen times the invented building's length of wall. */
@@ -432,12 +442,24 @@ export function SitePage() {
             </span>
             <input type="checkbox" checked={rawCells} onChange={(e) => setRawCells(e.target.checked)} />
           </label>
-          <p className="hint">Drag to move, right-drag or ⌘-drag to orbit, scroll to zoom. Hover a building to name it; click to select.</p>
+          <p className="hint">Drag to rotate, right-drag or ⌘-drag to move, scroll to zoom. Hover a building to name it; click to select.</p>
         </ViewControls>
       </div>
 
       <div className="workspace-inspector green-inspector">
         <aside className="control-sidebar" aria-label="Site">
+          <header className="site-intro">
+            <h2>Wildform at Campus Scale</h2>
+            <p>
+              Apply Wildform’s growth logic to Cornell Tech and Roosevelt Island. Plants respond to façades, sunlight,
+              moisture and architecture, and the campus changes over a simulated year.
+            </p>
+            <p className="site-intro-note">
+              A larger-scale experiment: the real buildings stay fixed, with the same environment fields as Build and the
+              real sun. The plants here are the three species of the model Wildform grew from; Build’s behaviors and living
+              architecture are the next step for the campus.
+            </p>
+          </header>
           {site && stats ? (
             <>
               <h3 className="control-group">
@@ -494,71 +516,42 @@ export function SitePage() {
               </p>
 
               <h3 className="control-group">
-                <InfoTip text="The same growth rule as Explore, on the campus cells: tips look at their eight neighbours, score them by light, moisture and geometry for their species, and grow. 1× is 8 steps a second.">
-                  Growth
+                <InfoTip text="The three species of the growth model the Site runs — the one Wildform grew out of — each with its own needs for light and water, and a way of growing. Switching one on or off starts again. Build's Climber, Spreader and Draper, and its living architecture, are not on the campus yet.">
+                  Plant behavior
                 </InfoTip>
               </h3>
-              <div className="button-row">
-                <button
-                  type="button"
-                  className="reset-button is-primary"
-                  onClick={() => {
-                    setStalledAt(null)
-                    // Playing hands the scene's sun back to the growth.
-                    if (!running) {
-                      setDayPlay(null)
-                      setSunMoment(null)
-                    }
-                    setRunning((r) => !r)
-                  }}
-                >
-                  {running ? 'Pause' : 'Play'}
-                </button>
-                <button type="button" className="reset-button" disabled={running} onClick={() => setStepToken((t) => t + 1)}>
-                  Step
-                </button>
-                <button
-                  type="button"
-                  className="reset-button"
-                  title={seeding === 'auto' ? 'Replant the same seeds and start again' : 'Clear everything planted'}
-                  onClick={restart}
-                >
-                  {seeding === 'auto' ? 'Reset' : 'Clear'}
-                </button>
-              </div>
-              <div className="segmented" role="radiogroup" aria-label="Speed">
-                {SPEEDS.map((x) => (
-                  <button
-                    key={x}
-                    type="button"
-                    role="radio"
-                    aria-checked={speed === x}
-                    className={`segmented-option${speed === x ? ' is-active' : ''}`}
-                    onClick={() => setSpeed(x)}
-                  >
-                    {x}×
-                  </button>
+              <div className="green-species">
+                {SPECIES_IDS.map((id, k) => (
+                  <label key={id} className="green-species-row site-species-row">
+                    <input
+                      type="checkbox"
+                      aria-label={`Grow ${SPECIES[id].name}`}
+                      checked={params.species[id].enabled}
+                      onChange={(e) => {
+                        const enabled = e.target.checked
+                        setStalledAt(null)
+                        setParams((p) => ({ ...p, species: { ...p.species, [id]: { ...p.species[id], enabled } } }))
+                      }}
+                    />
+                    <span className="green-swatch" style={{ background: SITE_SPECIES[SPECIES_IDS.indexOf(id)].css }} aria-hidden="true" />
+                    <span className="site-species-text">
+                      <span className="green-species-name">
+                        {SPECIES[id].name} <span className="site-species-arrow" aria-hidden="true">{BEHAVIOUR[id].arrow}</span>
+                      </span>
+                      <span className="site-species-note">{BEHAVIOUR[id].note}</span>
+                    </span>
+                    <span className="green-species-share">
+                      {report && params.species[id].enabled ? `${(report.bySpecies[k] * 100).toFixed(1)}%` : 'off'}
+                    </span>
+                  </label>
                 ))}
               </div>
-              {report && (
-                <p className="readout green-readout">
-                  Step <strong>{report.step.toLocaleString()}</strong> · <strong>{(report.coverage * 100).toFixed(1)}%</strong> covered
-                  <br />
-                  <strong>{report.grown.toLocaleString()}</strong> cells · <strong>{report.tips}</strong> growing tips
-                </p>
-              )}
-              {stalledAt !== null && (
-                <p className="hint green-stalled">
-                  Growth stopped: the last new cell grew at step {stalledAt.toLocaleString()}, and nothing has grown in the{' '}
-                  {SITE_STALL_STEPS} steps since, so Play paused itself.
-                </p>
-              )}
 
-              <h3 className="control-group">
+              <span className="control-label green-view-label site-subhead">
                 <InfoTip text="Automatic plants seeds along the foot of every campus wall (Buildings) or along every edge of pavement (Roadside) — roads carry seeds, which is the assumption the roadside study makes. Manual starts empty: click a campus wall or roof, or a patch of ground, to plant the chosen species there.">
                   Planting
                 </InfoTip>
-              </h3>
+              </span>
               <div className="segmented" role="radiogroup" aria-label="Planting">
                 {(['auto', 'manual'] as const).map((m) => (
                   <button
@@ -600,6 +593,25 @@ export function SitePage() {
                   </p>
                 </>
               )}
+
+              <h3 className="control-group">
+                <InfoTip text="Rain feeds the moisture field; the day above sets the light. A change carries the growth on under the new conditions.">
+                  Environment
+                </InfoTip>
+              </h3>
+              {ENVIRONMENT_SLIDERS.filter((x) => x.key === 'rain').map((spec) => (
+                <Slider
+                  key={spec.key}
+                  label={spec.label}
+                  info={spec.info}
+                  value={params[spec.key]}
+                  display={spec.format(params[spec.key])}
+                  min={spec.min}
+                  max={spec.max}
+                  step={spec.step}
+                  onChange={(v) => setParams((p) => ({ ...p, [spec.key]: v }))}
+                />
+              ))}
 
               <h3 className="control-group">
                 <InfoTip text="The sun's real path over Roosevelt Island (40.76° N) on a clear day, every half hour, with a shadow ray from every campus cell through every building on the island. Open View → Display to paint it on the campus. The scene is lit by the real sun on the day showing, late in the afternoon; pause to choose any date and hour.">
@@ -704,50 +716,65 @@ export function SitePage() {
               )}
 
               <h3 className="control-group">
-                <InfoTip text="Rain feeds the moisture field; the day above sets the light. A change carries the growth on under the new conditions.">
-                  Environment
+                <InfoTip text="The growth rule the Site runs, on the campus cells: tips look at their eight neighbours, score them by light, moisture and geometry for their species, and grow. 1× is 8 steps a second.">
+                  Growth
                 </InfoTip>
               </h3>
-              {ENVIRONMENT_SLIDERS.filter((x) => x.key === 'rain').map((spec) => (
-                <Slider
-                  key={spec.key}
-                  label={spec.label}
-                  info={spec.info}
-                  value={params[spec.key]}
-                  display={spec.format(params[spec.key])}
-                  min={spec.min}
-                  max={spec.max}
-                  step={spec.step}
-                  onChange={(v) => setParams((p) => ({ ...p, [spec.key]: v }))}
-                />
-              ))}
-
-              <h3 className="control-group">
-                <InfoTip text="The three species from Explore, with their default needs. Switching one on or off starts again.">
-                  Species
-                </InfoTip>
-              </h3>
-              <div className="green-species">
-                {SPECIES_IDS.map((id, k) => (
-                  <label key={id} className="green-species-row site-species-row">
-                    <input
-                      type="checkbox"
-                      aria-label={`Grow ${SPECIES[id].name}`}
-                      checked={params.species[id].enabled}
-                      onChange={(e) => {
-                        const enabled = e.target.checked
-                        setStalledAt(null)
-                        setParams((p) => ({ ...p, species: { ...p.species, [id]: { ...p.species[id], enabled } } }))
-                      }}
-                    />
-                    <span className="green-swatch" style={{ background: SITE_SPECIES[SPECIES_IDS.indexOf(id)].css }} aria-hidden="true" />
-                    <span className="green-species-name">{SPECIES[id].name}</span>
-                    <span className="green-species-share">
-                      {report && params.species[id].enabled ? `${(report.bySpecies[k] * 100).toFixed(1)}%` : 'off'}
-                    </span>
-                  </label>
+              <div className="button-row">
+                <button
+                  type="button"
+                  className="reset-button is-primary"
+                  onClick={() => {
+                    setStalledAt(null)
+                    // Playing hands the scene's sun back to the growth.
+                    if (!running) {
+                      setDayPlay(null)
+                      setSunMoment(null)
+                    }
+                    setRunning((r) => !r)
+                  }}
+                >
+                  {running ? 'Pause' : 'Play'}
+                </button>
+                <button type="button" className="reset-button" disabled={running} onClick={() => setStepToken((t) => t + 1)}>
+                  Step
+                </button>
+                <button
+                  type="button"
+                  className="reset-button"
+                  title={seeding === 'auto' ? 'Replant the same seeds and start again' : 'Clear everything planted'}
+                  onClick={restart}
+                >
+                  {seeding === 'auto' ? 'Reset' : 'Clear'}
+                </button>
+              </div>
+              <div className="segmented" role="radiogroup" aria-label="Speed">
+                {SPEEDS.map((x) => (
+                  <button
+                    key={x}
+                    type="button"
+                    role="radio"
+                    aria-checked={speed === x}
+                    className={`segmented-option${speed === x ? ' is-active' : ''}`}
+                    onClick={() => setSpeed(x)}
+                  >
+                    {x}×
+                  </button>
                 ))}
               </div>
+              {report && (
+                <p className="readout green-readout">
+                  Step <strong>{report.step.toLocaleString()}</strong> · <strong>{(report.coverage * 100).toFixed(1)}%</strong> covered
+                  <br />
+                  <strong>{report.grown.toLocaleString()}</strong> cells · <strong>{report.tips}</strong> growing tips
+                </p>
+              )}
+              {stalledAt !== null && (
+                <p className="hint green-stalled">
+                  Growth stopped: the last new cell grew at step {stalledAt.toLocaleString()}, and nothing has grown in the{' '}
+                  {SITE_STALL_STEPS} steps since, so Play paused itself.
+                </p>
+              )}
 
               {study === 'campus' ? (
                 <>

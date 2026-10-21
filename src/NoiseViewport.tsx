@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { applyViewControls } from './cameraControls'
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js'
 import type { Cell } from './NoiseMapPreview'
 import { rampIndex, type Ramp } from './palette'
@@ -393,6 +394,8 @@ export function NoiseViewport({
     container.appendChild(renderer.domElement)
 
     const controls = new OrbitControls(camera, renderer.domElement)
+
+    applyViewControls(controls)
     controls.enableDamping = true
     controls.target.set(0, FRAMING.surface.target, 0)
     controls.minDistance = 0.8

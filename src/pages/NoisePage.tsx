@@ -1022,7 +1022,7 @@ export function NoisePage({ switcher, lab, labField, onLabLoad }: NoisePageProps
           </p>
         </ControlSection>
 
-        <p className="hint">Drag to orbit, scroll to zoom, right-drag to pan.</p>
+        <p className="hint">Drag to rotate, right-drag to move, scroll to zoom.</p>
         </aside>
       }
     >

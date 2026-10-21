@@ -653,3 +653,314 @@
     gap: 4px;
   }
 }
+
+/* ---- Wildform: the Overview's tagline, loop and behaviours ---- */
+
+.project-tagline {
+  margin: 0 0 14px;
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+/* The core loop as a chain of words, arrows between. */
+.loop-chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 0;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+
+.loop-chain li {
+  display: flex;
+  align-items: center;
+}
+
+.loop-chain li + li::before {
+  content: '→';
+  margin: 0 8px;
+  color: var(--text-muted);
+}
+
+.loop-chain span {
+  padding: 5px 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+}
+
+.behaviour-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.behaviour-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 16px 18px;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--behaviour, var(--border-strong));
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.behaviour-card strong {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.behaviour-card span:last-child {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.behaviour-arrow {
+  color: var(--behaviour, var(--text-muted));
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* Layered is derived, not planted: dashed, and in the amber of growth over growth. */
+.behaviour-card.is-derived {
+  --behaviour: #e0a352;
+  border-style: dashed;
+  border-top-style: solid;
+  background: none;
+}
+
+.figure-pair.is-text-first {
+  align-items: start;
+}
+
+.figure-pair.is-text-first p:first-child {
+  margin-top: 0;
+}
+
+/* ---- Progress: the timeline ---- */
+
+.timeline {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phase {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0 20px;
+  padding-bottom: 48px;
+}
+
+.phase-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.phase-number {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The line down to the next phase. */
+.phase-marker::after {
+  content: '';
+  flex: 1;
+  width: 1px;
+  margin-top: 8px;
+  background: var(--border-strong);
+}
+
+.phase:last-child .phase-marker::after {
+  display: none;
+}
+
+.phase.is-current .phase-number {
+  border-color: var(--accent-line);
+  background: var(--accent-subtle);
+  color: var(--accent-strong);
+}
+
+.phase-body h2 {
+  margin: 8px 0 6px;
+}
+
+.phase-lede {
+  max-width: 70ch;
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+}
+
+.phase-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.phase-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.phase-figures.is-single {
+  grid-template-columns: 1fr;
+}
+
+/* Several figures to a phase come from different pages at different shapes:
+   cropped to one shape so the grid lines up. */
+.phase-figures:not(.is-single) img {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.phase-figures img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  background: var(--viewport-bg);
+}
+
+.phase-list {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.phase-learning {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 2px solid var(--accent-line);
+  border-radius: 0 6px 6px 0;
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.phase-learning span {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* A section kept from an earlier version of the page: quieter heading rule. */
+.project-archive-head {
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+/* ---- Decisions: the design decisions ---- */
+
+.design-decisions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.design-decision {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 22px 22px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-1);
+}
+
+.design-decision h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.design-decision dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.design-decision dt {
+  margin-bottom: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.design-decision dd {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.design-decision dd ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.design-decision .is-principle dd {
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.design-decision .project-tag {
+  margin-left: 0;
+}
+
+@media (max-width: 1080px) {
+  .behaviour-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .phase-columns,
+  .design-decisions {
+    grid-template-columns: 1fr;
+  }
+
+  .phase {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 0 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .behaviour-grid,
+  .phase-figures {
+    grid-template-columns: 1fr;
+  }
+}

@@ -8,7 +8,8 @@ import { FlowPage } from './pages/FlowPage'
 import { BranchingPage } from './pages/BranchingPage'
 import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
-import { GreenExplorePage } from './green/GreenExplorePage'
+import { WildformPage } from './wildform/WildformPage'
+import { BuildPage } from './build/BuildPage'
 import { SitePage } from './site/SitePage'
 import { ProjectOverview } from './project/ProjectOverview'
 import { ProjectProgress } from './project/ProjectProgress'
@@ -40,7 +41,23 @@ const PLAYGROUND_PAGES: Record<PlaygroundId, () => ReactElement> = {
 
 const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => ReactElement> = {
   overview: (navigate) => <ProjectOverview navigate={navigate} />,
-  explore: () => <GreenExplorePage />,
+  explore: (navigate) => (
+    <div className="archive-page">
+      <div className="archive-banner" role="note">
+        <span>
+          <strong>Archived:</strong> the midterm prototype. Build is the current project, and does all of this on architecture you make.
+        </span>
+        <button type="button" onClick={() => navigate({ section: 'project', page: 'build' })}>
+          Open Build
+        </button>
+        <button type="button" onClick={() => navigate({ section: 'project', page: 'progress' })}>
+          Back to Progress
+        </button>
+      </div>
+      <WildformPage />
+    </div>
+  ),
+  build: () => <BuildPage />,
   site: () => <SitePage />,
   progress: (navigate) => <ProjectProgress navigate={navigate} />,
   decisions: (navigate) => <ProjectDecisions navigate={navigate} />,

@@ -57,7 +57,7 @@ const FLOWER_DELAY = 70
 const FLOWER_SHARE = 0.25
 
 /** Deterministic per-cell jitter, so the grid does not show through as a lattice. */
-function hash(n: number): number {
+export function hash(n: number): number {
   let h = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b)
   h ^= h >>> 13
   h = Math.imul(h, 0xc2b2ae35)
@@ -71,7 +71,7 @@ uniform float uStep;
 varying float vAge;
 `
 
-function stemMaterial(uStep: { value: number }) {
+export function stemMaterial(uStep: { value: number }) {
   const material = new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0 })
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uStep = uStep
@@ -98,7 +98,7 @@ function stemMaterial(uStep: { value: number }) {
   return material
 }
 
-function leafMaterial(uStep: { value: number }, young: string | null, matureSteps: number, openSteps: number, flat = false) {
+export function leafMaterial(uStep: { value: number }, young: string | null, matureSteps: number, openSteps: number, flat = false) {
   const material = new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0, side: THREE.DoubleSide, flatShading: flat })
   const youngLinear = young ? new THREE.Color(young) : null
   material.onBeforeCompile = (shader) => {
@@ -144,14 +144,14 @@ function fan(outline: [number, number][], centre: [number, number, number]): THR
 }
 
 /** Ivy: five-pointed and lobed, along +y from the stalk at the origin. */
-function ivyLeaf() {
+export function ivyLeaf() {
   const right: [number, number][] = [[0.14, 0.1], [0.44, 0.34], [0.25, 0.42], [0.32, 0.66], [0.12, 0.68]]
   const outline: [number, number][] = [[0, 0], ...right, [0, 1], ...right.slice().reverse().map(([x, y]) => [-x, y] as [number, number])]
   return fan(outline, [0, 0.45, 0.1])
 }
 
 /** Vine: a plain oval with a pointed tip. */
-function vineLeaf() {
+export function vineLeaf() {
   const outline: [number, number][] = []
   const N = 9
   for (let i = 0; i <= N; i++) {
@@ -198,7 +198,7 @@ export function leafGeometry(id: SpeciesId): THREE.BufferGeometry {
   return GEOMETRY[id]()
 }
 
-class Batch {
+export class Batch {
   readonly mesh: THREE.InstancedMesh
   readonly birth: THREE.InstancedBufferAttribute
   count = 0

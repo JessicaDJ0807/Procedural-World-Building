@@ -9,7 +9,7 @@ export type Footprint = { outline: [number, number][][]; height: number }
 /** Corners sharper than this are corners; shallower ones are a curved façade's facets. */
 const CORNER_ANGLE = (20 * Math.PI) / 180
 /** Field-texture width, and the gap left round each block so nearest sampling never bleeds. */
-const ATLAS_WIDTH = 1024
+export const ATLAS_WIDTH = 1024
 const GAP = 1
 
 /**
@@ -36,7 +36,7 @@ const oriented = (ring: [number, number][], outer: boolean) =>
  * when a row is full. Wastes some texture for no complexity at all, and the
  * texture is a few megabytes at most.
  */
-function pack(blocks: { w: number; h: number; place: (u: number, v: number) => void }[]): number {
+export function pack(blocks: { w: number; h: number; place: (u: number, v: number) => void }[]): number {
   const order = [...blocks].sort((a, b) => b.h - a.h)
   let u = 0
   let v = 0
