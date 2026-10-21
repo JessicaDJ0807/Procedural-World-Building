@@ -409,6 +409,21 @@ threshold, so the nearest tree on screen was already LOD 1. It now stands lower
 and looks almost level, the presets' thresholds were raised, and the opening
 view holds all four levels.
 
+**The Tree view cropped the top of every preset.** It framed the skeleton's
+height at the trunk's plane, but leaf clumps stand above the highest branch,
+and a crown spreading toward a camera that looks slightly down projects taller
+than it is. It now fits the bounding sphere of what is drawn — wood and leaves
+at LOD 0 — against the narrower of the two fields of view, which cannot crop
+from any orbit angle.
+
+**The preset buttons were crushed by another page's stylesheet.** Every
+stylesheet in the app is global, and the Project's Progress page, added after
+this topic, has its own `.preset-grid`: four columns with an 18px gap. On this
+page that forced the four presets into one row so narrow the swatches
+collapsed. Topic 8's classes are now prefixed `branching-`, and the buttons
+carry one word each — Pine, Oak, Young, Coral — with the full name leading the
+description under them.
+
 **The oak first read as a poplar.** `A = F[+FA][-FA]FA` keeps a leader through
 every fork, and a leader makes a column. Dropping it for three-way forks with no
 leader, `A = F[+A][-A][+A]`, gave the round crown.

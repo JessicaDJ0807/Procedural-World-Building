@@ -344,15 +344,37 @@ function frameCamera(state: SceneState, settings: BranchingSettings) {
     // not a single tree on screen was at LOD 0.
     controls.target.set(0, 3, 0)
     camera.position.set(3, 10, AREA / 2 + 2)
-  } else {
-    const width = settings.display.view === 'lineup' ? lineupSpacing(variant, scale) * 4 : Math.max(h * 0.75, reach * 2)
+  } else if (settings.display.view === 'lineup') {
+    const width = lineupSpacing(variant, scale) * 4
     // Fit height against the vertical field of view and width against the
     // horizontal one, and take whichever needs the camera further back.
     const tanV = Math.tan((camera.fov * Math.PI) / 360)
     const fit = Math.max(h / (2 * tanV), width / (2 * tanV * camera.aspect))
     controls.target.set(0, h * 0.48, 0)
-    const dir = settings.display.view === 'lineup' ? new THREE.Vector3(0, 0.18, 1) : new THREE.Vector3(0.5, 0.22, 1)
-    camera.position.copy(controls.target).addScaledVector(dir.normalize(), fit * 1.15)
+    camera.position.copy(controls.target).addScaledVector(new THREE.Vector3(0, 0.18, 1).normalize(), fit * 1.15)
+  } else {
+    // The single tree is fitted by the bounding sphere of what is actually
+    // drawn — wood and leaves at LOD 0 — not by the skeleton. Fitting the
+    // skeleton's height at the trunk's plane cropped the top of every preset:
+    // leaf clumps stand above the highest branch, and a crown that spreads
+    // toward a camera looking slightly down projects taller than its height.
+    // A sphere fits from any angle, so the orbit cannot crop it either.
+    const box = new THREE.Box3()
+    for (const geometry of [variant.lods[0].branches, variant.lods[0].leaves]) {
+      if (!geometry) continue
+      geometry.computeBoundingBox()
+      box.union(geometry.boundingBox!)
+    }
+    if (box.isEmpty()) box.set(new THREE.Vector3(-reach, 0, -reach), new THREE.Vector3(reach, h, reach))
+    const sphere = box.getBoundingSphere(new THREE.Sphere())
+    sphere.center.multiplyScalar(scale)
+    sphere.radius = Math.max(sphere.radius * scale, 0.5)
+    const halfV = (camera.fov * Math.PI) / 360
+    const halfH = Math.atan(Math.tan(halfV) * camera.aspect)
+    // A few percent of air round the sphere, so the crown never touches the edge.
+    const distance = (sphere.radius / Math.sin(Math.min(halfV, halfH))) * 1.04
+    controls.target.copy(sphere.center)
+    camera.position.copy(sphere.center).addScaledVector(new THREE.Vector3(0.5, 0.22, 1).normalize(), distance)
   }
   controls.update()
   state.forest.markDirty()

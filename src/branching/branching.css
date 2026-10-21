@@ -22,14 +22,33 @@
   box-shadow: var(--focus-ring);
 }
 
-.preset-grid {
+/* Prefixed because the Project's stylesheet, loaded on every page, has its
+   own .preset-grid — a four-column layout with an 18px gap that squeezed
+   these buttons into one cramped row once both were in the app. */
+.branching-presets {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
   margin-bottom: 4px;
 }
 
-.preset-card {
+/* One row of four once the controls panel is wide enough, two rows of two
+   when it is not. A container query rather than a media query, because the
+   panel is resized by dragging its divider and the window says nothing about
+   that; and rather than an auto-fit grid, which passes through a lopsided
+   three-and-one on the way. The panel only becomes a query container on this
+   page — :has() scopes it — so no other topic's inspector is touched. */
+.workspace-inspector:has(.branching-presets) {
+  container-type: inline-size;
+}
+
+@container (min-width: 350px) {
+  .branching-presets {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.branching-preset {
   display: flex;
   align-items: center;
   padding: 7px 8px;
@@ -43,15 +62,24 @@
   cursor: pointer;
 }
 
-.preset-card:hover {
+.branching-preset .swatch {
+  flex: none;
+}
+
+.branching-preset:hover {
   background: var(--surface-3);
   color: var(--text-primary);
 }
 
-.preset-card.is-active {
+.branching-preset.is-active {
   border-color: var(--accent-line);
   background: var(--accent-subtle);
   color: var(--text-primary);
+}
+
+.branching-preset-name {
+  color: var(--text-secondary);
+  font-weight: var(--weight-strong);
 }
 
 .link-button {

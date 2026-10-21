@@ -116,10 +116,16 @@ export const GRAMMARS: { id: string; label: string; axiom: string; rules: string
 
 export type PresetId = 'pine' | 'oak' | 'young' | 'coral'
 
-export const PRESETS: { id: PresetId; label: string; blurb: string; settings: () => Omit<BranchingSettings, 'display' | 'preset'> }[] = [
+/**
+ * `short` is the button: one word, so four fit the sidebar's preset grid
+ * without wrapping. `label` is the full name, kept for the tooltip and the
+ * saved-world summary.
+ */
+export const PRESETS: { id: PresetId; label: string; short: string; blurb: string; settings: () => Omit<BranchingSettings, 'display' | 'preset'> }[] = [
   {
     id: 'pine',
     label: 'Pine Forest',
+    short: 'Pine',
     blurb: 'A leader that keeps growing and whorls of side branches that are longer the older they are — the cone is the grammar\'s doing, not a taper applied afterwards.',
     settings: () => ({
       tree: {
@@ -138,6 +144,7 @@ export const PRESETS: { id: PresetId; label: string; blurb: string; settings: ()
   {
     id: 'oak',
     label: 'Ancient Oak Grove',
+    short: 'Oak',
     blurb: 'Wide forks, a thick short trunk and a lot of irregularity, spread thin over the ground with plenty of room each.',
     settings: () => ({
       tree: {
@@ -156,6 +163,7 @@ export const PRESETS: { id: PresetId; label: string; blurb: string; settings: ()
   {
     id: 'young',
     label: 'Dense Young Forest',
+    short: 'Young',
     blurb: 'The oak\'s grammar run for fewer iterations, so it has fewer branch levels — small trees, lots of them, crowded into groves by a clustered distribution.',
     settings: () => ({
       tree: {
@@ -174,6 +182,7 @@ export const PRESETS: { id: PresetId; label: string; blurb: string; settings: ()
   {
     id: 'coral',
     label: 'Alien Coral Field',
+    short: 'Coral',
     blurb: 'The same turtle and the same grammar machinery, given a rule that only ever forks in two and never keeps a leader. Nothing in the code knows this is not a tree.',
     settings: () => ({
       tree: {

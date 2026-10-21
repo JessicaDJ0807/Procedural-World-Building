@@ -162,25 +162,33 @@ export function BranchingPage() {
               Presets
             </InfoTip>
           </h3>
-          <div className="preset-grid" role="group" aria-label="Presets">
+          <div className="branching-presets" role="group" aria-label="Presets">
             {PRESETS.map((p) => (
               <button
                 key={p.id}
                 type="button"
-                className={`preset-card${settings.preset === p.id ? ' is-active' : ''}`}
+                className={`branching-preset${settings.preset === p.id ? ' is-active' : ''}`}
                 aria-pressed={settings.preset === p.id}
                 onClick={() => applyPreset(p.id)}
-                title={p.blurb}
+                title={`${p.label} — ${p.blurb}`}
               >
                 <span className="swatch" style={{ background: PALETTES[p.id as PaletteId].leafHigh }} />
-                {p.label}
+                {p.short}
               </button>
             ))}
           </div>
           <p className="hint">
             {settings.preset === 'custom'
               ? 'Custom — edited from a preset. Pick one to start again.'
-              : PRESETS.find((p) => p.id === settings.preset)?.blurb}
+              : (() => {
+                  // The buttons carry one word each; the full name lives here.
+                  const preset = PRESETS.find((p) => p.id === settings.preset)
+                  return preset && (
+                    <>
+                      <span className="branching-preset-name">{preset.label}.</span> {preset.blurb}
+                    </>
+                  )
+                })()}
           </p>
 
           <h3 className="control-group">View</h3>
