@@ -101,6 +101,7 @@ const PHASES: Phase[] = [
       'A goal: join two buildings too far apart for plants alone',
       'Growth vocabulary: Climber, Spreader, Draper — and Layered, the interaction state',
       'Blocks and seeds both counted, so direct and indirect intervention can be compared',
+      'Inhabitants that live on the green: two buildings are separate worlds to them until the plants join them',
     ],
     learning: 'How much control should the player have over a system whose value comes from emergence?',
     figures: [{ src: '/project/wildform-world.jpg', alt: 'A world grown in the game, seen from the lawn in spring: buildings covered in Climber and Spreader, with a spiralling scaffold, balconies, a bridge, two hanging pods, a suspended walkway and Draper curtains.' }],

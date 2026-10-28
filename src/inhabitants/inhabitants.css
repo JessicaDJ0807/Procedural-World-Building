@@ -1,0 +1,411 @@
+/* Inhabitants: the Architecture atlas's layout, warmer — rounder plates, the
+   game's Fredoka for names, a studio a shade greener. */
+
+.studio-index {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.studio-tab {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px 11px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.studio-tab:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.studio-tab.is-active {
+  border-color: #6f9e4a;
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.studio-num {
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.studio-tab-name {
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.studio-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 14px;
+  align-items: start;
+}
+
+.studio-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #ecebe4;
+}
+
+.studio-viewport {
+  position: relative;
+  height: min(64vh, 620px);
+  min-height: 380px;
+}
+
+.studio-viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.studio-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.studio-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.92);
+  box-shadow: 0 2px 8px rgba(30, 40, 25, 0.18);
+  color: #2d3326;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.studio-label.is-selected {
+  background: #5c9a4e;
+  color: #fff;
+}
+
+.studio-plate {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: grid;
+  gap: 2px;
+  max-width: min(440px, 60%);
+  /* A soft backdrop: following an inhabitant puts foliage behind the words. */
+  padding: 8px 12px 10px;
+  border-radius: 14px;
+  background: rgba(236, 235, 228, 0.82);
+  color: #2d3326;
+  pointer-events: none;
+}
+
+.studio-plate strong {
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.studio-plate span {
+  color: #5d6353;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.studio-overlays {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.9);
+  box-shadow: 0 2px 10px rgba(30, 40, 25, 0.12);
+}
+
+.studio-overlays button,
+.studio-controls button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: #4b5243;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.studio-overlays button.is-active {
+  background: #2d3326;
+  color: #fff;
+}
+
+.studio-legend {
+  position: absolute;
+  top: 62px;
+  right: 16px;
+  display: grid;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 253, 247, 0.92);
+  color: #4b5243;
+  font-size: 12px;
+}
+
+.studio-legend i,
+.studio-chips i,
+.studio-who i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 50%;
+}
+
+.studio-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fffdf7;
+  border-top: 1px solid #e3e0d6;
+  color: #4b5243;
+  font-size: 12.5px;
+}
+
+.studio-controls > button:not(.studio-play) {
+  border: 1px solid #d8d4c8;
+}
+
+.studio-play {
+  width: 36px;
+  height: 36px;
+  padding: 0 !important;
+  background: #5c9a4e !important;
+  color: #fff !important;
+}
+
+.studio-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.studio-chips button {
+  border: 1px solid #d8d4c8 !important;
+}
+
+.studio-chips button.is-active {
+  border-color: #5c9a4e !important;
+  background: rgba(92, 154, 78, 0.12);
+  color: #2d3326;
+}
+
+.studio-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.studio-step {
+  color: #2d3326;
+  font-variant-numeric: tabular-nums;
+}
+
+.studio-hint {
+  color: #8a8d80;
+}
+
+.studio-reset {
+  margin-left: auto;
+}
+
+.studio-inspector {
+  padding: 16px 18px 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: 13.5px;
+}
+
+.studio-inspector p {
+  margin: 0;
+}
+
+.studio-who {
+  display: flex;
+  align-items: center;
+  color: var(--text-primary);
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 17px;
+}
+
+.studio-who span {
+  margin-left: 4px;
+  color: var(--text-muted);
+}
+
+.studio-behavior {
+  margin-top: 10px !important;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 30px;
+  font-weight: 600;
+  color: #9fd08a;
+}
+
+.studio-behavior.is-no-route,
+.studio-behavior.is-stranded {
+  color: #e48a7a;
+}
+
+.studio-behavior.is-discovering {
+  color: #f0c46a;
+}
+
+.studio-why {
+  color: var(--text-primary);
+}
+
+.studio-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 14px 0;
+}
+
+.studio-facts dt,
+.studio-details dt {
+  color: var(--text-muted);
+}
+
+.studio-facts dd,
+.studio-details dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.studio-gloss {
+  color: var(--text-muted) !important;
+  line-height: 1.5;
+}
+
+.studio-details {
+  margin-top: 12px;
+  font-size: 12.5px;
+}
+
+.studio-details summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.studio-details dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 8px 0 0;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.studio-legend-list {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  line-height: 1.45;
+}
+
+.studio-legend-list strong {
+  color: var(--text-primary);
+}
+
+.studio-text {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.studio-text h3 {
+  margin: 0 0 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.studio-text p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.studio-note p {
+  max-width: 76ch;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 1180px) {
+  .studio-body {
+    grid-template-columns: 1fr;
+  }
+
+  .studio-text {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .studio-index {
+    grid-template-columns: repeat(5, minmax(118px, 1fr));
+    overflow-x: auto;
+  }
+
+  .studio-text {
+    grid-template-columns: 1fr;
+  }
+
+  .studio-plate strong {
+    font-size: 21px;
+  }
+
+  .studio-plate span,
+  .studio-hint {
+    display: none;
+  }
+
+  /* Under the scene's name: at the foot of the stage they covered the controls. */
+  .studio-overlays {
+    top: 62px;
+    right: auto;
+    left: 12px;
+  }
+
+  .studio-legend {
+    top: 108px;
+    right: auto;
+    left: 12px;
+  }
+}

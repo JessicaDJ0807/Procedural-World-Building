@@ -29,6 +29,7 @@ are the player's; what the plants make of them is the simulation's.
 - [Sky and light](#sky-and-light)
 - [The page](#the-page)
 - [Saving worlds](#saving-worlds)
+- [Inhabitants](#inhabitants)
 - [Seeds planted](#seeds-planted)
 - [Code](#code)
 - [Measured](#measured)
@@ -569,6 +570,14 @@ So a loaded world is not a picture of the saved one but the same simulation:
 in Node, its next 400 steps were identical to the original's. Stored in
 Firestore under `users/{uid}/worlds`, with the heavy part in chunks so no
 document nears 1 MiB — see [Firebase setup](firebase-setup.md#wildform-worlds).
+
+## Inhabitants
+
+The Lab has the game's inhabitants too — creatures that walk only where plants
+grow or on mature living architecture — with **Show Inhabitants** under the
+Growth controls and a count of how many live there. It is the same
+preference as Play's, stored in the browser, never a change to the world.
+See [Inhabitants](inhabitants.md).
 
 ## Seeds planted
 

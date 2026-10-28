@@ -43,7 +43,7 @@ final form.**
 
     build → plant → grow → interact → mutate → adapt
 
-Seven pages, none of them a topic — the project cuts across all of them and is
+Eight pages, none of them a topic — the project cuts across all of them and is
 numbered by nothing:
 
 - **Overview** — what Wildform is: the loop, the growth behaviors, living
@@ -81,6 +81,14 @@ numbered by nothing:
   Watch it form on Build's own stages, see its structure, and trace the plants
   that made it; with its origin, conditions, construction and impact. See
   [`docs/project/architecture.md`](docs/project/architecture.md).
+- **Inhabitants** — *The little lives of Wildform.* Small creatures that live
+  on the green: they walk only where plants grow or on mature living
+  architecture, so two buildings are separate worlds until the plants join
+  them, and a maturing bridge is a route they go and discover. They live in
+  Play and the Lab (Show Inhabitants hides them, without stopping them), and
+  in a studio of their own — a portrait, four test scenes run by the same
+  agents, a live inspector and optional overlays. See
+  [`docs/project/inhabitants.md`](docs/project/inhabitants.md).
 - **Site** — *Wildform at campus scale.* The same environment logic on a real
   place: Roosevelt Island from NYC Open Data, the six Cornell Tech buildings cut
   into growth cells with procedural façades, lit by the real sun through a
@@ -477,6 +485,15 @@ src/
 │   ├── seasonLook.ts         What each season looks like
 │   ├── UnsavedDialog.tsx     The warning before unsaved work is lost
 │   └── game.css              The game's look
+├── inhabitants/              Project Inhabitants: creatures that live on the green, and their studio
+│   ├── nav.ts                Where they can walk: the walkable rule, regions, routes
+│   ├── agent.ts              One inhabitant and its state machine, shared by every page
+│   ├── inhabitantMesh.ts     The model and its animations
+│   ├── population.ts         Play's and the Lab's inhabitants
+│   ├── visibility.ts         Show Inhabitants, a stored display preference
+│   ├── scenarios.ts          The studio's test scenes, each a real game
+│   ├── StudioViewport.tsx    The studio's stage: scenes, overlays, click to send
+│   └── InhabitantsPage.tsx   The studio: portrait, scenes, inspector, notes
 ├── architecture/             Project Architecture: the atlas of living structures
 │   ├── specimens.ts          Recipes, each grown as a real game until its structure forms
 │   ├── SpecimenViewport.tsx  The studio: views, timeline, labels, camera
@@ -558,6 +575,7 @@ docs/
 │   ├── play.md
 │   ├── build.md
 │   ├── architecture.md
+│   ├── inhabitants.md
 │   ├── green-architecture.md
 │   ├── roosevelt-island.md
 │   ├── final-project-ideas.md

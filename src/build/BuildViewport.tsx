@@ -17,6 +17,8 @@ import { GLASS } from '../green/building'
 import { SPECIES_NAMES } from '../wildform/names'
 import { lawnMesh } from './lawn'
 import { SeasonFx, type SeasonLook } from './seasonFx'
+import { Population } from '../inhabitants/population'
+import { InhabitantsView } from '../inhabitants/inhabitantMesh'
 import { KINDS, KIND_NAMES, type Combo, type Kind } from './living'
 import { livingObject, type LivingObject } from './livingMesh'
 import { D, W } from './town'
@@ -59,6 +61,8 @@ export type GameReport = {
   /** Seeds the player has planted — Climber, Spreader, Draper — and whether that's since the world began (false: a world saved before they were counted). */
   seeds: [number, number, number]
   seedsComplete: boolean
+  /** Inhabitants living in the scene (0 where there are none). */
+  inhabitants: number
 }
 
 type Props = {
@@ -86,6 +90,12 @@ type Props = {
    * it the scene keeps its one clear day. Read once, at mount.
    */
   look?: (step: number) => SeasonLook
+  /**
+   * The inhabitants (src/inhabitants): given, they live in the scene, and
+   * this says whether they're shown. Hidden, they carry on — only the models
+   * are hidden. Undefined, there are none. Read once for whether they exist.
+   */
+  inhabitants?: boolean
   /** After a successful planting of Climber or Spreader, with the cell. */
   onPlanted?: (species: number, cell: number) => void
   onReport: (report: GameReport) => void
@@ -220,6 +230,11 @@ export function BuildViewport(props: Props) {
     }
     const maturedSeen = new Set<number>()
 
+    // The inhabitants: they read the game and move themselves; nothing here writes to the world.
+    const population = latest.current.inhabitants !== undefined ? new Population() : null
+    const inhabitantsView = population ? new InhabitantsView() : null
+    if (inhabitantsView) grown.add(inhabitantsView.group)
+
     // The seasons, if the game shows them: patched onto every leaf material as it appears.
     const fx = latest.current.look ? new SeasonFx({ sun, sky: skyLight }, lawn, dome, scene.fog as THREE.Fog) : null
     if (fx) {
@@ -349,6 +364,7 @@ export function BuildViewport(props: Props) {
         changes: game.changes,
         seeds: [...game.seeds],
         seedsComplete: game.seedsComplete,
+        inhabitants: population?.agents.length ?? 0,
       })
     }
 
@@ -718,7 +734,15 @@ export function BuildViewport(props: Props) {
       if (game.env.sunAzimuth !== placedAzimuth) placeSun()
       applyLook()
       const { running, speed } = latest.current
-      loop.setMaxFps(running ? 30 : 60)
+      // Inhabitants keep the loop awake: at 30 fps shown, and slowly while hidden, since they carry on.
+      const living = !!population && population.agents.length > 0
+      const shown = latest.current.inhabitants === true
+      loop.setMaxFps(running ? 30 : living ? (shown ? 30 : 8) : 60)
+      if (population && inhabitantsView) {
+        population.update(game, delta)
+        inhabitantsView.visible = shown
+        inhabitantsView.sync(population.agents, delta)
+      }
       if (running) {
         pending += delta * STEPS_PER_SECOND * speed
         const whole = Math.min(Math.floor(pending), MAX_STEPS_PER_FRAME)
@@ -746,7 +770,7 @@ export function BuildViewport(props: Props) {
         reportAt = now
         report()
       }
-      return running || noting || gate(camera.position, controls.target)
+      return running || noting || (!!population && population.agents.length > 0) || gate(camera.position, controls.target)
     })
     const resize = () => {
       const { clientWidth: w, clientHeight: h } = container
@@ -765,6 +789,7 @@ export function BuildViewport(props: Props) {
       const w = window as unknown as Record<string, unknown>
       w.__buildGame = game
       w.__buildRefresh = refresh
+      w.__inhabitants = population
       w.__buildGround = ground
       w.__buildDrapes = drapes
       // A store in memory for the world menu, since nobody can sign in headless (WorldMenu's devWorlds).
@@ -842,6 +867,7 @@ export function BuildViewport(props: Props) {
       dotTexture.dispose()
       dome.geometry.dispose()
       fx?.dispose()
+      inhabitantsView?.dispose()
       ghost.geometry.dispose()
       renderer.dispose()
       canvas.remove()

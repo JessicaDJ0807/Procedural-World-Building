@@ -183,7 +183,7 @@ where points crowd.
 
 | File | What it holds |
 | --- | --- |
-| `specimens.ts` | The recipes, with Drapers where a form needs one; `grow()` runs a real Build game on one and captures the structure, what stood before it, the curtains, and the plants at its node; `measure()` |
+| `specimens.ts` | The recipes, with Drapers where a form needs one; `recipeGame` sets one up (shared with the Inhabitants studio, whose bridge scenes are these bridge recipes); `grow()` runs a real Build game on one and captures the structure, what stood before it, the curtains, and the plants at its node; `measure()` |
 | `SpecimenViewport.tsx` | The studio: one scene, specimen swapping, views, timeline, labels, camera easing |
 | `views.ts` | View modes and their colours |
 | `ArchitecturePage.tsx`, `architecture.css` | The page: plates, stage, timeline, variations, texts |

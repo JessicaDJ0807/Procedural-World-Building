@@ -779,6 +779,21 @@
   cursor: pointer;
 }
 
+/* A display option at the menu's foot: a check, set apart from the world actions. */
+.world-menu-check {
+  display: flex;
+  white-space: nowrap;
+  gap: 6px;
+  margin-top: 3px;
+  border-top: 1px solid var(--border) !important;
+  border-radius: 0 0 5px 5px !important;
+}
+
+.world-menu-check span {
+  width: 12px;
+  color: var(--accent, #5c9a4e);
+}
+
 .world-menu button:hover {
   background: var(--surface-hover);
   color: var(--text-primary);
@@ -969,5 +984,20 @@
 
 .build-seeds span {
   display: block;
+  color: var(--text-muted);
+}
+
+/* Show Inhabitants: a display preference, under the transport. */
+.build-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.build-check span {
   color: var(--text-muted);
 }

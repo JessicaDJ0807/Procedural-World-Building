@@ -22,6 +22,7 @@ navigation.
 - [What the seasons look like](#what-the-seasons-look-like)
 - [The win](#the-win)
 - [Seeds planted](#seeds-planted)
+- [Inhabitants](#inhabitants)
 - [Leaving with unsaved changes](#leaving-with-unsaved-changes)
 - [Type](#type)
 - [Code](#code)
@@ -249,6 +250,15 @@ handled, in [build.md](build.md#seeds-planted)). A world saved before seeds
 were counted shows *3+* — the ones planted since it was opened — and the
 breakdown says so. At phone width the breakdown opens leftward, inside the
 screen.
+
+## Inhabitants
+
+Small creatures live on the green in the game: they walk only where plants
+grow or on mature living architecture, arrive as it spreads (one for every 120
+walkable cells, up to six), and go and see a structure when one joins the
+ground they can reach. **Show Inhabitants**, at the foot of the Worlds menu,
+hides them without stopping them; it's a display preference, so it never
+marks a world unsaved. See [Inhabitants](inhabitants.md).
 
 ## Leaving with unsaved changes
 

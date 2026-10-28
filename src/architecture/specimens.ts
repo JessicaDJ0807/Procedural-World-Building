@@ -165,17 +165,12 @@ function picture(g: WildGrowth, b: Building, l: Living, drapers: Draper[]): Grow
   return { layers, stems, seeds, meeting, heading: { climber, spreader }, strands }
 }
 
-const DRAPER_KINDS: Kind[] = ['walkway', 'pod', 'column']
-
 /**
- * Grows a recipe in a real Build game until its structure forms. For the
- * wall's kinds that is the first structure, and it must be the recipe's
- * kind. For the Draper's, other structures may come first — a column needs
- * one to hang from, and a walkway can be it — and the specimen is the first
- * of the recipe's kind; what came before is shown with it, as context.
+ * A recipe set up in a fresh Build game — its blocks, seeds and Drapers —
+ * not yet grown. `grow` plays it to its structure; the Inhabitants studio
+ * plays the same fixtures to test walking, so both pages stand on one set.
  */
-export function grow(recipe: Recipe): Specimen {
-  const t0 = performance.now()
+export function recipeGame(recipe: Recipe): BuildGame {
   const game = new BuildGame()
   game.seed = recipe.seed
   game.env = { ...game.env, rain: recipe.rain }
@@ -202,6 +197,21 @@ export function grow(recipe: Recipe): Specimen {
     const s = Math.hypot(mid[0] - edge.path[0][0], mid[2] - edge.path[0][2])
     game.plantDraper(edge, s)
   }
+  return game
+}
+
+const DRAPER_KINDS: Kind[] = ['walkway', 'pod', 'column']
+
+/**
+ * Grows a recipe in a real Build game until its structure forms. For the
+ * wall's kinds that is the first structure, and it must be the recipe's
+ * kind. For the Draper's, other structures may come first — a column needs
+ * one to hang from, and a walkway can be it — and the specimen is the first
+ * of the recipe's kind; what came before is shown with it, as context.
+ */
+export function grow(recipe: Recipe): Specimen {
+  const t0 = performance.now()
+  const game = recipeGame(recipe)
   const drapersKind = DRAPER_KINDS.includes(recipe.kind)
   const target = () => (drapersKind ? game.living.find((l) => l.kind === recipe.kind) : game.living[0])
   let drapedLiving = false

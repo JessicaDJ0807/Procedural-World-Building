@@ -5,6 +5,7 @@ import { BuildGame } from '../build/game'
 import { BUDGET } from '../build/town'
 import { WorldMenu, type WorldSession } from '../build/WorldMenu'
 import { UnsavedDialog } from './UnsavedDialog'
+import { useShowInhabitants } from '../inhabitants/visibility'
 import { WILD_SPECIES } from '../wildform/species'
 import type { Route } from '../routes'
 import { LOW_BLOCKS, MERGED, OPEN_WORLDS_KEY, narrate, plantLine, verdict } from './narrator'
@@ -74,6 +75,8 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [beat, setBeat] = useState(() => (safeGet(TUTORIAL_KEY) ? BEATS.length : 0))
   const [celebrate, setCelebrate] = useState(false)
+  // Show Inhabitants: a display preference (inhabitants/visibility.ts), never a change to the world.
+  const [showInhabitants, setShowInhabitants] = useShowInhabitants()
   /** The seed counter's breakdown by plant, open or not. */
   const [seedsOpen, setSeedsOpen] = useState(false)
   const [initialBrowse] = useState(() => {
@@ -269,7 +272,7 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
 
   return (
     <div className="game">
-      <BuildViewport game={game} tool={tool} species={species} running={running} speed={speed} stepToken={0} revision={revision} surfaceView="off" onPlanted={onPlanted} onAdvance={applyWeather} look={look} onReport={onReport} />
+      <BuildViewport game={game} tool={tool} species={species} running={running} speed={speed} stepToken={0} revision={revision} surfaceView="off" onPlanted={onPlanted} onAdvance={applyWeather} look={look} inhabitants={showInhabitants} onReport={onReport} />
 
       <div className="game-top-left">
         <button type="button" className="game-chip" onClick={exit} aria-label="Leave the game">
@@ -304,7 +307,7 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
       </div>
 
       <div className="game-top-right">
-        <WorldMenu game={game} changes={report?.changes ?? game.changes} step={report?.step ?? game.sim.step} onReplaced={onReplaced} onSession={onSession} initialBrowse={initialBrowse} />
+        <WorldMenu game={game} changes={report?.changes ?? game.changes} step={report?.step ?? game.sim.step} onReplaced={onReplaced} onSession={onSession} display={[{ label: 'Show Inhabitants', checked: showInhabitants, onChange: setShowInhabitants }]} initialBrowse={initialBrowse} />
       </div>
 
       {beat < BEATS.length && !celebrate && (

@@ -7,6 +7,7 @@ import { BuildViewport, DRAPER, type GameReport, type SurfaceView, type Tool } f
 import { DRAPER_SWATCH } from './draperMesh'
 import { BuildGame } from './game'
 import { WorldMenu, type WorldSession } from './WorldMenu'
+import { useShowInhabitants } from '../inhabitants/visibility'
 import { COMBO_NAMES, type Combo, type Kind } from './living'
 import { BUDGET } from './town'
 import '../study/study.css'
@@ -132,6 +133,7 @@ function sunNote(azimuth: number): string {
  * living architecture grown, and — lowest — the event log.
  */
 export function BuildPage() {
+  const [showInhabitants, setShowInhabitants] = useShowInhabitants()
   const game = useMemo(() => new BuildGame(), [])
   const [tool, setTool] = useState<Tool>('build')
   const [species, setSpecies] = useState(0)
@@ -195,7 +197,7 @@ export function BuildPage() {
   return (
     <div className="workspace green-workspace build-workspace">
       <div className="workspace-canvas">
-        <BuildViewport game={game} tool={tool} species={species} running={running} speed={speed} stepToken={stepToken} revision={revision} surfaceView={surfaceView} hint={hint} onReport={setReport} />
+        <BuildViewport game={game} tool={tool} species={species} running={running} speed={speed} stepToken={stepToken} revision={revision} surfaceView={surfaceView} hint={hint} inhabitants={showInhabitants} onReport={setReport} />
         {intro && !report?.goal && (
           <div className="build-intro" role="note">
             <p>
@@ -449,6 +451,12 @@ export function BuildPage() {
                 ))}
               </div>
             </div>
+            {/* The same preference as Play's (inhabitants/visibility.ts): display only, never a change to the world. */}
+            <label className="build-check">
+              <input type="checkbox" checked={showInhabitants} onChange={(e) => setShowInhabitants(e.target.checked)} />
+              Show Inhabitants
+              {report && report.inhabitants > 0 && <span> · {report.inhabitants} living here</span>}
+            </label>
           </section>
 
           {/* ---- Living architecture ---- */}

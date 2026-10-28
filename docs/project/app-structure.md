@@ -61,6 +61,7 @@ which is what it was before. Switching section never shows both sets at once.
 | `/play` | The game, full-screen, with no header |
 | `/project/build` | Project Lab (the Build page; its address kept) |
 | `/project/architecture` | Project Architecture |
+| `/project/inhabitants` | Project Inhabitants |
 | `/project/site` | Project Site |
 | `/project/explore` | Project Explore — archived, out of the tabs |
 | `/project/progress` | Project Progress |
@@ -114,7 +115,7 @@ to reconsider — and swapping a library in would touch one file.
 
 ## What the Project pages are
 
-Seven tabs, in the order a reviewer should read them:
+Eight tabs, in the order a reviewer should read them:
 
 | Page | Question it answers |
 | --- | --- |
@@ -122,6 +123,7 @@ Seven tabs, in the order a reviewer should read them:
 | Play | Can I play it? — the game, full-screen at `/play` |
 | Lab | How does it work? — the Build page, every control showing |
 | Architecture | What does the system grow? — an atlas of the eight structures |
+| Inhabitants | Who lives in it? — the creatures on the green, and a studio to test them |
 | Site | How does the same idea scale to a real place? |
 | Progress | How did the project evolve? |
 | Decisions | Why were these design choices made? |
@@ -168,6 +170,14 @@ top left of the scene, and stays dismissed per browser. See [Build](build.md).
 structures, side by side, in two or three variations each, every specimen a real Build game
 grown until the structure formed, with a formation timeline and Material,
 Structure and Growth views. See [Living Architecture](architecture.md).
+
+### Inhabitants
+
+`ProjectLayout`'s wide variant, the Architecture page's layout made warmer:
+a portrait of the creature and four test scenes in a studio viewport, a live
+inspector beside it, optional overlays, and notes on its appearance,
+behavior, navigation and place in Wildform. Every scene is a real game, its
+own and never saved. See [Inhabitants](inhabitants.md).
 
 ### Site
 

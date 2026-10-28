@@ -106,11 +106,16 @@ type Props = {
   onReplaced: () => void
   /** Hands the session up, for Restart's confirmation. */
   onSession: (s: WorldSession) => void
+  /**
+   * Display options shown at the foot of the menu — the game's Show
+   * Inhabitants. Not world state: toggling one is never a change.
+   */
+  display?: { label: string; checked: boolean; onChange: (v: boolean) => void }[]
   /** Open with My worlds showing (the game's "Continue a saved world"). */
   initialBrowse?: boolean
 }
 
-export function WorldMenu({ game, changes, step, onReplaced, onSession, initialBrowse = false }: Props) {
+export function WorldMenu({ game, changes, step, onReplaced, onSession, display, initialBrowse = false }: Props) {
   const auth = useAuth()
   const dev = devWorlds()
   const api: WorldsApi = dev?.api ?? firestoreWorlds
@@ -316,6 +321,19 @@ export function WorldMenu({ game, changes, step, onReplaced, onSession, initialB
               >
                 My worlds…
               </button>
+              {display?.map((d) => (
+                <button
+                  key={d.label}
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={d.checked}
+                  className="world-menu-check"
+                  onClick={() => d.onChange(!d.checked)}
+                >
+                  <span aria-hidden="true">{d.checked ? '✓' : ''}</span>
+                  {d.label}
+                </button>
+              ))}
             </div>
           )}
         </div>

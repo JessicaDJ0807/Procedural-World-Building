@@ -31,7 +31,7 @@ export type PlaygroundId =
   | 'paths'
   | 'flow'
   | 'branching'
-export type ProjectId = 'overview' | 'play' | 'explore' | 'build' | 'architecture' | 'site' | 'progress' | 'decisions'
+export type ProjectId = 'overview' | 'play' | 'explore' | 'build' | 'architecture' | 'inhabitants' | 'site' | 'progress' | 'decisions'
 
 export type Route =
   | { section: 'playground'; page: PlaygroundId }
@@ -72,6 +72,7 @@ export const PROJECT: { id: ProjectId; title: string; blurb: string }[] = [
   // The Build page, shown as the Lab: every control and number on screen. Its id stays 'build' so links and docs hold.
   { id: 'build', title: 'Lab', blurb: 'The game with every control and number showing: for taking it apart' },
   { id: 'architecture', title: 'Architecture', blurb: 'Living Architecture: an atlas of the eight structures the plants grow' },
+  { id: 'inhabitants', title: 'Inhabitants', blurb: 'The Little Lives of Wildform: a studio for the creatures that live on the green' },
   { id: 'site', title: 'Site', blurb: 'Wildform at campus scale: Cornell Tech on Roosevelt Island' },
   { id: 'progress', title: 'Progress', blurb: 'How the project evolved, phase by phase' },
   { id: 'decisions', title: 'Decisions', blurb: 'The design decisions behind the pivots' },
