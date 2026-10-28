@@ -111,12 +111,13 @@ to reconsider — and swapping a library in would touch one file.
 
 ## What the Project pages are
 
-Six tabs, in the order a reviewer should read them:
+Seven tabs, in the order a reviewer should read them:
 
 | Page | Question it answers |
 | --- | --- |
 | Overview | What is Wildform? |
-| Build | Can I play with the core system? — the main prototype |
+| Play | Can I play it? — the game, full-screen at `/play` |
+| Lab | How does it work? — the Build page, every control showing |
 | Architecture | What does the system grow? — an atlas of the five structures |
 | Site | How does the same idea scale to a real place? |
 | Progress | How did the project evolve? |

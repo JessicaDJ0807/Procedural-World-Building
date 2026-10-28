@@ -43,12 +43,17 @@ final form.**
 
     build → plant → grow → interact → mutate → adapt
 
-Six pages, none of them a topic — the project cuts across all of them and is
+Seven pages, none of them a topic — the project cuts across all of them and is
 numbered by nothing:
 
 - **Overview** — what Wildform is: the loop, the growth behaviors, living
   architecture, the current challenge, and future environments (not built).
-- **Build** — the playable prototype, and the page to try first. Two buildings
+- **Play** — *Wildform, the game*, and the page to try first: full-screen, a
+  goal always on screen (*get these two buildings holding hands*), a guided
+  opening, a playful voice and a proper win, through four seasons you can
+  see — autumn leaves, rain, snow, brown leaves where plants wither. See
+  [`docs/project/play.md`](docs/project/play.md).
+- **Lab** (the Build page) — the same game with every control and number showing. Two buildings
   stand on a lawn too far apart for plants to join; the player spends blocks
   from a budget of 30 (Townscaper-style — walls, roofs, arches and ledges work
   themselves out), plants **Climber** (climbs, follows edges), **Spreader**

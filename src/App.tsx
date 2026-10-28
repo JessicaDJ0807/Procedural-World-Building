@@ -10,6 +10,8 @@ import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
 import { WildformPage } from './wildform/WildformPage'
 import { BuildPage } from './build/BuildPage'
+import { GamePage } from './game/GamePage'
+import { PlayPage } from './game/PlayPage'
 import { ArchitecturePage } from './architecture/ArchitecturePage'
 import { SitePage } from './site/SitePage'
 import { ProjectOverview } from './project/ProjectOverview'
@@ -46,10 +48,10 @@ const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => Rea
     <div className="archive-page">
       <div className="archive-banner" role="note">
         <span>
-          <strong>Archived:</strong> the midterm prototype. Build is the current project, and does all of this on architecture you make.
+          <strong>Archived:</strong> the midterm prototype. Wildform is now a game that does all of this on architecture you make.
         </span>
-        <button type="button" onClick={() => navigate({ section: 'project', page: 'build' })}>
-          Open Build
+        <button type="button" onClick={() => navigate({ section: 'project', page: 'play' })}>
+          Play
         </button>
         <button type="button" onClick={() => navigate({ section: 'project', page: 'progress' })}>
           Back to Progress
@@ -58,6 +60,7 @@ const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => Rea
       <WildformPage />
     </div>
   ),
+  play: (navigate) => <PlayPage navigate={navigate} />,
   build: () => <BuildPage />,
   architecture: (navigate) => <ArchitecturePage navigate={navigate} />,
   site: () => <SitePage />,
@@ -109,6 +112,9 @@ function App() {
   // front doors rather than places you were in the middle of.
   const enter = (section: (typeof SECTIONS)[number]['id']) =>
     navigate(section === 'playground' ? DEFAULT_PLAYGROUND : DEFAULT_PROJECT)
+
+  // The game is full-screen: no header, no tabs, its own way out.
+  if (route.section === 'game') return <GamePage navigate={navigate} />
 
   const sub =
     route.section === 'playground'

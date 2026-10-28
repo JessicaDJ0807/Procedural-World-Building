@@ -64,7 +64,7 @@ const DISPLAYS: { value: SiteDisplay; label: string; legend?: string }[] = [
     value: 'moisture',
     label: 'Moisture',
     legend:
-      'Rain caught on the walls and carried down them, more on the roofs and at their edges, water running off a tall wall onto a lower roof — less where the sun dries it. The same moisture rule Build’s plants read; the city data has no ledges or windows to mark it further.',
+      'Rain caught on the walls and carried down them, more on the roofs and at their edges, water running off a tall wall onto a lower roof — less where the sun dries it. The same moisture rule the game’s plants read; the city data has no ledges or windows to mark it further.',
   },
   {
     value: 'surfaces',
@@ -455,8 +455,8 @@ export function SitePage() {
               moisture and architecture, and the campus changes over a simulated year.
             </p>
             <p className="site-intro-note">
-              A larger-scale experiment: the real buildings stay fixed, with the same environment fields as Build and the
-              real sun. The plants here are the three species of the model Wildform grew from; Build’s behaviors and living
+              A larger-scale experiment: the real buildings stay fixed, with the same environment fields as the game and the
+              real sun. The plants here are the three species of the model Wildform grew from; the game’s behaviors and living
               architecture are the next step for the campus.
             </p>
           </header>
@@ -516,7 +516,7 @@ export function SitePage() {
               </p>
 
               <h3 className="control-group">
-                <InfoTip text="The three species of the growth model the Site runs — the one Wildform grew out of — each with its own needs for light and water, and a way of growing. Switching one on or off starts again. Build's Climber, Spreader and Draper, and its living architecture, are not on the campus yet.">
+                <InfoTip text="The three species of the growth model the Site runs — the one Wildform grew out of — each with its own needs for light and water, and a way of growing. Switching one on or off starts again. The game's Climber, Spreader and Draper, and its living architecture, are not on the campus yet.">
                   Plant behavior
                 </InfoTip>
               </h3>

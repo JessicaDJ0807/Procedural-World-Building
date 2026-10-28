@@ -16,6 +16,7 @@ import { SURFACE, SURFACE_NAMES, type SurfaceKind } from './surfaces'
 import { GLASS } from '../green/building'
 import { SPECIES_NAMES } from '../wildform/names'
 import { lawnMesh } from './lawn'
+import { SeasonFx, type SeasonLook } from './seasonFx'
 import { KIND_NAMES, type Combo, type Kind } from './living'
 import { livingObject, type LivingObject } from './livingMesh'
 import { D, W } from './town'
@@ -68,6 +69,22 @@ type Props = {
   /** Incremented when the game changes from outside: Undo, Clear, Restart, the environment. */
   revision: number
   surfaceView: SurfaceView
+  /**
+   * A soft tint on every surface by how well it would suit one plant — the
+   * same suitability the growth reads — over the scene, plants still showing.
+   * The game shows it while a plant is picked; the Lab while weather changes.
+   */
+  hint?: SurfaceView
+  /** After each stretch of growth, with the step: the game's seasons ease the weather here. */
+  onAdvance?: (step: number) => void
+  /**
+   * The world's look at a step — leaf colour, lawn, sky, light, weather in
+   * the air (seasonFx.ts). The game passes it to show its seasons; without
+   * it the scene keeps its one clear day. Read once, at mount.
+   */
+  look?: (step: number) => SeasonLook
+  /** After a successful planting of Climber or Spreader, with the cell. */
+  onPlanted?: (species: number, cell: number) => void
   onReport: (report: GameReport) => void
 }
 
@@ -94,7 +111,7 @@ export function BuildViewport(props: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const noteRef = useRef<HTMLDivElement>(null)
   const latest = useRef(props)
-  const api = useRef<{ refresh: () => void; stepOnce: () => void; wake: () => void; view: () => void } | null>(null)
+  const api = useRef<{ refresh: () => void; stepOnce: () => void; wake: () => void; view: () => void; hint: () => void } | null>(null)
 
   useEffect(() => {
     latest.current = props
@@ -132,7 +149,8 @@ export function BuildViewport(props: Props) {
     controls.update()
     const gate = createCameraGate()
 
-    scene.add(new THREE.HemisphereLight(DAY.sky, DAY.bounce, 1.5))
+    const skyLight = new THREE.HemisphereLight(DAY.sky, DAY.bounce, 1.5)
+    scene.add(skyLight)
     const sun = new THREE.DirectionalLight(DAY.sun, 2.6)
     sun.castShadow = true
     sun.shadow.mapSize.set(2048, 2048)
@@ -141,7 +159,9 @@ export function BuildViewport(props: Props) {
     sun.shadow.normalBias = 0.02
     scene.add(sun)
     // The light comes from the growth model's sun, so the shadows you see are the light the plants answer to.
+    let placedAzimuth = NaN
     const placeSun = () => {
+      placedAzimuth = game.env.sunAzimuth
       const [lx, ly, lz] = sunDirection(game.env.sunAzimuth)
       sun.position.set(lx * 30, ly * 30, lz * 30)
       sunDir.set(lx, ly, lz).normalize()
@@ -197,6 +217,19 @@ export function BuildViewport(props: Props) {
     }
     const maturedSeen = new Set<number>()
 
+    // The seasons, if the game shows them: patched onto every leaf material as it appears.
+    const fx = latest.current.look ? new SeasonFx({ sun, sky: skyLight }, lawn, dome, scene.fog as THREE.Fog) : null
+    if (fx) {
+      scene.add(fx.group)
+      fx.tint([...ground.meshes.map((m) => m.material), drapes.leaves.material])
+    }
+    let lookStep = NaN
+    const applyLook = () => {
+      if (!fx || game.sim.step === lookStep) return
+      lookStep = game.sim.step
+      fx.apply(latest.current.look!(lookStep))
+    }
+
     const syncPlants = () => {
       if (vegetationFor !== game.building) {
         if (vegetation) {
@@ -205,12 +238,14 @@ export function BuildViewport(props: Props) {
         }
         vegetation = new WildVegetation(game.building)
         grown.add(...vegetation.meshes)
+        fx?.tint(vegetation.foliage.map((m) => m.material))
         vegetationFor = game.building
         drawnRevision = -1
       }
       const rev = game.sim.revision * 1000 + game.revision
       vegetation!.sync(game.sim.growth, game.sim.world.moisture, rev)
       if (drawnRevision !== rev && latest.current.surfaceView !== 'off') syncView()
+      if (drawnRevision !== rev && (latest.current.hint ?? 'off') !== 'off') syncHint()
       drawnRevision = rev
     }
 
@@ -257,6 +292,7 @@ export function BuildViewport(props: Props) {
           const o = livingObject(l)
           living.set(l.id, o)
           grown.add(o.group)
+          fx?.tint([o.parts.leaves.material])
           if (announce) note('Mutation node', l.node, l.normal)
         }
         if (l.matured && !maturedSeen.has(l.id)) {
@@ -315,10 +351,15 @@ export function BuildViewport(props: Props) {
     const refresh = () => {
       rebuildTownMesh()
       placeSun()
+      // A loaded or new world didn't wither anything here.
+      game.sim.growth.drainWithered()
+      applyLook()
       syncPlants()
       syncLiving(false)
       syncDrapers(true)
       syncGround(true)
+      // Weather changes the fields without changing the revision: redraw the hint here too.
+      if ((latest.current.hint ?? 'off') !== 'off') syncHint()
       renderer.shadowMap.needsUpdate = true
       report()
       loop.wake()
@@ -326,6 +367,13 @@ export function BuildViewport(props: Props) {
 
     const advance = (n: number) => {
       game.advance(n)
+      latest.current.onAdvance?.(game.sim.step)
+      // Where plants withered, brown leaves drop: positions from growth units to the town's.
+      const withered = game.sim.growth.drainWithered()
+      if (fx && withered.length) {
+        const b = game.building
+        fx.wither(withered.map((c) => [(b.px[c] + b.nx[c] * 0.1) / TOWN_SCALE, (b.py[c] + b.ny[c] * 0.1) / TOWN_SCALE, (b.pz[c] + b.nz[c] * 0.1) / TOWN_SCALE]))
+      }
       syncPlants()
       syncLiving(true)
       syncDrapers(false)
@@ -491,6 +539,55 @@ export function BuildViewport(props: Props) {
       loop.wake()
     }
 
+    // The hint: soft round dots, good to poor, over the scene. Unlike the
+    // debug view it hides nothing — it's for deciding where to plant.
+    const dotCanvas = document.createElement('canvas')
+    dotCanvas.width = dotCanvas.height = 32
+    const dctx = dotCanvas.getContext('2d')!
+    const grad = dctx.createRadialGradient(16, 16, 0, 16, 16, 16)
+    grad.addColorStop(0, 'rgba(255,255,255,1)')
+    grad.addColorStop(0.55, 'rgba(255,255,255,0.85)')
+    grad.addColorStop(1, 'rgba(255,255,255,0)')
+    dctx.fillStyle = grad
+    dctx.fillRect(0, 0, 32, 32)
+    const dotTexture = new THREE.CanvasTexture(dotCanvas)
+    const hintMaterial = new THREE.PointsMaterial({ size: 0.34, vertexColors: true, sizeAttenuation: true, map: dotTexture, transparent: true, opacity: 0.8, depthWrite: false })
+    const hintPoints = new THREE.Points(new THREE.BufferGeometry(), hintMaterial)
+    hintPoints.visible = false
+    hintPoints.renderOrder = 5
+    grown.add(hintPoints)
+    const HINT = { good: new THREE.Color('#8ee868'), fair: new THREE.Color('#ecd35a'), poor: new THREE.Color('#e08a5c'), none: new THREE.Color('#8c8c8c') }
+    const syncHint = () => {
+      const hint = latest.current.hint ?? 'off'
+      hintPoints.visible = hint !== 'off'
+      if (hint === 'off') return loop.wake()
+      const b = game.building
+      const w = game.sim.world
+      const pos: number[] = []
+      const col: number[] = []
+      for (let i = 0; i < b.count; i++) {
+        if (b.flags[i] & GLASS) continue
+        let c: THREE.Color
+        if (hint === 'draper') {
+          const v = game.surface.draper[i]
+          if (v < 0.25) continue
+          c = v >= 0.8 ? HINT.good : v >= 0.5 ? HINT.fair : HINT.poor
+        } else {
+          // The plant note's thresholds: good from 0.45, fair from 0.2, poor from 0.1, and under 0.1 a tip can't spread.
+          const v = w.suitability[hint === 'climber' ? 0 : 1][i]
+          c = v >= 0.45 ? HINT.good : v >= 0.2 ? HINT.fair : v >= 0.1 ? HINT.poor : HINT.none
+        }
+        pos.push(b.px[i] + b.nx[i] * 0.09, b.py[i] + b.ny[i] * 0.09, b.pz[i] + b.nz[i] * 0.09)
+        col.push(c.r, c.g, c.b)
+      }
+      hintPoints.geometry.dispose()
+      const g = new THREE.BufferGeometry()
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+      g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3))
+      hintPoints.geometry = g
+      loop.wake()
+    }
+
     // Where a Draper would hang: a bar along the edge it finds, and three
     // short strands below it, so the player sees it hangs before planting.
     const markerMaterial = new THREE.MeshBasicMaterial({ color: '#a6ffd6', transparent: true, opacity: 0.9, depthWrite: false })
@@ -574,6 +671,7 @@ export function BuildViewport(props: Props) {
         if (ok) {
           syncPlants()
           report()
+          latest.current.onPlanted?.(species, cell)
         }
         loop.wake()
         return
@@ -611,6 +709,9 @@ export function BuildViewport(props: Props) {
     let reportAt = 0
     let shadowStep = -1
     const loop = startRenderLoop((delta) => {
+      // The sun follows the weather as it changes — the game's seasons ease it — not only on a refresh.
+      if (game.env.sunAzimuth !== placedAzimuth) placeSun()
+      applyLook()
       const { running, speed } = latest.current
       loop.setMaxFps(running ? 30 : 60)
       if (running) {
@@ -619,6 +720,8 @@ export function BuildViewport(props: Props) {
         if (whole > 0) advance(whole)
         pending = Math.min(pending - whole, 1)
         if (vegetation) vegetation.uStep.value = game.sim.step + pending
+        // The weather moves while time does; paused, it holds still like the plants.
+        fx?.update(delta, renderer.domElement.height)
       } else if (vegetation) {
         vegetation.uStep.value = game.sim.step
       }
@@ -701,6 +804,7 @@ export function BuildViewport(props: Props) {
       },
       wake: () => loop.wake(),
       view: () => syncView(),
+      hint: () => syncHint(),
     }
     refresh()
 
@@ -728,17 +832,24 @@ export function BuildViewport(props: Props) {
       lawn.geometry.dispose()
       for (const m of [material, ghostMaterial, lawn.material, dome.material, debugMaterial]) (m as THREE.Material).dispose()
       debugPoints.geometry.dispose()
+      hintPoints.geometry.dispose()
+      hintMaterial.dispose()
+      dotTexture.dispose()
       dome.geometry.dispose()
+      fx?.dispose()
       ghost.geometry.dispose()
       renderer.dispose()
       canvas.remove()
     }
   }, [])
 
-  const { revision, stepToken, running, surfaceView } = props
+  const { revision, stepToken, running, surfaceView, hint } = props
   useEffect(() => {
     api.current?.view()
   }, [surfaceView])
+  useEffect(() => {
+    api.current?.hint()
+  }, [hint])
   const first = useRef(revision)
   useEffect(() => {
     if (revision === first.current) return

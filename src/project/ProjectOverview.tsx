@@ -38,7 +38,7 @@ const FUTURE = ['Mountain — slopes and height to bridge', 'Beach — wind, san
  * the Site. History belongs on Progress, reasons on Decisions.
  */
 export function ProjectOverview({ navigate }: ProjectOverviewProps) {
-  const go = (page: 'build' | 'site' | 'progress' | 'decisions') => () => navigate({ section: 'project', page })
+  const go = (page: 'play' | 'site' | 'progress' | 'decisions') => () => navigate({ section: 'project', page })
 
   return (
     <ProjectLayout
@@ -58,8 +58,8 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
         <>
           <p className="project-question">The player controls the conditions, but not the exact final form.</p>
           <div className="project-actions">
-            <button type="button" className="project-button is-primary" onClick={go('build')}>
-              Play Build
+            <button type="button" className="project-button is-primary" onClick={go('play')}>
+              Play
             </button>
             <button type="button" className="project-button" onClick={go('site')}>
               See it at campus scale
@@ -71,14 +71,14 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
         </>
       }
     >
-      <section className="project-section" aria-label="Build, after 1,100 steps">
+      <section className="project-section" aria-label="The game, after 1,100 steps">
         <figure className="project-figure">
           <img
             src="/project/build-hero.jpg"
-            alt="Build after 1,100 steps: two buildings on a lawn joined by living bridges through a one-column stepping-stone tower. Teal Draper curtains hang from the roof edges and from under the west bridge; Climber and Spreader cover the tower and the east building; patchy ground cover spreads from their feet."
+            alt="The game after 1,100 steps: two buildings on a lawn joined by living bridges through a one-column stepping-stone tower. Teal Draper curtains hang from the roof edges and from under the west bridge; Climber and Spreader cover the tower and the east building; patchy ground cover spreads from their feet."
           />
           <figcaption>
-            Build after 1,100 steps. The player placed three blocks — a stepping-stone tower — and planted; the plants
+            The game after 1,100 steps. The player placed three blocks — a stepping-stone tower — and planted; the plants
             grew the two bridges that join the buildings.
           </figcaption>
         </figure>
@@ -172,8 +172,8 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
             within reach — and if blocks join them outright, they become one building and it doesn’t count.
           </p>
           <div className="project-actions">
-            <button type="button" className="project-button is-primary" onClick={go('build')}>
-              Try it in Build
+            <button type="button" className="project-button is-primary" onClick={go('play')}>
+              Try it
             </button>
           </div>
         </section>
@@ -183,7 +183,7 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
           <p>
             <strong>Site</strong> takes the same environment rules — moisture, the geometry of every wall — to a real place:
             the six Cornell Tech buildings on Roosevelt Island, from NYC Open Data, with procedural façades, the real sun
-            and a simulated year. Build’s behaviors and living architecture are the next step there.
+            and a simulated year. The game’s behaviors and living architecture are the next step there.
           </p>
           <div className="project-actions">
             <button type="button" className="project-button" onClick={go('site')}>

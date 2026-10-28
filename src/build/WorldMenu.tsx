@@ -26,6 +26,8 @@ export type WorldSession = {
   dirty: boolean
   /** Ask before something destructive; resolves true to go ahead. */
   confirmDiscard: (what: string) => Promise<boolean>
+  /** New world, as the menu's own item: asks first if there are unsaved changes. */
+  startNew: () => Promise<void>
 }
 
 const UNTITLED = 'Untitled world'
@@ -42,7 +44,15 @@ function devWorlds(): { uid: string; api: WorldsApi } | null {
 }
 
 /** The dialog every confirmation goes through: a question, Cancel, and one button that does it. */
-type Ask = { title: string; body: ReactNode; action: string; danger?: boolean; resolve: (ok: boolean) => void }
+type Ask = { title: string; body: ReactNode; action: string; danger?: boolean; resolve: (ok: boolean) => void; alt?: { label: string; run: () => Promise<boolean> } }
+
+/**
+ * Growth this many steps past the last save makes a world unsaved. Under it,
+ * not: the world keeps growing while it plays, and counting every step made a
+ * world saved mid-growth unsaved again within a frame (83 steps by the time
+ * the dialog had closed). 200 steps is about six seconds at 4×.
+ */
+const GROWTH_GRACE = 200
 
 function Dialog({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null)
@@ -75,15 +85,19 @@ const ago = (d: Date | null) => {
 
 type Props = {
   game: BuildGame
-  /** The game's change count now (from the report). */
+  /** The game's change count now (from the report): the player's own edits. */
   changes: number
+  /** The simulation step now (from the report): growth since the save. */
+  step: number
   /** After a world is opened or a new one started: stop growth, refresh the scene and the controls. */
   onReplaced: () => void
   /** Hands the session up, for Restart's confirmation. */
   onSession: (s: WorldSession) => void
+  /** Open with My worlds showing (the game's "Continue a saved world"). */
+  initialBrowse?: boolean
 }
 
-export function WorldMenu({ game, changes, onReplaced, onSession }: Props) {
+export function WorldMenu({ game, changes, step, onReplaced, onSession, initialBrowse = false }: Props) {
   const auth = useAuth()
   const dev = devWorlds()
   const api: WorldsApi = dev?.api ?? firestoreWorlds
@@ -92,25 +106,28 @@ export function WorldMenu({ game, changes, onReplaced, onSession }: Props) {
   const [id, setId] = useState<string | null>(null)
   const [name, setName] = useState(UNTITLED)
   const [savedAt, setSavedAt] = useState(() => game.changes)
+  const [savedStep, setSavedStep] = useState(() => game.sim.step)
   const [menu, setMenu] = useState(false)
   const [saveAs, setSaveAs] = useState<null | { initial: string; asNew: boolean }>(null)
-  const [browse, setBrowse] = useState(false)
+  const [browse, setBrowse] = useState(initialBrowse)
   const [ask, setAsk] = useState<Ask | null>(null)
   const [status, setStatus] = useState<{ text: string; error?: boolean } | null>(null)
   const [busy, setBusy] = useState(false)
-  const dirty = changes !== savedAt
+  // Read live from the game, not from the props: those come from the scene's
+  // report, sent every 0.3 s while growth runs and not at all when paused —
+  // so after run, pause, save, the report's count stayed behind the count the
+  // save recorded, and the world read as unsaved until something else changed.
+  // The props still re-render this when the game changes.
+  void changes
+  void step
+  const edited = game.changes !== savedAt
+  const grown = game.sim.step - savedStep
+  const dirty = edited || grown >= GROWTH_GRACE
 
   const confirm = useCallback(
-    (title: string, body: ReactNode, action: string, danger = false) => new Promise<boolean>((resolve) => setAsk({ title, body, action, danger, resolve })),
+    (title: string, body: ReactNode, action: string, danger = false, alt?: Ask['alt']) => new Promise<boolean>((resolve) => setAsk({ title, body, action, danger, resolve, alt })),
     [],
   )
-  const confirmDiscard = useCallback(
-    async (what: string) => !dirty || confirm('Unsaved changes', <p>“{name}” has changes that aren’t saved. {what} anyway, and lose them?</p>, `${what} anyway`, true),
-    [dirty, name, confirm],
-  )
-  useEffect(() => {
-    onSession({ id, name, dirty, confirmDiscard })
-  }, [id, name, dirty, confirmDiscard, onSession])
 
   // Closing or reloading the tab with unsaved changes: the browser's own prompt.
   useEffect(() => {
@@ -133,25 +150,55 @@ export function WorldMenu({ game, changes, onReplaced, onSession }: Props) {
   /** Why saving isn't possible right now, or null. */
   const blocked = dev ? null : !firebaseReady ? 'Saving needs Firebase, which isn’t configured in this build.' : loading ? 'Checking sign-in…' : !user ? 'Sign in (top right) to save worlds.' : null
 
-  const doSave = async (worldName: string, asNew: boolean) => {
-    if (!user) return
+  // Asked to open with My worlds showing, but saving isn't possible: say why instead of an empty dialog.
+  const askedToBrowse = useRef(initialBrowse)
+  useEffect(() => {
+    if (!askedToBrowse.current || loading) return
+    askedToBrowse.current = false
+    if (blocked) queueMicrotask(() => setStatus({ text: blocked, error: true }))
+  }, [blocked, loading])
+
+  const doSave = async (worldName: string, asNew: boolean): Promise<boolean> => {
+    if (!user) return false
     setBusy(true)
     setStatus({ text: 'Saving…' })
     try {
       const at = game.changes
+      const atStep = game.sim.step
       const { head, body } = serializeWorld(game)
       const newId = await api.saveWorld(user.uid, worldName, head, body, asNew ? undefined : (id ?? undefined))
       setId(newId)
       setName(worldName.trim())
       setSavedAt(at)
+      setSavedStep(atStep)
       setStatus({ text: `Saved “${worldName.trim()}”` })
       setSaveAs(null)
+      return true
     } catch (e) {
       // The world is still here, unsaved: nothing is lost by a failed save.
       setStatus({ text: `Couldn’t save: ${describeFirestoreError(e)}`, error: true })
+      return false
     } finally {
       setBusy(false)
     }
+  }
+
+  /**
+   * Ask before something destructive, if there's anything to lose — saying
+   * what: the player's own changes, or only growth since the save. A world
+   * already saved gets a Save first button.
+   */
+  const confirmDiscard = async (what: string) => {
+    if (!dirty) return true
+    const body = edited ? (
+      <p>“{name}” has changes that aren’t saved. {what} anyway, and lose them?</p>
+    ) : (
+      <p>
+        “{name}” has grown {grown.toLocaleString()} steps since you saved it. {what} anyway, and lose that growth?
+      </p>
+    )
+    const canSave = !!id && !blocked
+    return confirm('Unsaved changes', body, `${what} anyway`, true, canSave ? { label: 'Save first', run: () => doSave(name, false) } : undefined)
   }
 
   const save = () => {
@@ -168,9 +215,14 @@ export function WorldMenu({ game, changes, onReplaced, onSession }: Props) {
     setId(null)
     setName(UNTITLED)
     setSavedAt(game.changes)
+    setSavedStep(game.sim.step)
     onReplaced()
     setStatus({ text: 'A new world, on a fresh lawn' })
   }
+
+  useEffect(() => {
+    onSession({ id, name, dirty, confirmDiscard, startNew: newWorld })
+  })
 
   const open = async (w: WorldListing) => {
     if (!user) return
@@ -184,6 +236,7 @@ export function WorldMenu({ game, changes, onReplaced, onSession }: Props) {
       setId(w.id)
       setName(w.name)
       setSavedAt(game.changes)
+      setSavedStep(game.sim.step)
       setBrowse(false)
       onReplaced()
       setStatus({ text: `Opened “${w.name}” — paused at step ${game.sim.step.toLocaleString()}` })
@@ -195,7 +248,8 @@ export function WorldMenu({ game, changes, onReplaced, onSession }: Props) {
     }
   }
 
-  const dot = dirty ? <span className="world-dirty" title="Unsaved changes" aria-label="Unsaved changes" /> : null
+  const dotTitle = edited ? 'Unsaved changes' : `Grown ${grown.toLocaleString()} steps since saved`
+  const dot = dirty ? <span className="world-dirty" title={dotTitle} aria-label={dotTitle} /> : null
 
   return (
     <div className="world-bar">
@@ -257,7 +311,7 @@ export function WorldMenu({ game, changes, onReplaced, onSession }: Props) {
         {saveAs && <NameForm initial={saveAs.initial} action="Save" busy={busy} onCancel={() => setSaveAs(null)} onSubmit={(n) => doSave(n, saveAs.asNew)} />}
       </Dialog>
 
-      <Dialog open={browse} onClose={() => !busy && setBrowse(false)} title="My worlds" wide>
+      <Dialog open={browse && !!user && !blocked} onClose={() => !busy && setBrowse(false)} title="My worlds" wide>
         {browse && user && <WorldList api={api} uid={user.uid} currentId={id} busy={busy} onOpen={open} confirm={confirm} onClose={() => setBrowse(false)} onRenamed={(wid, n) => wid === id && setName(n)} onDeleted={(wid) => wid === id && (setId(null), setSavedAt(-1))} />}
       </Dialog>
 
@@ -269,6 +323,21 @@ export function WorldMenu({ game, changes, onReplaced, onSession }: Props) {
               <button type="button" className="world-button" onClick={() => (ask.resolve(false), setAsk(null))}>
                 Cancel
               </button>
+              {ask.alt && (
+                <button
+                  type="button"
+                  className="world-button is-primary"
+                  disabled={busy}
+                  onClick={async () => {
+                    // Saved: go ahead. Failed: the status line says why, and nothing is discarded.
+                    const ok = await ask.alt!.run()
+                    ask.resolve(ok)
+                    setAsk(null)
+                  }}
+                >
+                  {ask.alt.label}
+                </button>
+              )}
               <button type="button" className={`world-button ${ask.danger ? 'is-danger' : 'is-primary'}`} onClick={() => (ask.resolve(true), setAsk(null))}>
                 {ask.action}
               </button>

@@ -312,15 +312,15 @@ export function ArchitecturePage({ navigate }: { navigate: (route: Route) => voi
       <section className="project-section atlas-note" aria-labelledby="atlas-note-heading">
         <h2 id="atlas-note-heading">How these specimens were made</h2>
         <p>
-          Each specimen is a real Build game: a few blocks, a Climber and a Spreader planted at the foot of a wall, a world seed
-          and the rain — then played, ten steps at a time, until Build formed its first structure. The structure, its timeline
+          Each specimen is a real game of Wildform: a few blocks, a Climber and a Spreader planted at the foot of a wall, a world seed
+          and the rain — then played, ten steps at a time, until the game formed its first structure. The structure, its timeline
           and the plants in the Growth view are that game’s own. The recipes were found by searching layouts and seeds for runs
           where each kind forms first; nothing is modelled or forced, and if a recipe ever grows something else, the page says so
           instead of showing it.
         </p>
         <div className="project-actions">
-          <button type="button" className="project-button is-primary" onClick={() => navigate({ section: 'project', page: 'build' })}>
-            Grow your own in Build
+          <button type="button" className="project-button is-primary" onClick={() => navigate({ section: 'project', page: 'play' })}>
+            Grow your own
           </button>
         </div>
       </section>

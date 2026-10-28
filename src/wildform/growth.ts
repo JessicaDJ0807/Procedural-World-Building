@@ -128,6 +128,13 @@ export class WildGrowth {
   witheredBy = new Int32Array(WILD_SPECIES.length)
   /** Layers that withered while something grew over them. */
   smothered = 0
+  /**
+   * Cells where layers withered since the last `drainWithered`, for the game
+   * to show leaves falling where plants died. Bookkeeping only: it draws no
+   * random numbers and changes nothing grown. Capped, since only the game
+   * drains it.
+   */
+  private witheredCells: number[] = []
   private free: number[] = []
   private nextEntry = 0
   private tips: Int32Array
@@ -148,6 +155,14 @@ export class WildGrowth {
   readonly caps: number[]
   /** The planting's scale: tip caps and side shoots both grow with it. */
   readonly tipScale: number
+  /**
+   * 0–1: how warm it is. At 1 — the default, and all Explore and the Lab ever
+   * use — nothing changes and no random number is drawn for it, so their runs
+   * are identical. Below 1 (the game's seasons, game/seasons.ts) each tip
+   * idles a step with probability 1 − warmth, and side shoots scale with it:
+   * cold slows growth without changing where it goes.
+   */
+  warmth = 1
 
   /**
    * `tipScale` multiplies each species' tip cap. The caps were set for one
@@ -396,6 +411,13 @@ export class WildGrowth {
     return kept
   }
 
+  /** The cells where layers withered since the last call, and forget them. */
+  drainWithered(): number[] {
+    const out = this.witheredCells
+    this.witheredCells = []
+    return out
+  }
+
   /** Room on the stack, and not onto its own species. */
   private canEnter(sp: number, cell: number): boolean {
     return this.depth[cell] < MAX_LAYERS && this.top(cell) !== sp
@@ -518,6 +540,10 @@ export class WildGrowth {
       const suitability = world.suitability[sp]
       const harsh = 1 - this.envOf(from, world)
       if (r() < 0.005 + 0.12 * harsh * harsh) continue
+      if (this.warmth < 1 && r() > this.warmth) {
+        push(cell, tx, ty, tz, sp)
+        continue
+      }
 
       let best = -1
       let bestScore = -Infinity
@@ -575,7 +601,7 @@ export class WildGrowth {
       if (!this.grownBy[sp]) continue
       const wakes = Math.min(SHOOT_CAP * this.tipScale, Math.floor(0.25 * this.tipScale + (this.grownBy[sp] / 100) * WILD_SPECIES[sp].shoots + r()))
       const own = this.cellsOf[sp]
-      for (let k = 0; k < wakes; k++) {
+      for (let k = 0; k < (this.warmth < 1 ? Math.round(wakes * this.warmth) : wakes); k++) {
         const cell = own[Math.floor(r() * own.length)]
         if (r() < 0.6 * world.env[sp][cell]) {
           const to = neighbours[cell * 8 + Math.floor(r() * 8)]
@@ -650,6 +676,7 @@ export class WildGrowth {
       this.withered++
       this.stressed.delete(e)
       touched.add(this.entryCell[e])
+      if (this.witheredCells.length < 4000) this.witheredCells.push(this.entryCell[e])
     }
     this.grown = w
     // Close each touched stack over its gaps, and recount the cell.

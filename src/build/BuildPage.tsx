@@ -122,6 +122,10 @@ export function BuildPage() {
   const [env, setEnv] = useState(game.env)
   const [history, setHistory] = useState(false)
   const [surfaceView, setSurfaceView] = useState<SurfaceView>('off')
+  // While rain or sun is being changed, and a moment after, every surface shows
+  // how well it suits the selected plant: the weather's effect, at once.
+  const [weatherHint, setWeatherHint] = useState(false)
+  const hintTimer = useRef(0)
   const [intro, setIntro] = useState(() => !introDismissed())
   const dismissIntro = () => {
     setIntro(false)
@@ -147,7 +151,11 @@ export function BuildPage() {
     game.setEnvironment(patch)
     setEnv(game.env)
     changed()
+    setWeatherHint(true)
+    window.clearTimeout(hintTimer.current)
+    hintTimer.current = window.setTimeout(() => setWeatherHint(false), 2500)
   }
+  const hint: SurfaceView = !weatherHint ? 'off' : species === 1 ? 'spreader' : 'climber'
 
   const left = report?.left ?? BUDGET
   const coverage = (id: number) => (!report ? null : id === DRAPER ? report.draperCoverage : report.bySpecies[id])
@@ -166,7 +174,7 @@ export function BuildPage() {
   return (
     <div className="workspace green-workspace build-workspace">
       <div className="workspace-canvas">
-        <BuildViewport game={game} tool={tool} species={species} running={running} speed={speed} stepToken={stepToken} revision={revision} surfaceView={surfaceView} onReport={setReport} />
+        <BuildViewport game={game} tool={tool} species={species} running={running} speed={speed} stepToken={stepToken} revision={revision} surfaceView={surfaceView} hint={hint} onReport={setReport} />
         {intro && !report?.goal && (
           <div className="build-intro" role="note">
             <p>
@@ -206,7 +214,7 @@ export function BuildPage() {
       </div>
       <div className="workspace-inspector green-inspector">
         <aside className="control-sidebar build-sidebar" aria-label="Build controls">
-          <WorldMenu game={game} changes={report?.changes ?? game.changes} onReplaced={onReplaced} onSession={onSession} />
+          <WorldMenu game={game} changes={report?.changes ?? game.changes} step={report?.step ?? game.sim.step} onReplaced={onReplaced} onSession={onSession} />
           {/* ---- Goal ---- */}
           <section className="build-section">
             <h3 className="control-group">
@@ -380,6 +388,7 @@ export function BuildPage() {
             <p className="build-env-note">{rainNote(env.rain)}</p>
             <Slider label="Sun direction" value={env.sunAzimuth} display={`${Math.round(env.sunAzimuth)}°`} min={-180} max={180} step={1} onChange={(v) => setEnvironment({ sunAzimuth: v })} />
             <p className="build-env-note">{sunNote(env.sunAzimuth)}</p>
+            <p className="build-tip">Changing either shows, for a moment, how well every surface now suits the selected plant{species === 1 ? ' (Spreader)' : ' (Climber)'}: green good, yellow fair, orange poor, grey won’t grow.</p>
           </section>
 
           {/* ---- Growth ---- */}

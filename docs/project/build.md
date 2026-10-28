@@ -426,8 +426,9 @@ colours. The Site keeps its golden hour.
 
 ## The page
 
-**Project → Build** — the main playable prototype, the page reviewers should
-try. A first visit gets one card, top left of the scene: *Goal: connect the
+**Project → Lab** (this page; it was the Build tab, and its route is still
+`/project/build`) — the game with every control and number showing. The
+full-screen game is [Play](play.md). A first visit gets one card, top left of the scene: *Goal: connect the
 structures using living architecture. Build what you need, then let plants
 complete what you don't.* "Got it" puts it away, remembered per browser, and
 it goes once the goal is met.
@@ -461,7 +462,10 @@ player asks:
    at 10% rain, 0.36/0.22 at 30%, 0.54/0.36 at 55% and 0.69/0.50 at 85%.
    Sun: which walls it lights, from the growth model's sun — east and west
    as the game names its buildings, front and back as seen from where the
-   camera starts.
+   camera starts. Changing either shows, for 2.5 s, how well every surface
+   now suits the selected plant — the game's planting tint — so the effect is
+   visible at once rather than hundreds of steps later. (The game itself has
+   no weather controls; see [Play](play.md#weather).)
 6. **Growth.** Transport controls: ▶ Play / Pause, Step, the step count;
    speed 1× / 4× / 16×.
 7. **Living architecture.** The outcome first, the recipe second: *Bridge /
@@ -484,9 +488,13 @@ unsaved changes, **Save**, and **Worlds ▾** — New world, Save as…, My worl
   structures and when it was saved. Each has Open, Rename, Duplicate (a new
   world with the same state, "… copy") and Delete (asks first).
 - **New world**: a fresh lawn, default weather, a new seed.
-- **Unsaved changes** means anything since the last save: a block, a
-  planting, a step of growth, a slider. Opening another world, New world,
-  Restart and closing the tab all ask first.
+- **Unsaved changes** means your own changes since the last save — a block,
+  a planting, a slider — or more than 200 steps of growth. Growth alone counts
+  only past that: the world keeps growing while it plays, and when every step
+  counted, a world saved mid-growth was unsaved again within a frame (83 steps
+  by the time the dialog closed). Opening another world, New world, Restart and
+  leaving all ask first, saying which it is, with **Save first** for a world
+  already saved.
 - A world opens **paused**, at the step it was saved, with its weather on the
   sliders.
 - A failed save or open says why and leaves the current world as it was. A
@@ -655,6 +663,12 @@ plant layer kept.
 - **Chained spreading covered every deck.** When a curtain that had spread
   could spread again, six hung from the decks by step 1,100. Now only a
   planted Draper spreads, at most twice.
+- **A world saved after pausing still read as unsaved.** The check compared
+  the game's change count recorded at the save with the count in the scene's
+  last report, which is sent every 0.3 s while growth runs and not at all when
+  paused. After run, pause, save, the report stayed behind and the two never
+  matched (reproduced on the earlier build: rounds two and three of run, pause,
+  save were all "unsaved"). The check now reads the game's live count.
 - **Saving crashed the page on its first run in a browser.** A React effect
   written as `() => onSession({...})` returned the setter's result, and React
   treats an effect's return value as its cleanup: "destroy is not a function"

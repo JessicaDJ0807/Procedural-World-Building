@@ -87,9 +87,15 @@ export class BuildGame {
    * runs in docs/project/build.md — and a new one for each New World.
    */
   seed = 1
+  /** 0–1, kept on the growth across rebuilds: the game's seasons set it; 1 elsewhere. */
+  warmth = 1
   /** Incremented when the whole world is replaced (restart, New World, load): a renderer drops everything it drew. */
   epoch = 0
-  /** Incremented by anything that changes the world: what "unsaved changes" compares against. */
+  /**
+   * Incremented by the player's own changes — blocks, plantings, weather, a
+   * new or loaded world. Growth is not counted here: it is measured by the
+   * step (WorldMenu), so a world saved while growing isn't unsaved a frame later.
+   */
   changes = 0
   /** Incremented whenever the building is rebuilt or growth removed, so a renderer rebuilds rather than appends. */
   revision = 0
@@ -155,6 +161,7 @@ export class BuildGame {
       sim.growth.markStress(sim.world)
       sim.events = old.events
     }
+    sim.growth.warmth = this.warmth
     this.sim = sim
     this.revision++
     // Drapers find their edges again on the new town; one whose edge is gone falls.
@@ -224,8 +231,15 @@ export class BuildGame {
     return { goalMet: this.goalMet, connected: this.connected, wasJoined: this.wasJoined, lastNodeCheck: this.lastNodeCheck, declined: [...this.declined] }
   }
 
-  setEnvironment(env: Partial<Environment>) {
-    this.changes++
+  /** Seasons (game/seasons.ts): how warm it is, carried onto the growth. */
+  setWarmth(w: number) {
+    this.warmth = w
+    this.sim.growth.warmth = w
+  }
+
+  /** `byPlayer` false for the seasons: weather that follows from the step isn't an unsaved change. */
+  setEnvironment(env: Partial<Environment>, byPlayer = true) {
+    if (byPlayer) this.changes++
     this.env = { ...this.env, ...env }
     this.sim.setEnvironment(this.env.rain, this.env.sunAzimuth)
   }
@@ -264,7 +278,6 @@ export class BuildGame {
    * nodes as often as a frame-by-frame one. Returns new structures.
    */
   advance(steps: number): Living[] {
-    if (steps > 0) this.changes++
     const added: Living[] = []
     let left = steps
     while (left > 0) {

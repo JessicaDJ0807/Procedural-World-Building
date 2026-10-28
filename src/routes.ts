@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react'
  * all of it. If this ever grows route parameters or per-route data, that is the
  * point to reconsider.
  */
-export type Section = 'playground' | 'project'
+export type Section = 'playground' | 'project' | 'game'
 
 export type PlaygroundId =
   | 'objects'
@@ -31,11 +31,15 @@ export type PlaygroundId =
   | 'paths'
   | 'flow'
   | 'branching'
-export type ProjectId = 'overview' | 'explore' | 'build' | 'architecture' | 'site' | 'progress' | 'decisions'
+export type ProjectId = 'overview' | 'play' | 'explore' | 'build' | 'architecture' | 'site' | 'progress' | 'decisions'
 
 export type Route =
   | { section: 'playground'; page: PlaygroundId }
   | { section: 'project'; page: ProjectId }
+  /** The game, full-screen at /play, outside both sections' navigation. */
+  | { section: 'game'; page: 'play' }
+
+export const GAME: Route = { section: 'game', page: 'play' }
 
 /**
  * One entry per topic, newest last.
@@ -64,7 +68,9 @@ export const PLAYGROUND: { id: PlaygroundId; topic: string; title: string }[] = 
  */
 export const PROJECT: { id: ProjectId; title: string; blurb: string }[] = [
   { id: 'overview', title: 'Overview', blurb: 'Wildform: grow architecture by shaping how plants behave' },
-  { id: 'build', title: 'Build', blurb: 'The playable prototype: build, plant, grow, and let living architecture emerge' },
+  { id: 'play', title: 'Play', blurb: 'Wildform, the game: get two buildings holding hands' },
+  // The Build page, shown as the Lab: every control and number on screen. Its id stays 'build' so links and docs hold.
+  { id: 'build', title: 'Lab', blurb: 'The game with every control and number showing: for taking it apart' },
   { id: 'architecture', title: 'Architecture', blurb: 'Living Architecture: an atlas of the five structures the plants grow' },
   { id: 'site', title: 'Site', blurb: 'Wildform at campus scale: Cornell Tech on Roosevelt Island' },
   { id: 'progress', title: 'Progress', blurb: 'How the project evolved, phase by phase' },
@@ -106,6 +112,7 @@ export const HOME: Route = DEFAULT_PROJECT
 
 export function toPath(route: Route): string {
   if (route.section === 'playground') return `/playground/${route.page}`
+  if (route.section === 'game') return '/play'
   // Overview is the section root, so /project is a real address rather than a
   // redirect to /project/overview.
   return route.page === 'overview' ? '/project' : `/project/${route.page}`
@@ -114,6 +121,7 @@ export function toPath(route: Route): string {
 /** Anything unrecognised is HOME — a bad path is not worth an error page. */
 export function parsePath(pathname: string): Route {
   const parts = pathname.split('/').filter(Boolean)
+  if (parts[0] === 'play') return GAME
   if (parts[0] === 'playground') {
     const page = PLAYGROUND.find((entry) => entry.id === parts[1])
     return page ? { section: 'playground', page: page.id } : DEFAULT_PLAYGROUND

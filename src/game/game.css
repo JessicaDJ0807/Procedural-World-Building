@@ -1,0 +1,699 @@
+/* Wildform, the game. A rounded display face for everything the game says;
+   the app's sans for controls. Pale, rounded panels floating on the scene. */
+
+.game-display {
+  font-family: 'Fredoka', var(--font-sans);
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+
+/* ---- The game screen ---- */
+
+.game {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #cfe0ea;
+  color: #2d3326;
+  font-family: var(--font-sans);
+}
+
+.game .build-viewport {
+  position: absolute;
+  inset: 0;
+}
+
+.game button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.game-panel,
+.game-chip,
+.game-objective,
+.game-coach,
+.game-weather,
+.game-toolbar,
+.game-top-right {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  background: rgba(255, 253, 247, 0.86);
+  box-shadow: 0 6px 24px rgba(40, 50, 30, 0.14);
+  backdrop-filter: blur(6px);
+}
+
+.game-top-left {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+}
+
+.game-chip {
+  padding: 8px 14px;
+  color: #3d4636;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.game-chip:hover {
+  background: #fff;
+}
+
+/* The season badge: under the exit, the conditions in emoji and a few words. */
+.game-season {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  background: rgba(255, 253, 247, 0.86);
+  box-shadow: 0 6px 24px rgba(40, 50, 30, 0.14);
+  backdrop-filter: blur(6px);
+}
+
+.game-season p {
+  margin: 0;
+}
+
+.game-season-name {
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 19px;
+  font-weight: 600;
+  color: #2d3326;
+}
+
+.game-season-year {
+  color: #8a8f80;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.game-season-weather {
+  display: flex;
+  gap: 12px;
+  color: #4b5243;
+  font-size: 13px;
+}
+
+.game-season-next {
+  color: #7c8272;
+  font-size: 12px;
+}
+
+/* A plant's mood, on the corner of its button. */
+.game-tool.is-plant {
+  position: relative;
+}
+
+.game-mood {
+  position: absolute;
+  top: -8px;
+  right: -2px;
+  font-size: 16px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18));
+}
+
+.game-objective {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 22px 12px;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.game-objective-title {
+  margin: 0;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3326;
+}
+
+.game-steps {
+  display: flex;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #8a8f80;
+  font-size: 12px;
+}
+
+.game-steps li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.game-steps li span {
+  width: 9px;
+  height: 9px;
+  border: 2px solid #b9bdaf;
+  border-radius: 50%;
+}
+
+.game-steps li.is-done {
+  color: #3f6e3a;
+  font-weight: 600;
+}
+
+.game-steps li.is-done span {
+  border-color: #5c9a4e;
+  background: #5c9a4e;
+}
+
+/* The world menu, re-dressed for the game. */
+.game-top-right {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 300px;
+  padding: 10px 12px;
+  --text-primary: #2d3326;
+  --text-secondary: #4b5243;
+  --text-muted: #7c8272;
+  --border: rgba(60, 70, 50, 0.15);
+  --border-strong: rgba(60, 70, 50, 0.25);
+  --surface-hover: rgba(60, 70, 50, 0.06);
+  /* Its menu and dialogs too: they used the site's dark surfaces under these
+     dark text colours, and read as dark grey on dark grey. */
+  --surface-1: #fffdf7;
+  --surface-2: #f4f0e6;
+  --surface-3: #ece7dc;
+  --surface-float: #fffdf7;
+  --accent-line: #5c9a4e;
+  --accent-subtle: rgba(92, 154, 78, 0.14);
+  --accent-subtle-hover: rgba(92, 154, 78, 0.22);
+  --accent-strong: #3f7a34;
+  --danger: #b5462a;
+  --danger-line: rgba(181, 70, 42, 0.45);
+}
+
+.game-top-right .world-menu {
+  box-shadow: 0 10px 30px rgba(40, 50, 30, 0.18);
+}
+
+.game-top-right .world-dialog {
+  border-color: rgba(60, 70, 50, 0.18);
+  box-shadow: 0 24px 60px rgba(30, 40, 25, 0.28);
+}
+
+.game-top-right .world-dialog::backdrop {
+  background: rgba(30, 40, 25, 0.35);
+}
+
+.game-top-right .world-status.is-error,
+.game-top-right .world-hint.is-error {
+  color: #b5541f;
+}
+
+.game-top-right .world-bar {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* The coach: one beat of the opening at a time. */
+.game-coach {
+  position: absolute;
+  top: 196px;
+  left: 16px;
+  display: grid;
+  gap: 6px;
+  width: min(330px, calc(100vw - 32px));
+  padding: 14px 16px;
+}
+
+.game-coach-step {
+  color: #8a8f80;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.game-coach strong {
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.game-coach p {
+  margin: 0;
+  color: #4b5243;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.game-coach button {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6f7765;
+  font-size: 12.5px;
+  text-decoration: underline;
+}
+
+/* The voice: lines rise above the toolbar and fade. */
+.game-toasts {
+  position: absolute;
+  bottom: 104px;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: min(560px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.game-toast {
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(45, 51, 38, 0.86);
+  color: #fbf8ef;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 15.5px;
+  font-weight: 500;
+  animation: game-toast 4.8s ease forwards;
+}
+
+@keyframes game-toast {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  6%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.game-toolbar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  transform: translateX(-50%);
+}
+
+.game-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.game-group + .game-group {
+  border-left: 1px solid rgba(60, 70, 50, 0.15);
+  padding-left: 10px;
+}
+
+.game-tool {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  min-width: 64px;
+  padding: 6px 8px 5px;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  color: #4b5243;
+  font-size: 12px;
+}
+
+.game-tool:hover {
+  background: rgba(60, 70, 50, 0.07);
+}
+
+.game-tool-icon {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.game-tool.is-plant .game-tool-icon {
+  color: var(--plant);
+  font-weight: 700;
+}
+
+.game-tool.is-active {
+  background: #2d3326;
+  color: #fbf8ef;
+}
+
+.game-tool.is-plant.is-active {
+  background: var(--plant);
+  color: #fff;
+}
+
+.game-tool.is-plant.is-active .game-tool-icon {
+  color: #fff;
+}
+
+.game-blocks {
+  min-width: 70px;
+  padding: 0 6px;
+  color: #6f7765;
+  font-size: 12px;
+  text-align: center;
+}
+
+.game-blocks strong {
+  display: block;
+  color: #2d3326;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.game-blocks.is-low strong {
+  color: #c4572f;
+}
+
+.game-play {
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: #5c9a4e;
+  color: #fff;
+  font-size: 16px;
+}
+
+.game-play.is-running {
+  background: #2d3326;
+}
+
+.game-speed {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(60, 70, 50, 0.07);
+  color: #3d4636;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-mouse {
+  position: absolute;
+  bottom: 22px;
+  left: 18px;
+  margin: 0;
+  color: rgba(45, 51, 38, 0.65);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.game-celebrate {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at center, rgba(255, 252, 240, 0.25), rgba(30, 40, 25, 0.35));
+  animation: game-fade 0.5s ease;
+}
+
+.game-celebrate > div {
+  max-width: min(440px, calc(100vw - 40px));
+  padding: 26px 30px 24px;
+  border-radius: 22px;
+  background: #fffdf7;
+  box-shadow: 0 20px 60px rgba(30, 40, 25, 0.3);
+  text-align: center;
+}
+
+.game-celebrate-kicker {
+  margin: 0;
+  color: #5c9a4e;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.game-celebrate h2 {
+  margin: 4px 0 8px;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 34px;
+  font-weight: 600;
+  color: #2d3326;
+}
+
+.game-celebrate p {
+  margin: 0;
+  color: #4b5243;
+  font-size: 15px;
+}
+
+.game-celebrate-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.game-celebrate-actions button,
+.play-button {
+  padding: 10px 18px;
+  border: 1px solid rgba(60, 70, 50, 0.25);
+  border-radius: 999px;
+  background: #fff;
+  color: #2d3326;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.game-celebrate-actions button.is-primary,
+.play-button.is-primary {
+  border-color: #5c9a4e;
+  background: #5c9a4e;
+  color: #fff;
+}
+
+@keyframes game-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .game-top-right {
+    top: auto;
+    bottom: 96px;
+    width: 260px;
+  }
+
+
+  .game-mouse {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .game-objective {
+    left: 64px;
+    right: 12px;
+    transform: none;
+  }
+
+  .game-objective-title {
+    font-size: 16px;
+  }
+
+  .game-steps {
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .game-top-left {
+    top: 22px;
+    left: 12px;
+  }
+
+  .game-top-left .game-chip {
+    width: 42px;
+    padding: 8px 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-indent: 0;
+    font-size: 0;
+  }
+
+  .game-top-left .game-chip::before {
+    content: '←';
+    font-size: 18px;
+  }
+
+  /* Below the objective, compact: the season and its weather, no forecast. */
+  .game-season {
+    margin-top: 76px;
+    padding: 7px 11px;
+  }
+
+  .game-season-name {
+    font-size: 15px;
+  }
+
+  .game-season-next {
+    display: none;
+  }
+
+  .game-toolbar {
+    left: 8px;
+    right: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    transform: none;
+  }
+
+  .game-tool {
+    min-width: 54px;
+  }
+
+  .game-top-right,
+  .game-coach {
+    display: none;
+  }
+}
+
+/* ---- The Play page: the game's front door, in the Project tabs ---- */
+
+.play-page {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg, #141517);
+}
+
+.play-hero {
+  position: relative;
+  height: min(72vh, 680px);
+  min-height: 420px;
+  overflow: hidden;
+}
+
+.play-hero img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.play-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(20, 24, 16, 0.72), rgba(20, 24, 16, 0.15) 60%);
+}
+
+.play-hero-text {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  height: 100%;
+  max-width: 560px;
+  padding: 0 clamp(20px, 6vw, 80px);
+  color: #fbf8ef;
+}
+
+.play-hero-text h1 {
+  margin: 0;
+  font-size: clamp(54px, 8vw, 96px);
+  line-height: 0.95;
+}
+
+.play-premise {
+  margin: 0;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: clamp(19px, 2.2vw, 24px);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.play-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.play-button {
+  font-size: 18px;
+  padding: 12px 24px;
+}
+
+.play-how {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 44px clamp(20px, 6vw, 80px) 12px;
+}
+
+.play-how div {
+  display: grid;
+  gap: 6px;
+}
+
+.play-how-n {
+  color: #8fbf7f;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.play-how strong {
+  color: var(--text-primary);
+  font-size: 22px;
+}
+
+.play-how p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.play-lab {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px clamp(20px, 6vw, 80px) 56px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.play-lab button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .play-how {
+    grid-template-columns: 1fr;
+  }
+}

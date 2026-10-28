@@ -84,7 +84,7 @@ const PHASES: Phase[] = [
     learning: 'Plant interactions could become a procedural architectural grammar.',
     figures: [
       { src: '/project/progress-living-platform.jpg', alt: 'The midterm prototype at step 870: a slab grown out of the invented building’s front at the third floor, labelled Living Platform formed.' },
-      { src: '/project/build-close.jpg', alt: 'A living bridge meeting the stepping-stone tower in Build, with Draper curtains hanging from it.' },
+      { src: '/project/build-close.jpg', alt: 'A living bridge meeting the stepping-stone tower in the game, with Draper curtains hanging from it.' },
     ],
     see: { label: 'Open the archived midterm prototype', route: { section: 'project', page: 'explore' } },
   },
@@ -101,8 +101,8 @@ const PHASES: Phase[] = [
       'Growth vocabulary: Climber, Spreader, Draper — and Layered, the interaction state',
     ],
     learning: 'How much control should the player have over a system whose value comes from emergence?',
-    figures: [{ src: '/project/build-hero.jpg', alt: 'Build after 1,100 steps: two buildings joined by living bridges through a stepping-stone tower, with Draper curtains and ground cover.' }],
-    see: { label: 'Play Build', route: { section: 'project', page: 'build' } },
+    figures: [{ src: '/project/build-hero.jpg', alt: 'The game after 1,100 steps: two buildings joined by living bridges through a stepping-stone tower, with Draper curtains and ground cover.' }],
+    see: { label: 'Play', route: { section: 'project', page: 'play' } },
   },
 ]
 
@@ -310,7 +310,7 @@ export function ProjectProgress({ navigate }: ProjectProgressProps) {
         <p className="project-note">
           The measured record of the site-simulation phase, kept as it was written: the growth model the Site still runs,
           built up one rule at a time on an invented building. Its environment fields — sunlight, moisture, geometry — are
-          the ones Build’s plants read today.
+          the ones the game’s plants read today.
         </p>
       </section>
 

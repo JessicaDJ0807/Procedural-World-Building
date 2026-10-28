@@ -87,7 +87,7 @@ const DESIGN: DesignDecision[] = [
   },
   {
     title: 'Roosevelt Island → baseline + future environments',
-    decision: 'Keep Roosevelt Island as the real-site application, while Build becomes a general gameplay sandbox that starts on a simple lawn.',
+    decision: 'Keep Roosevelt Island as the real-site application, while the game becomes a general sandbox that starts on a simple lawn.',
     why: 'A real campus is too large and too fixed to learn the game on; a lawn makes every effect readable. The Site keeps the same environmental logic at full scale.',
     parts: ['Mountain', 'Beach', 'Wetland', 'Dense urban conditions'],
     future: true,
@@ -303,8 +303,8 @@ export function ProjectDecisions({ navigate }: ProjectDecisionsProps) {
           ))}
         </div>
         <div className="project-actions">
-          <button type="button" className="project-button is-primary" onClick={() => navigate({ section: 'project', page: 'build' })}>
-            Try them in Build
+          <button type="button" className="project-button is-primary" onClick={() => navigate({ section: 'project', page: 'play' })}>
+            Try them in the game
           </button>
           <button type="button" className="project-button" onClick={() => navigate({ section: 'project', page: 'progress' })}>
             How the project evolved
@@ -317,7 +317,7 @@ export function ProjectDecisions({ navigate }: ProjectDecisionsProps) {
         <p className="project-note">
           Five decisions from the site-simulation phase that still shape what grows where — the rule, why it is that way,
           what came first, the evidence, and the question still open. The Site runs this model; its sunlight, moisture and
-          geometry fields are the ones Build’s plants read.
+          geometry fields are the ones the game’s plants read.
         </p>
       </section>
 
