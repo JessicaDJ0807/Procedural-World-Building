@@ -624,6 +624,16 @@ plant layer kept.
 
 ## Notes
 
+- **Withered stacks were miscounted as meetings.** A plant never grows onto
+  its own kind, but when a middle layer withers the stack closes over the
+  gap, so a cell can hold one species twice. The combination was read from
+  depth alone, so a two-layer cell counted as Climber + Spreader whatever it
+  held. It wasn't rare: at peak, 183 of 317 such cells in a default run, and
+  292 of 423 when the sun moved mid-run, held one species twice. A
+  combination now needs both species in the stack. It changed no outcome
+  measured: three seeds of the stepping-stone run grew the same structures at
+  the same steps (goal at step 700 on seed 1), because where nodes form there
+  were already enough genuine meetings.
 - **A fifth of the growth vanished on every edit.** When a middle layer
   withers, the stack closes over the gap and can hold one species twice in a
   row. Carrying growth across an edit by re-growing each layer refused the

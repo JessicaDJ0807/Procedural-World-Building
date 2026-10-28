@@ -1,0 +1,441 @@
+/* Living Architecture: a catalog plate. The page stays in the app's dark
+   chrome; the specimen sits in a pale studio, like a model on a plinth. */
+
+.atlas-index {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.atlas-tab {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px 11px;
+  border: 1px solid var(--border);
+  border-top: 2px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.atlas-tab:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.atlas-tab.is-active {
+  border-top-color: #b9a37f;
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.atlas-num {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.atlas-tab-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.atlas-tab-recipe {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.atlas-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #eceae6;
+}
+
+.specimen-viewport {
+  width: 100%;
+  height: min(68vh, 680px);
+  min-height: 380px;
+}
+
+.specimen-viewport canvas {
+  display: block;
+  cursor: grab;
+}
+
+.specimen-viewport canvas:active {
+  cursor: grabbing;
+}
+
+/* The plate's title, set on the studio in dark type like an exhibition caption. */
+.atlas-plate {
+  position: absolute;
+  top: 22px;
+  left: 26px;
+  display: grid;
+  gap: 2px;
+  max-width: min(420px, calc(100% - 52px));
+  color: #2e2b27;
+  pointer-events: none;
+}
+
+.atlas-plate .atlas-num {
+  color: #8d867b;
+}
+
+.atlas-plate strong {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.atlas-plate span:last-child {
+  color: #5c574f;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+
+
+
+
+
+
+
+
+.atlas-data {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 14px 0 28px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.atlas-text {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.atlas-text h3 {
+  margin: 0 0 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.atlas-text p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.atlas-note p {
+  max-width: 76ch;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 1180px) {
+  .atlas-text {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .atlas-text {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .atlas-index {
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    overflow-x: auto;
+  }
+
+  .atlas-text {
+    grid-template-columns: 1fr;
+  }
+
+  .atlas-plate strong {
+    font-size: 22px;
+  }
+
+  .atlas-legend-note,
+  .atlas-bands span {
+    display: none;
+  }
+
+  .specimen-viewport {
+    height: 60vh;
+    min-height: 320px;
+  }
+}
+
+/* ---- Phase 2: view modes, timeline, labels, variations ---- */
+
+.specimen-viewport {
+  position: relative;
+}
+
+.specimen-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* A label sits just above and right of its point, with a short leader. */
+.specimen-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: -26px 0 0 8px;
+  padding: 2px 7px;
+  border-left: 2px solid #8d867b;
+  background: rgba(255, 255, 255, 0.82);
+  color: #2e2b27;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.atlas-modes {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid #d3cdc2;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.atlas-modes button {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: #5c574f;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.atlas-modes button.is-active {
+  background: #2e2b27;
+  color: #f4f1ec;
+}
+
+.atlas-legend {
+  position: absolute;
+  top: 62px;
+  right: 20px;
+  display: grid;
+  gap: 4px;
+  max-width: 230px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #4d4841;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.atlas-legend span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.atlas-legend i {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.atlas-legend i.is-ring {
+  border: 2px solid;
+  border-radius: 50%;
+  background: none;
+}
+
+.atlas-legend-note {
+  margin-top: 2px;
+  color: #7a7369;
+  font-size: 11px;
+}
+
+/* The timeline: one bar along the bottom of the stage. */
+.atlas-timeline {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  left: 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #3a3631;
+  font-size: 12px;
+}
+
+.atlas-timeline button {
+  padding: 5px 10px;
+  border: 1px solid #cfc8bc;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.8);
+  color: #3a3631;
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.atlas-timeline button:hover {
+  background: #fff;
+}
+
+.atlas-timeline .atlas-play {
+  width: 32px;
+  padding: 5px 0;
+  font-size: 11px;
+}
+
+.atlas-track {
+  position: relative;
+  padding-top: 15px;
+}
+
+.atlas-bands {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 14px;
+}
+
+.atlas-bands span {
+  position: absolute;
+  top: 0;
+  box-sizing: border-box;
+  padding-left: 4px;
+  border-left: 1px solid #cfc8bc;
+  overflow: hidden;
+  color: #8d867b;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.atlas-bands span.is-current {
+  color: #2e2b27;
+  font-weight: 600;
+}
+
+/* Maturity: where the structure starts to shade and support. */
+.atlas-bands i {
+  position: absolute;
+  top: 12px;
+  width: 2px;
+  height: 14px;
+  background: #b65a32;
+}
+
+.atlas-track input[type='range'] {
+  width: 100%;
+  margin: 0;
+  accent-color: #2e2b27;
+}
+
+.atlas-age {
+  min-width: 118px;
+  font-variant-numeric: tabular-nums;
+}
+
+.atlas-under {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 24px;
+  margin: 14px 0 26px;
+}
+
+.atlas-variations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.atlas-variation {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.atlas-variation:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.atlas-variation.is-active {
+  border-color: #b9a37f;
+  color: var(--text-primary);
+}
+
+.atlas-under .atlas-data {
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .atlas-timeline {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .atlas-timeline > button:not(.atlas-play),
+  .atlas-age {
+    display: none;
+  }
+
+  .atlas-modes {
+    top: 104px;
+    right: auto;
+    left: 20px;
+  }
+
+  .atlas-legend {
+    top: auto;
+    bottom: 64px;
+  }
+
+  .specimen-label {
+    font-size: 10.5px;
+  }
+}

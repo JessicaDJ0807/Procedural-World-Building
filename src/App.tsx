@@ -10,6 +10,7 @@ import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
 import { WildformPage } from './wildform/WildformPage'
 import { BuildPage } from './build/BuildPage'
+import { ArchitecturePage } from './architecture/ArchitecturePage'
 import { SitePage } from './site/SitePage'
 import { ProjectOverview } from './project/ProjectOverview'
 import { ProjectProgress } from './project/ProjectProgress'
@@ -58,6 +59,7 @@ const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => Rea
     </div>
   ),
   build: () => <BuildPage />,
+  architecture: (navigate) => <ArchitecturePage navigate={navigate} />,
   site: () => <SitePage />,
   progress: (navigate) => <ProjectProgress navigate={navigate} />,
   decisions: (navigate) => <ProjectDecisions navigate={navigate} />,

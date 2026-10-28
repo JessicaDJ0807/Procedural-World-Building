@@ -43,7 +43,7 @@ final form.**
 
     build → plant → grow → interact → mutate → adapt
 
-Five pages, none of them a topic — the project cuts across all of them and is
+Six pages, none of them a topic — the project cuts across all of them and is
 numbered by nothing:
 
 - **Overview** — what Wildform is: the loop, the growth behaviors, living
@@ -65,6 +65,12 @@ numbered by nothing:
   architecture, and keep them two. Signed in, a world can be saved, reopened
   paused where it was, duplicated to experiment, renamed and deleted — its
   state, not its scene. See [`docs/project/build.md`](docs/project/build.md).
+- **Architecture** — *Living Architecture: an atlas of emergent forms.* The
+  five structures — bridge, balcony, scaffold, terrace, canopy — each a real
+  Build game grown until the structure formed, in two or three variations.
+  Watch it form on Build's own stages, see its structure, and trace the plants
+  that made it; with its origin, conditions, construction and impact. See
+  [`docs/project/architecture.md`](docs/project/architecture.md).
 - **Site** — *Wildform at campus scale.* The same environment logic on a real
   place: Roosevelt Island from NYC Open Data, the six Cornell Tech buildings cut
   into growth cells with procedural façades, lit by the real sun through a

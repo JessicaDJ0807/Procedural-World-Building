@@ -142,7 +142,13 @@ function tube(points: V3[], radius: number, colour: THREE.Color, tip: THREE.Colo
   })
 }
 
-export type LivingObject = { group: THREE.Group; grow: (age: number) => void; dispose: () => void }
+export type LivingObject = {
+  group: THREE.Group
+  grow: (age: number) => void
+  dispose: () => void
+  /** Its meshes by part, for the Architecture page's Structural view. Build doesn't use them. */
+  parts: { knot: THREE.Mesh; frame: THREE.Mesh[]; roots: THREE.Mesh[]; decks: THREE.Mesh[]; leaves: THREE.Mesh }
+}
 
 export function livingObject(l: Living): LivingObject {
   const group = new THREE.Group()
@@ -244,6 +250,7 @@ export function livingObject(l: Living): LivingObject {
   return {
     group,
     grow,
+    parts: { knot, frame: tubes.slice(0, l.frame.length), roots: tubes.slice(l.frame.length), decks, leaves },
     dispose: () => {
       group.traverse((o) => {
         if (o instanceof THREE.Mesh) o.geometry.dispose()

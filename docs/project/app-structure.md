@@ -111,12 +111,13 @@ to reconsider — and swapping a library in would touch one file.
 
 ## What the Project pages are
 
-Five tabs, in the order a reviewer should read them:
+Six tabs, in the order a reviewer should read them:
 
 | Page | Question it answers |
 | --- | --- |
 | Overview | What is Wildform? |
 | Build | Can I play with the core system? — the main prototype |
+| Architecture | What does the system grow? — an atlas of the five structures |
 | Site | How does the same idea scale to a real place? |
 | Progress | How did the project evolve? |
 | Decisions | Why were these design choices made? |
@@ -146,6 +147,13 @@ blocks placed Townscaper-style, Climber, Spreader and Draper to plant, and
 living architecture growing where they meet. Building and growing are one
 loop. A one-line goal card greets a first visit, top left of the scene, and
 stays dismissed per browser. See [Build](build.md).
+
+### Architecture
+
+`ProjectLayout`'s wide variant with a pale studio viewport as its centre: five
+structures in two or three variations each, every specimen a real Build game
+grown until the structure formed, with a formation timeline and Material,
+Structure and Growth views. See [Living Architecture](architecture.md).
 
 ### Site
 

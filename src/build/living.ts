@@ -116,7 +116,13 @@ export const toTown = (p: V3): [number, number, number] => [Math.floor(p[0] / S 
 /** What met in a cell, read from its stack; null if nothing has. */
 export function comboOf(g: WildGrowth, cell: number): Combo | null {
   const d = g.depth[cell]
-  if (d < 2) return null
+  // Both species must be in the stack. A plant never grows onto its own kind,
+  // but when a middle layer withers the stack closes over the gap and can hold
+  // one species twice: Spreader · Climber · Spreader losing its Climber is
+  // Spreader · Spreader. Counting depth alone called that Climber + Spreader,
+  // and it wasn't rare — at peak, 183 of 317 such cells in a default run
+  // (292 of 423 when the sun moved mid-run) held one species twice.
+  if (d < 2 || g.mask[cell] !== 3) return null
   if (d === 2) return 'climber+spreader'
   return g.top(cell) === CLIMBER ? 'climber+layered' : 'spreader+layered'
 }
@@ -162,8 +168,8 @@ export function findNode(g: WildGrowth, b: Building, living: Living[], skip: Set
   return null
 }
 
-/** The average direction each species was growing in, near a point: horizontal unit vectors, or zero. */
-function growthDirections(g: WildGrowth, b: Building, p: V3): V3[] {
+/** The average direction each species was growing in, near a point: horizontal unit vectors, or zero. Exported for the Architecture page's Growth view. */
+export function growthDirections(g: WildGrowth, b: Building, p: V3): V3[] {
   const sum: V3[] = [
     [0, 0, 0],
     [0, 0, 0],

@@ -31,7 +31,7 @@ export type PlaygroundId =
   | 'paths'
   | 'flow'
   | 'branching'
-export type ProjectId = 'overview' | 'explore' | 'build' | 'site' | 'progress' | 'decisions'
+export type ProjectId = 'overview' | 'explore' | 'build' | 'architecture' | 'site' | 'progress' | 'decisions'
 
 export type Route =
   | { section: 'playground'; page: PlaygroundId }
@@ -58,12 +58,14 @@ export const PLAYGROUND: { id: PlaygroundId; topic: string; title: string }[] = 
 
 /**
  * The Project's tabs, in reading order: what Wildform is, the playable
- * prototype, the same idea on a real site, how it evolved, and why.
+ * prototype, the structures it grows, the same idea on a real site, how it
+ * evolved, and why.
  * Project pages carry no topic number — the project is not a topic.
  */
 export const PROJECT: { id: ProjectId; title: string; blurb: string }[] = [
   { id: 'overview', title: 'Overview', blurb: 'Wildform: grow architecture by shaping how plants behave' },
   { id: 'build', title: 'Build', blurb: 'The playable prototype: build, plant, grow, and let living architecture emerge' },
+  { id: 'architecture', title: 'Architecture', blurb: 'Living Architecture: an atlas of the five structures the plants grow' },
   { id: 'site', title: 'Site', blurb: 'Wildform at campus scale: Cornell Tech on Roosevelt Island' },
   { id: 'progress', title: 'Progress', blurb: 'How the project evolved, phase by phase' },
   { id: 'decisions', title: 'Decisions', blurb: 'The design decisions behind the pivots' },
