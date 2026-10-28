@@ -65,7 +65,7 @@ const DESIGN: DesignDecision[] = [
   {
     title: 'The player designs conditions, not outcomes',
     decision: 'The player controls:',
-    parts: ['the starting architecture', 'where each plant starts', 'the environment — rain and the sun’s direction'],
+    parts: ['the starting architecture', 'where each plant starts', 'in the Lab, the environment — rain and the sun’s direction; in Play, the seasons set it'],
     why: 'Living architecture emerges procedurally from how the plants meet. The player can make a bridge likely, not draw one.',
     principle: 'The player controls the conditions, but not the exact final form.',
   },
@@ -74,7 +74,16 @@ const DESIGN: DesignDecision[] = [
     decision: 'Each plant is a behavior, defined by the direction it grows:',
     parts: ['Climber — vertical, attachment-driven', 'Spreader — horizontal, light-seeking', 'Draper — downward, gravity-driven', 'Layered — the derived overlap state, not a species'],
     why: 'Separate behaviors make placement a real choice: planting a Climber or a Spreader decides which way growth goes, and where they overlap is what the mutation rules read. Draper adds the direction that was missing, and the elevated edges — roofs, ledges, living decks — that nothing else used.',
-    discuss: 'Draper isn’t in the mutation rules yet. What should a Draper meeting another behavior grow?',
+    discuss: 'Draper meeting the others now grows its own forms — root column, hanging pod, suspended walkway. A walkway needs only Climber under the curtain and a building in reach, and reached the goal on 10 of 10 seeds against the bridge route’s 4: should it count toward the goal, or reach less far?',
+  },
+  {
+    title: 'Weather sliders → seasons',
+    question: 'Should the player control the weather?',
+    earlier: 'The game had sliders for rain and the sun’s direction.',
+    problem:
+      'They changed the simulation a great deal but barely reached the player: at 5% rain nothing grew past 2.8% coverage, and at four sun directions other than the default the goal never came — yet rain had no visual, a change took hundreds of steps to show, and nearly every move away from the default only made the goal harder.',
+    decision: 'In Play the year turns on its own: four seasons that set the real rain, sun and warmth, eased across each change, and shown — leaf colour, sky, rain, snow, leaves falling where plants wither. The sliders stay in the Lab.',
+    why: 'Weather the player has to respond to is a decision; weather the player sets to its best value once is not. Tuned over ten seeds so the goal rate stayed at 4 of 10, with winter costing about a third of the plants and spring growing them back.',
   },
   {
     title: 'Generic balcony → living mutations',

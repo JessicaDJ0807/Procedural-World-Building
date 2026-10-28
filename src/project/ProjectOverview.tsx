@@ -12,7 +12,7 @@ const LOOP = ['build', 'plant', 'grow', 'interact', 'mutate', 'adapt']
 const ACTIONS = [
   'construct a starting structure from a limited budget of rigid blocks',
   'place plants where they will matter',
-  'change the rain and the direction of the sun',
+  'live through the seasons — or, in the Lab, set the rain and the sun themselves',
   'run the growth, and watch the plants interact',
   'see living architecture grow where they meet',
   'modify the building, and grow again',
@@ -25,7 +25,7 @@ const BEHAVIOURS = [
 ]
 
 /** What living architecture grows today, in Build. */
-const OUTCOMES = ['bridges', 'balconies', 'scaffolds', 'terraces', 'canopies']
+const OUTCOMES = ['bridges', 'balconies', 'scaffolds', 'terraces', 'canopies', 'suspended walkways', 'hanging pods', 'root columns']
 
 /** Not built: environments that would change the constraints. */
 const FUTURE = ['Mountain — slopes and height to bridge', 'Beach — wind, sand and salt', 'Wetland — standing water and soft ground', 'Dense urban site — little light, tight gaps between buildings']
@@ -105,7 +105,7 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
           <div>
             <p>
               The player does not directly design the final architecture. They decide where the rigid blocks go, where
-              each plant starts, and what the weather does — and the plants decide the rest.
+              each plant starts, and when to act as the year turns — and the plants decide the rest.
             </p>
             <p>
               Building and growing are one loop, not two modes: editing the town mid-growth carries every plant onto the
@@ -142,8 +142,8 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
         <div className="figure-pair is-text-first">
           <div>
             <p>
-              When compatible growth meets — enough Climber and Spreader together, or a plant grown over layered growth —
-              a mutation node forms, and architecture grows from it: {OUTCOMES.join(', ')}. Which one, and its shape, come
+              When compatible growth meets — enough Climber and Spreader together, a plant grown over layered growth, or a
+              Draper’s curtain hanging over Climber, Spreader or layered growth — a mutation node forms, and architecture grows from it: {OUTCOMES.join(', ')}. Which one, and its shape, come
               from what met there, the way the plants were growing, the walls nearby and the space in front.
             </p>
             <p>

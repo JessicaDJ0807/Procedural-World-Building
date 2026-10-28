@@ -390,7 +390,8 @@ export function livingPatches(l: Living): Patch[] {
   }
   // Supports: a strip along the upper side of each tube.
   const centre = l.decks[0]?.centre[Math.floor((l.decks[0]?.centre.length ?? 1) / 2)] ?? l.node
-  for (const tube of [...l.frame, ...l.roots]) {
+  // A root column's trunk strands are supports like any frame member: climbable. Cables aren't — too slight.
+  for (const tube of [...l.frame, ...l.roots, ...(l.trunks ?? [])]) {
     const rows = resample(tube, CELL)
     if (rows.length < 2) continue
     out.push({

@@ -4,6 +4,7 @@ import { DRAPER_SWATCH } from '../build/draperMesh'
 import { BuildGame } from '../build/game'
 import { BUDGET } from '../build/town'
 import { WorldMenu, type WorldSession } from '../build/WorldMenu'
+import { UnsavedDialog } from './UnsavedDialog'
 import { WILD_SPECIES } from '../wildform/species'
 import type { Route } from '../routes'
 import { LOW_BLOCKS, MERGED, OPEN_WORLDS_KEY, narrate, plantLine, verdict } from './narrator'
@@ -73,6 +74,8 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [beat, setBeat] = useState(() => (safeGet(TUTORIAL_KEY) ? BEATS.length : 0))
   const [celebrate, setCelebrate] = useState(false)
+  /** The seed counter's breakdown by plant, open or not. */
+  const [seedsOpen, setSeedsOpen] = useState(false)
   const [initialBrowse] = useState(() => {
     try {
       const v = window.sessionStorage.getItem(OPEN_WORLDS_KEY) === '1'
@@ -89,6 +92,28 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
   const weatherBucket = useRef(-1)
   const onSession = useCallback((s: WorldSession) => {
     session.current = s
+  }, [])
+  /** The unsaved-changes warning, open for leaving or for a fresh lawn. */
+  const [unsaved, setUnsaved] = useState<null | { action: 'leave' | 'fresh' }>(null)
+  const leaveNow = useCallback(() => navigate({ section: 'project', page: 'play' }), [navigate])
+
+  // The browser's Back, which used to leave with no warning. The game puts a
+  // guard entry on the history; Back pops it, and lands here — where, if
+  // there is anything to lose, the guard goes back on and the warning opens.
+  // With nothing to lose, Back carries on as Back.
+  useEffect(() => {
+    const isGuard = () => (window.history.state as { wildformGame?: boolean } | null)?.wildformGame === true
+    if (!isGuard()) window.history.pushState({ wildformGame: true }, '', window.location.pathname)
+    const onPop = () => {
+      if (isGuard()) return
+      const s = session.current
+      if (s?.dirty) {
+        window.history.pushState({ wildformGame: true }, '', window.location.pathname)
+        setUnsaved({ action: 'leave' })
+      } else window.history.back()
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
   }, [])
 
   // --- the voice: new log events, said playfully ---
@@ -167,6 +192,12 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
   )
   const step = report?.step ?? 0
   const now = seasonAt(step)
+  // Seeds planted: counted by the game at each successful planting (BuildGame.seeds), never by growth.
+  const seeds = report?.seeds ?? game.seeds
+  const seedTotal = seeds[0] + seeds[1] + seeds[2]
+  // A world saved before seeds were counted shows what was planted since it was opened, as "n+".
+  const seedsComplete = report?.seedsComplete ?? game.seedsComplete
+  const plural = (n: number, one: string, many: string) => `${n.toLocaleString()} ${n === 1 ? one : many}`
   const seasonCount = Math.floor(step / 500)
   useEffect(() => {
     if (!report) return
@@ -202,9 +233,15 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
     }
   }, [report, running, beat])
 
-  const exit = async () => {
-    if (session.current && !(await session.current.confirmDiscard('Leave'))) return
-    navigate({ section: 'project', page: 'play' })
+  const exit = () => {
+    const s = session.current
+    if (s?.dirty) setUnsaved({ action: 'leave' })
+    else leaveNow()
+  }
+  const freshLawn = () => {
+    const s = session.current
+    if (s?.dirty) setUnsaved({ action: 'fresh' })
+    else void s?.startNew(true)
   }
 
   const left = report?.left ?? BUDGET
@@ -319,6 +356,34 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
               {p.name}
             </button>
           ))}
+          <div className="game-seeds-wrap">
+            <button
+              type="button"
+              className="game-blocks game-seeds"
+              aria-expanded={seedsOpen}
+              onClick={() => setSeedsOpen((o) => !o)}
+              title={`Seeds you’ve planted — Climber ${seeds[0]}, Spreader ${seeds[1]}, Draper ${seeds[2]}${seedsComplete ? '' : ' (since this world was opened)'}`}
+            >
+              <strong>
+                {seedTotal}
+                {!seedsComplete && '+'}
+              </strong>
+              {seedTotal === 1 && seedsComplete ? 'seed' : 'seeds'}
+            </button>
+            {seedsOpen && (
+              <div className="game-seeds-pop" role="status">
+                <p className="game-seeds-head">Seeds planted</p>
+                {PLANTS.map((p, k) => (
+                  <p key={p.id} className="game-seeds-row">
+                    <i style={{ background: p.swatch }} aria-hidden="true" />
+                    {p.name}
+                    <strong>{seeds[k]}</strong>
+                  </p>
+                ))}
+                {!seedsComplete && <p className="game-seeds-note">This world was saved before seeds were counted: these are the ones planted since you opened it.</p>}
+              </div>
+            )}
+          </div>
         </div>
         <div className="game-group">
           <button type="button" className={`game-play${running ? ' is-running' : ''}`} onClick={() => setRunning((v) => !v)} aria-label={running ? 'Pause' : 'Play'}>
@@ -337,22 +402,41 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
           <div>
             <p className="game-celebrate-kicker">Goal complete</p>
             <h2>They’re holding hands!</h2>
-            <p>
-              You used just <strong>{report.placed}</strong> of {BUDGET} blocks. The plants did the rest.
+            <p className="game-celebrate-stats">
+              {plural(report.placed, 'block', 'blocks')} used · {plural(seedTotal, 'seed', 'seeds')}
+              {!seedsComplete && '+'} planted · Year {now.year}, {now.season.name}
             </p>
+            <p>The plants did the rest.</p>
             <div className="game-celebrate-actions">
               <button type="button" className="is-primary" onClick={() => setCelebrate(false)}>
                 Keep growing
               </button>
               <button
                 type="button"
-                onClick={() => void session.current?.startNew()}
+                onClick={freshLawn}
               >
                 Try a fresh lawn
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {unsaved && (
+        <UnsavedDialog
+          current={() => session.current}
+          action={unsaved.action}
+          onStay={() => setUnsaved(null)}
+          onGo={() => {
+            const action = unsaved.action
+            setUnsaved(null)
+            if (action === 'leave') leaveNow()
+            else {
+              setCelebrate(false)
+              void session.current?.startNew(true)
+            }
+          }}
+        />
       )}
     </div>
   )

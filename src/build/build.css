@@ -954,3 +954,20 @@
     justify-content: flex-start;
   }
 }
+
+/* Seeds planted, under the block budget: the player's other intervention. */
+.build-seeds {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.build-seeds strong {
+  color: var(--text-primary);
+}
+
+.build-seeds span {
+  display: block;
+  color: var(--text-muted);
+}

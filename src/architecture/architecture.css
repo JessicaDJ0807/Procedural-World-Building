@@ -3,7 +3,7 @@
 
 .atlas-index {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 6px;
   margin-bottom: 14px;
 }
@@ -143,6 +143,35 @@
   line-height: 1.6;
 }
 
+.atlas-versus {
+  grid-column: 1 / -1;
+  max-width: 88ch;
+  padding: 12px 16px 14px;
+  border-left: 3px solid #b9a37f;
+  border-radius: 0 6px 6px 0;
+  background: var(--surface-1);
+}
+
+.atlas-versus h3 {
+  padding-top: 0;
+  border-top: none;
+}
+
+.atlas-versus-link {
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.atlas-versus-link:hover {
+  text-decoration: underline;
+}
+
 .atlas-note p {
   max-width: 76ch;
   color: var(--text-secondary);
@@ -162,7 +191,7 @@
 
 @media (max-width: 720px) {
   .atlas-index {
-    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    grid-template-columns: repeat(8, minmax(120px, 1fr));
     overflow-x: auto;
   }
 

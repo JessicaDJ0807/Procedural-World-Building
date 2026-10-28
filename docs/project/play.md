@@ -21,6 +21,8 @@ navigation.
 - [Seasons](#seasons)
 - [What the seasons look like](#what-the-seasons-look-like)
 - [The win](#the-win)
+- [Seeds planted](#seeds-planted)
+- [Leaving with unsaved changes](#leaving-with-unsaved-changes)
 - [Type](#type)
 - [Code](#code)
 - [Limitations](#limitations)
@@ -39,8 +41,8 @@ the system both share.) The game is a new presentation over the same
   hands*, and four steps lighting up as they happen: Plant → Sprout (a node
   forms) → Grow up (a structure matures) → Hold hands (west and east joined).
 - **Bottom — the toolbar:** Build, Remove, blocks left (red at three or fewer),
-  then Climber ↑, Spreader ↔, Draper ↓ in their own colours, then play/pause
-  and a speed button that cycles 1×, 4× and 16×.
+  then Climber ↑, Spreader ↔, Draper ↓ in their own colours, seeds planted,
+  then play/pause and a speed button that cycles 1×, 4× and 16×.
 - **Top right — the world:** Save and the Worlds menu, the Lab's world bar
   re-dressed.
 - **Top left — ← Wildform** to leave; it asks first if there are unsaved
@@ -86,8 +88,8 @@ buildings into one: *Nice try! Gluing them together with blocks doesn't count.*
 
 ## Weather
 
-The game has no weather controls; the weather is fixed (a saved world keeps its
-own). Measured on the stepping-stone run, the sliders changed the simulation a
+The game has no weather controls: the weather comes from the
+[seasons](#seasons). Measured on the stepping-stone run, the sliders changed the simulation a
 great deal — at 5% rain nothing grew past 2.8% coverage; at the default sun the
 goal came at step 700, at four other sun directions not at all; a dry spell at
 step 600 cut 1,713 plant layers to 164 — but almost none of it reached the
@@ -233,6 +235,43 @@ When west and east are joined, the game pauses and a card says **They're
 holding hands!** — *You used just 3 of 30 blocks. The plants did the rest.* —
 with **Keep growing** or **Try a fresh lawn**.
 
+## Seeds planted
+
+Next to the plants, the toolbar counts the seeds the player has planted — the
+blocks readout's twin, *9 seeds*. Tapping it opens the breakdown: Climber,
+Spreader, Draper, each in its colour. The win card says how much the player
+intervened, not a score: *3 blocks used · 9 seeds planted · Year 1, Summer*,
+then *The plants did the rest.*
+
+It is the Lab's count, kept on the game itself: only a planting that succeeds
+counts, never growth, spreading or mutations (how, and how older saves are
+handled, in [build.md](build.md#seeds-planted)). A world saved before seeds
+were counted shows *3+* — the ones planted since it was opened — and the
+breakdown says so. At phone width the breakdown opens leftward, inside the
+screen.
+
+## Leaving with unsaved changes
+
+Leaving the game — the ← chip or the browser's Back — or starting a fresh
+lawn, with unsaved changes, opens a warning in the game's own look: **Leave
+without saving?**, what would be lost (the player's changes, or growth since
+the save), and **Keep playing** (the default, and Esc), **Save and leave**,
+**Leave without saving**. An unnamed world can be named right there; signed
+out, it offers **Sign in with Google to save it**, since the game has no site
+bar to sign in from. "Unsaved" is the world menu's own rule — any change of
+the player's, or 200 steps of growth — so the dot and the warning agree.
+
+It fixed two things. Back left the game with no warning at all: the game now
+keeps a guard entry on the history, and Back with something to lose puts it
+back and asks. And at phone width, where the game hides the world menu, the
+menu's own confirmation opened invisibly inside it — a modal nobody could
+see, which made the page inert, so a phone player who tapped ← with unsaved
+changes was stuck. Checked in the browser at 1440 and 390 wide: clean worlds
+leave at once by chip and by Back; with changes, both warn, Keep playing and
+Esc stay, Back again warns again, Leave without saving leaves, and Save and
+leave refuses an empty name, then saves (to the dev store) and leaves. Closing
+the tab still gets the browser's own prompt.
+
 ## Type
 
 Everything the game says — title, objective, coach, voice, the win — is in
@@ -250,19 +289,27 @@ scene, unlike the site's dark chrome.
 | `narrator.ts` | Logged events to playful lines; block warnings; planting verdicts |
 | `seasons.ts` | The four seasons, the badge's words, moods |
 | `seasonLook.ts` | What each season looks like, blended by step |
+| `UnsavedDialog.tsx` | The warning before unsaved work is lost: leave, save and leave, or sign in to save |
 | `PlayPage.tsx` | The front door in the Project tabs |
 | `game.css` | Both, in the game's look |
 
 `routes.ts` gains a third kind of route, the game at `/play`, which `App`
 renders with no header. `BuildViewport` takes an optional `look`, which the
 game passes and the Lab doesn't; `src/build/seasonFx.ts` draws it. The world menu gained two small options: open with My
-worlds showing (for *Continue*), and a `startNew` the win card calls.
+worlds showing (for *Continue*), and a `startNew` the win card calls. Its
+session also tells the game what is unsaved, whether saving is possible, and
+can save without its own dialog — for the leave warning.
 
 ## Limitations
 
 - **At phone width** the opening's coach and the world menu are hidden, so a
   first-time player on a phone gets the objective and toolbar but no guided
-  opening.
+  opening, and can save only from the leave warning.
+- **Signing in from the leave warning wasn't run headless** — Google's popup
+  can't be driven there. Its code path is the site bar's own
+  `signInWithGoogle`.
+- **The world menu's Save, signed out, still says "Sign in (top right)"**, which
+  in the game points at the menu itself.
 - **In-scene labels** (*Mutation node*, a planting's surface rating) keep the
   Lab's plain wording.
 - **Moods use the lawn's normal.** A very different town would shift each

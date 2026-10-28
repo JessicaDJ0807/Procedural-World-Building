@@ -102,6 +102,8 @@ export type Draper = {
   veil: boolean
   /** The Draper it spread from, for one spread onto living architecture. */
   from: number | null
+  /** The living structure its curtain made (draperLiving.ts), once it has: one each. */
+  formed?: number
 }
 
 /** Strand node spacing. */

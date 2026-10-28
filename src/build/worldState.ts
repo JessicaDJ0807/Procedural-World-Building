@@ -189,6 +189,13 @@ export function readHead(raw: unknown): WorldHead {
   }
 }
 
+/** Three non-negative whole counts, or undefined if the save has none (or none that make sense). */
+function seedCounts(v: unknown): [number, number, number] | undefined {
+  if (!Array.isArray(v) || v.length !== 3) return undefined
+  const n = v.map(Number)
+  return n.every((x) => Number.isInteger(x) && x >= 0) ? (n as [number, number, number]) : undefined
+}
+
 /** Older bodies brought up to the current version. Only v1 exists; a v2 adds its step here. */
 function migrate(body: Record<string, unknown>): BodyV1 {
   switch (body.version) {
@@ -268,6 +275,9 @@ export function deserializeWorld(rawHead: unknown, bodyText: string): LoadableWo
       wasJoined: Boolean(c.wasJoined),
       lastNodeCheck: Number(c.lastNodeCheck) || 0,
       declined: Array.isArray(c.declined) ? c.declined.map(Number) : [],
+      // Older worlds have no seed counts: left absent, and the game says its count is partial.
+      seeds: seedCounts(c.seeds),
+      seedsPartial: c.seedsPartial === true,
     },
     events: events(body.events),
     simEvents: events(body.simEvents),

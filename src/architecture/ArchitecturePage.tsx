@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ProjectLayout } from '../project/ProjectLayout'
 import type { Route } from '../routes'
-import { MATURE_AT, STAGES, type Kind } from '../build/living'
-import { RECIPES, grow, measure, type Specimen } from './specimens'
+import { KIND_NAMES, MATURE_AT, STAGES, type Kind } from '../build/living'
+import { RECIPES, grow, hostOf, measure, type Specimen } from './specimens'
 import { SpecimenViewport } from './SpecimenViewport'
 import { GROWTH_COLOURS, STRUCTURE_COLOURS, type ViewMode } from './views'
 import './architecture.css'
@@ -17,6 +17,8 @@ type Entry = {
   construction: string
   variation: string
   impact: string
+  /** The Draper's forms: how each differs from the wall's form it is nearest to. */
+  versus?: { name: string; text: string }
 }
 
 /** Written from build/living.ts — its thresholds and proportions — in plain words. */
@@ -85,6 +87,61 @@ const ENTRIES: Entry[] = [
     construction: 'As a terrace: ribs, columns where it stands free, the domed deck filling outward, maturing, leaves.',
     variation: 'Its height follows the node, so it can hang low on a short block or high on a tall one; a neighbour within reach and it spans to it, otherwise it stands on columns.',
     impact: 'Mainly shade: a darker, sheltered band of wall and ground beneath, where shade-tolerant growth gains on the light-seekers. Its top is new open ground, its columns new paths up.',
+  },
+  {
+    kind: 'walkway',
+    name: 'Suspended Walkway',
+    epithet: 'A deck slung from cables, roof to roof',
+    recipe: 'Climber + Draper',
+    origin: 'A Draper’s curtain hanging over a wall the Climber has grown up — at least four Climber cells behind its strands. The Climber brings the path up; the Draper brings what hangs.',
+    conditions:
+      'The Draper established — hung 200 steps, five strands — from an edge at least 5.5 units up, a second storey’s eave or higher, with another building within five columns, level or up to two storeys above or below. With nothing in reach, nothing forms: the curtain stays a veil.',
+    construction:
+      'Masts rise at both ends; two cables draw out between their tops, sagging; hangers drop from them to a thin deck that fills in beneath; the Draper’s strands trail from the deck’s edges. Then it matures to stone and grows leaves, like the rest.',
+    variation:
+      'It lands on the neighbour’s roof, just in from the edge, when that roof is within two storeys — so the same curtain slings a level walkway, a descent to a low roof or a climb to a taller one. The deck sags below the line between its ends by a twentieth of the span and a little more.',
+    impact:
+      'A connection, like a bridge, when it joins two buildings — it counts toward the game’s goal. Its narrow deck shades little. Masts and roots are support for climbing, the deck a new strip of ground; the cables carry nothing for plants.',
+    versus: {
+      name: 'Bridge',
+      text: 'A bridge arches up off the wall at its own level and holds itself up: a deck 0.3–0.4 units thick, rising an eighth of its span. A walkway hangs: a deck 0.14 thick, sagging below its ends, held from above by cables and masts — and it takes height in its stride, up or down two storeys, roof to roof.',
+    },
+  },
+  {
+    kind: 'pod',
+    name: 'Hanging Pod',
+    epithet: 'A woven basket hung under an edge',
+    recipe: 'Spreader + Draper',
+    origin: 'A Draper’s curtain under an edge where the Spreader has spread — at least three Spreader cells on the edge, on the roof beside it, or just under it. The Spreader makes the cap above; the Draper lets the enclosure down.',
+    conditions:
+      'The Draper established, hung from an edge at least 4.5 units up, with room below: every hoop, rib and the floor clear of blocks and at least half a unit above the lawn. Without that room, nothing forms. The cap grows only where it has room too.',
+    construction:
+      'Under the cap, seven hoops — open arcs, widest a third of the way down, gathered to a point 3.1–3.5 units below — with ribs between and a floor across the belly; hangers hold it from the edge; strands trail beneath.',
+    variation:
+      'The middle hoops part into a mouth facing away from the wall. Its width, 2.5–2.9 units, and depth vary with its seed. It hangs wherever a curtain meets a spread edge: a two-storey eave, high on a tower, under a lower wing.',
+    impact: 'A pocket: shade inside and under it, off the ground, and a floor that becomes new ground — the hoops’ tops too — for the plants to carry on into. It joins nothing.',
+    versus: {
+      name: 'Canopy',
+      text: 'A canopy is a roof held out over open ground: one broad deck, lit above, shaded below, often standing on columns. A pod encloses: hoops round a space, a floor inside, hung from above rather than held out — and it never touches the ground.',
+    },
+  },
+  {
+    kind: 'column',
+    name: 'Root Column',
+    epithet: 'Hanging strands twisted into a support',
+    recipe: 'Draper + Layered',
+    origin: 'A Draper hanging from living architecture — itself grown from layered growth — or over a wall where at least three cells hold three layers. The mass above, and the Draper’s direction: down.',
+    conditions:
+      'Three of its strands grown all the way to the lawn or a roof below, and a drop of at least 2.5 units. Clear of other structures, except the one it hangs from: a column is meant to hold that up.',
+    construction:
+      'Six strands spiral round an axis from the edge to where they landed, narrow in the middle and flaring at the foot into six buttress roots; a capital of five strands grips the edge; bracket shelves grow out on alternating sides, one a storey; a few strands still trail from the top.',
+    variation:
+      'Under a living deck it stands free and holds the deck up; on a wall it stands half a unit off the face, a living pilaster; on a lower roof its foot joins that roof — and if that is another building, the column is a connection.',
+    impact: 'Support from top to bottom: its trunk is a climbing route from the ground to the structure above, its shelves small decks along the way. It turns the Draper’s descent into a way back up.',
+    versus: {
+      name: 'Scaffold',
+      text: 'A scaffold climbs: three light rails spiral up from the wall past the roof, an open frame to grow on. A root column descends and bears: one twisted trunk let down from above to the ground and flared into roots — a support, not a climbing frame.',
+    },
   },
 ]
 
@@ -210,12 +267,15 @@ export function ArchitecturePage({ navigate }: { navigate: (route: Route) => voi
                   <span><i style={{ background: STRUCTURE_COLOURS.deck, outline: '1px solid #c9c3b8' }} />Deck</span>
                   <span><i style={{ background: STRUCTURE_COLOURS.frame }} />Frame</span>
                   <span><i style={{ background: STRUCTURE_COLOURS.roots }} />Roots &amp; columns</span>
+                  {m.cables > 0 && <span><i style={{ background: STRUCTURE_COLOURS.cables }} />Cables &amp; strands</span>}
+                  {spec.context.length > 0 && <span><i style={{ background: '#d6d2cb', outline: '1px solid #b8b2a8' }} />What it hangs from</span>}
                   <span><i style={{ background: '#d6d2cb', outline: '1px solid #b8b2a8' }} />Supporting building</span>
                 </>
               ) : (
                 <>
                   <span><i style={{ background: GROWTH_COLOURS.climber }} />Climber</span>
                   <span><i style={{ background: GROWTH_COLOURS.spreader }} />Spreader</span>
+                  {spec.growth.strands.length > 0 && <span><i style={{ background: GROWTH_COLOURS.draper }} />Draper</span>}
                   <span><i className="is-ring" style={{ borderColor: GROWTH_COLOURS.meeting }} />The meeting</span>
                   <span className="atlas-legend-note">Plants as they were at step {spec.bornAt}, when the node formed</span>
                 </>
@@ -287,6 +347,8 @@ export function ArchitecturePage({ navigate }: { navigate: (route: Route) => voi
             </span>
             <span>{m.members} frame members</span>
             <span>{m.roots} roots and braces</span>
+            {m.cables > 0 && <span>{m.cables} cables and strands</span>}
+            {hostOf(spec) && <span>hangs from a {KIND_NAMES[hostOf(spec)!.kind].replace('living ', '')}</span>}
             <span>node formed at step {spec.bornAt}</span>
           </p>
         </div>
@@ -306,6 +368,15 @@ export function ArchitecturePage({ navigate }: { navigate: (route: Route) => voi
               <p>{t}</p>
             </div>
           ))}
+          {entry.versus && (
+            <aside className="atlas-versus">
+              <h3>Versus the {entry.versus.name}</h3>
+              <p>{entry.versus.text}</p>
+              <button type="button" className="atlas-versus-link" onClick={() => choose(ENTRIES.findIndex((e) => e.name === entry.versus!.name))}>
+                See the {entry.versus.name.toLowerCase()} →
+              </button>
+            </aside>
+          )}
         </div>
       </section>
 
@@ -314,7 +385,9 @@ export function ArchitecturePage({ navigate }: { navigate: (route: Route) => voi
         <p>
           Each specimen is a real game of Wildform: a few blocks, a Climber and a Spreader planted at the foot of a wall, a world seed
           and the rain — then played, ten steps at a time, until the game formed its first structure. The structure, its timeline
-          and the plants in the Growth view are that game’s own. The recipes were found by searching layouts and seeds for runs
+          and the plants in the Growth view are that game’s own. For the Draper’s forms, a Draper is planted too, on the edge a
+          player would click — or on the first structure to mature — and the game plays until that form appears; anything that
+          formed before it is shown with it, ghosted in the explaining views. The recipes were found by searching layouts and seeds for runs
           where each kind forms first; nothing is modelled or forced, and if a recipe ever grows something else, the page says so
           instead of showing it.
         </p>

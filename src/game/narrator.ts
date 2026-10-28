@@ -18,6 +18,9 @@ const STRUCTURE_DONE: Record<string, string> = {
   Scaffold: 'Scaffold up! The Climber built itself a staircase.',
   Terrace: 'Terrace open! Sunbathing Spreaders welcome.',
   Canopy: 'Canopy grown. Instant shade, no assembly required.',
+  Walkway: 'Walkway strung! A bit swingy, but it holds.',
+  Pod: 'Hanging pod finished. Cosy, if you don’t look down.',
+  Column: 'Root column planted. That’s not going anywhere.',
 }
 
 const STRUCTURE_BEGINS: Record<string, string> = {
@@ -26,6 +29,9 @@ const STRUCTURE_BEGINS: Record<string, string> = {
   Terrace: 'A Terrace is spreading out at the roof. Fancy.',
   Canopy: 'A Canopy is unfurling. Shade incoming.',
   Bridge: 'A Bridge is starting to grow…',
+  Walkway: 'The Draper is stringing a walkway across. Hold on.',
+  Pod: 'Something’s nesting under that edge… a pod!',
+  Column: 'The Draper’s strands are twisting into a column.',
 }
 
 const LINES: Line[] = [

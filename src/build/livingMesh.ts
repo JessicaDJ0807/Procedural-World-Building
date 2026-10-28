@@ -37,6 +37,9 @@ const FIBRE = new THREE.Color('#8e7257')
 const ROOT = new THREE.Color('#6f5a45')
 const ROOT_GREEN = new THREE.Color('#66714a')
 const KNOT = new THREE.Color('#c4cc7e')
+/** The Draper's teal (draperMesh.ts), carried into the cables and strands of the forms it makes. */
+const DRAPER_STEM = new THREE.Color('#4f6b5a')
+const DRAPER_TIP = new THREE.Color('#7fa58c')
 /** Before it matures the surface is tinted toward this: raw growth, not yet stone. */
 const RAW = new THREE.Color('#a78c6c')
 
@@ -147,7 +150,7 @@ export type LivingObject = {
   grow: (age: number) => void
   dispose: () => void
   /** Its meshes by part, for the Architecture page's Structural view. Build doesn't use them. */
-  parts: { knot: THREE.Mesh; frame: THREE.Mesh[]; roots: THREE.Mesh[]; decks: THREE.Mesh[]; leaves: THREE.Mesh }
+  parts: { knot: THREE.Mesh; frame: THREE.Mesh[]; roots: THREE.Mesh[]; cables: THREE.Mesh[]; decks: THREE.Mesh[]; leaves: THREE.Mesh }
 }
 
 export function livingObject(l: Living): LivingObject {
@@ -166,7 +169,11 @@ export function livingObject(l: Living): LivingObject {
   // Frame and roots: one mesh each, so each draws out along its own length.
   const tubes: THREE.Mesh[] = []
   for (const c of l.frame) tubes.push(new THREE.Mesh(tube(c, 0.075, ROOT, ROOT_GREEN), frameMaterial))
+  // A root column's trunk strands are the frame, thick: they carry it.
+  for (const c of l.trunks ?? []) tubes.push(new THREE.Mesh(tube(c, 0.15, ROOT, ROOT_GREEN), frameMaterial))
   for (const c of l.roots) tubes.push(new THREE.Mesh(tube(c, 0.1, ROOT, FIBRE), frameMaterial))
+  // Cables, hangers and trailing strands: thin, in tension, in the Draper's teal.
+  for (const c of l.cables ?? []) tubes.push(new THREE.Mesh(tube(c, 0.032, DRAPER_STEM, DRAPER_TIP), frameMaterial))
   for (const t of tubes) {
     t.castShadow = true
     t.receiveShadow = true
@@ -250,7 +257,11 @@ export function livingObject(l: Living): LivingObject {
   return {
     group,
     grow,
-    parts: { knot, frame: tubes.slice(0, l.frame.length), roots: tubes.slice(l.frame.length), decks, leaves },
+    parts: (() => {
+      const nf = l.frame.length + (l.trunks?.length ?? 0)
+      const nr = l.roots.length
+      return { knot, frame: tubes.slice(0, nf), roots: tubes.slice(nf, nf + nr), cables: tubes.slice(nf + nr), decks, leaves }
+    })(),
     dispose: () => {
       group.traverse((o) => {
         if (o instanceof THREE.Mesh) o.geometry.dispose()

@@ -17,7 +17,7 @@ import { GLASS } from '../green/building'
 import { SPECIES_NAMES } from '../wildform/names'
 import { lawnMesh } from './lawn'
 import { SeasonFx, type SeasonLook } from './seasonFx'
-import { KIND_NAMES, type Combo, type Kind } from './living'
+import { KINDS, KIND_NAMES, type Combo, type Kind } from './living'
 import { livingObject, type LivingObject } from './livingMesh'
 import { D, W } from './town'
 import { TOWN_SCALE } from './townBuilding'
@@ -56,6 +56,9 @@ export type GameReport = {
   lastMutation: { combo: Combo; kind: Kind; step: number } | null
   /** The game's change count: what "unsaved changes" compares against. */
   changes: number
+  /** Seeds the player has planted — Climber, Spreader, Draper — and whether that's since the world began (false: a world saved before they were counted). */
+  seeds: [number, number, number]
+  seedsComplete: boolean
 }
 
 type Props = {
@@ -319,7 +322,7 @@ export function BuildViewport(props: Props) {
         coverage = game.drapers.coverage(game.building)
         coverageAt = coverageKey
       }
-      const byKind: Record<Kind, number> = { bridge: 0, balcony: 0, scaffold: 0, terrace: 0, canopy: 0 }
+      const byKind = Object.fromEntries(KINDS.map((k) => [k, 0])) as Record<Kind, number>
       for (const l of game.living) byKind[l.kind]++
       const last = game.living[game.living.length - 1]
       latest.current.onReport({
@@ -344,6 +347,8 @@ export function BuildViewport(props: Props) {
         byKind,
         lastMutation: last ? { combo: last.combo, kind: last.kind, step: last.born } : null,
         changes: game.changes,
+        seeds: [...game.seeds],
+        seedsComplete: game.seedsComplete,
       })
     }
 

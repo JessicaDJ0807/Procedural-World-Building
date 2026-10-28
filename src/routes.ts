@@ -71,7 +71,7 @@ export const PROJECT: { id: ProjectId; title: string; blurb: string }[] = [
   { id: 'play', title: 'Play', blurb: 'Wildform, the game: get two buildings holding hands' },
   // The Build page, shown as the Lab: every control and number on screen. Its id stays 'build' so links and docs hold.
   { id: 'build', title: 'Lab', blurb: 'The game with every control and number showing: for taking it apart' },
-  { id: 'architecture', title: 'Architecture', blurb: 'Living Architecture: an atlas of the five structures the plants grow' },
+  { id: 'architecture', title: 'Architecture', blurb: 'Living Architecture: an atlas of the eight structures the plants grow' },
   { id: 'site', title: 'Site', blurb: 'Wildform at campus scale: Cornell Tech on Roosevelt Island' },
   { id: 'progress', title: 'Progress', blurb: 'How the project evolved, phase by phase' },
   { id: 'decisions', title: 'Decisions', blurb: 'The design decisions behind the pivots' },

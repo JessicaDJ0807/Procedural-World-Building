@@ -348,7 +348,7 @@ second.
   chosen for that reason, and says so.
 - **Withering is the only death.** A plant never dies of anything but a
   worse environment than it grew in; there are no seasons here (the Site
-  has them).
+  and the game have them).
 - **The sun is fixed in height** (38°) with a choice of direction, as in the
   earlier Explore — not the real sun of the Site.
 

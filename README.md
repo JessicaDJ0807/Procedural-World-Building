@@ -51,7 +51,9 @@ numbered by nothing:
 - **Play** — *Wildform, the game*, and the page to try first: full-screen, a
   goal always on screen (*get these two buildings holding hands*), a guided
   opening, a playful voice and a proper win, through four seasons you can
-  see — autumn leaves, rain, snow, brown leaves where plants wither. See
+  see — autumn leaves, rain, snow, brown leaves where plants wither. Blocks
+  and seeds planted are both counted, and leaving with unsaved changes asks
+  first. See
   [`docs/project/play.md`](docs/project/play.md).
 - **Lab** (the Build page) — the same game with every control and number showing. Two buildings
   stand on a lawn too far apart for plants to join; the player spends blocks
@@ -61,7 +63,9 @@ numbered by nothing:
   and sets the rain and sun. Where Climber and Spreader grow over each other —
   **Layered**, a derived state, not a species — a mutation node grows living
   architecture in stages: a bridge, balcony, scaffold, terrace or canopy,
-  shaped by what met and the space around it, which then shades and supports
+  shaped by what met and the space around it — and where a Draper's curtain
+  hangs over the others, a suspended walkway, hanging pod or root column —
+  which then shades and supports
   the plants — and becomes a surface itself, its deck tops favouring the
   Spreader, its ribs the Climber, its rims the Draper, so architecture grows
   on architecture. Pitched roofs are surfaces too: flat roofs fill, steep ones
@@ -71,8 +75,9 @@ numbered by nothing:
   paused where it was, duplicated to experiment, renamed and deleted — its
   state, not its scene. See [`docs/project/build.md`](docs/project/build.md).
 - **Architecture** — *Living Architecture: an atlas of emergent forms.* The
-  five structures — bridge, balcony, scaffold, terrace, canopy — each a real
-  Build game grown until the structure formed, in two or three variations.
+  eight structures — bridge, balcony, scaffold, terrace, canopy, suspended
+  walkway, hanging pod, root column — each a real Build game grown until the
+  structure formed, in two or three variations.
   Watch it form on Build's own stages, see its structure, and trace the plants
   that made it; with its origin, conditions, construction and impact. See
   [`docs/project/architecture.md`](docs/project/architecture.md).
@@ -342,6 +347,7 @@ Then open the URL Vite prints (default `http://localhost:5173`).
 | `npm run dev` | Start the dev server with hot module replacement |
 | `npm run build` | Typecheck and produce a production build in `dist/` |
 | `npm run lint` | Run ESLint |
+| `npm test` | Run `tests/*.test.ts` on Node's own test runner (bundled with rolldown first; no test framework) |
 | `npm run preview` | Serve the production build locally |
 
 Firebase is optional. With no `.env` the header says so and every topic runs
@@ -450,14 +456,32 @@ src/
 │   ├── townBuilding.ts       The town as growth cells for the plants
 │   ├── lawn.ts               The lawn
 │   ├── living.ts             Mutation nodes and what grows from each combination
+│   ├── draperLiving.ts       The Draper's meetings, read from its curtain: root column, hanging pod, suspended walkway
 │   ├── livingMesh.ts         Living architecture drawn, grown in stages
+│   ├── surfaces.ts           Pitched roofs and living architecture as surfaces plants grow on
 │   ├── draper.ts             The Draper: edges, gravity-led strands, rooting, the veil, spreading
 │   ├── draperMesh.ts         Drapers drawn: stems, hanging leaves, the lip
 │   ├── groundCover.ts        Ground spread from wall feet, roots and Draper roots
 │   ├── sky.ts                The clear-day sky
-│   ├── game.ts               One game, carried through every edit; the goal
+│   ├── seasonFx.ts           The seasons made visible: leaf tint, lawn, sky, light, weather particles
+│   ├── game.ts               One game, carried through every edit; the goal; seeds planted
+│   ├── worldState.ts         A world as data: what is saved, read back and checked
+│   ├── WorldMenu.tsx         Save, Save as, New world, My worlds, unsaved changes
 │   ├── BuildViewport.tsx     The scene, tools and picking
-│   └── BuildPage.tsx         The sidebar: goal, mode, plant behavior, interaction, environment, growth, living architecture, events
+│   └── BuildPage.tsx         The Lab's sidebar: goal, mode, plant behavior, interaction, environment, growth, living architecture, events
+├── game/                     Project Play: Wildform as a game, full-screen
+│   ├── PlayPage.tsx          The front door in the Project tabs
+│   ├── GamePage.tsx          The game: HUD, the opening, the voice, seasons, seeds, the win
+│   ├── narrator.ts           Logged events said playfully; planting verdicts
+│   ├── seasons.ts            The four seasons, eased; the badge's words; moods
+│   ├── seasonLook.ts         What each season looks like
+│   ├── UnsavedDialog.tsx     The warning before unsaved work is lost
+│   └── game.css              The game's look
+├── architecture/             Project Architecture: the atlas of living structures
+│   ├── specimens.ts          Recipes, each grown as a real game until its structure forms
+│   ├── SpecimenViewport.tsx  The studio: views, timeline, labels, camera
+│   ├── ArchitecturePage.tsx  The page: plates, stage, variations, texts
+│   └── views.ts              View modes and their colours
 ├── wildform/                 The Wildform simulation Build runs, and the archived midterm Explore page
 │   ├── names.ts              Every name the page shows: title, species, mutation
 │   ├── species.ts            Climber and Spreader: needs, directions, looks
@@ -509,7 +533,7 @@ src/
 │   ├── ProjectLayout.tsx     Reading shell: measured column (or wide page), own scroller
 │   ├── ProjectOverview.tsx   The idea, the question, the system as a flow, scope
 │   ├── ProjectProgress.tsx   Pipeline, five one-rule experiments, presets, decisions
-│   ├── ProjectDecisions.tsx  The five design decisions, one card each, with open questions
+│   ├── ProjectDecisions.tsx  The design decisions, one card each, with open questions
 │   └── project.css           The Project section's own styling
 ├── firebase/                 App init, auth context and provider, Firestore, Storage
 ├── App.css                   Shell, panel, and canvas styling
@@ -524,11 +548,16 @@ docs/
 │   ├── topic-4-shaders.md
 │   ├── topic-5-distributions.md
 │   ├── topic-6-paths.md
-│   └── topic-7-vector-fields.md
+│   ├── topic-7-vector-fields.md
+│   └── topic-8-branching.md
 ├── analysis/                 Measurement and comparison reports
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
-├── project/                  Infrastructure and setup
+├── project/                  The project, and infrastructure and setup
+│   ├── wildform.md
+│   ├── play.md
+│   ├── build.md
+│   ├── architecture.md
 │   ├── green-architecture.md
 │   ├── roosevelt-island.md
 │   ├── final-project-ideas.md
@@ -544,7 +573,11 @@ public/
 ├── project/                  Figures for Overview, Progress and Decisions: Build and Site captures, served copies of docs figures
 └── site/                     The Roosevelt Island snapshot, the far shores' buildings, the south's landscape
 
+tests/
+└── seeds.test.ts             Seed counting: planting, refusals, growth, undo, save and load (npm test)
+
 scripts/
+├── run-tests.mjs             Bundles tests/*.test.ts with rolldown and runs them on node:test
 ├── fetch-roosevelt-island.mjs  Fetches NYC Open Data and writes the snapshot
 ├── fetch-roosevelt-context.mjs The Manhattan and Queens buildings across the river, as scenery
 └── fetch-roosevelt-landscape.mjs The south's trees, lawns, paths and ground heights, as scenery

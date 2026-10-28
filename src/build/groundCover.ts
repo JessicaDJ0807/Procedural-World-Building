@@ -69,6 +69,9 @@ const COMBO_KINDS: Record<Combo, Kind[]> = {
   'climber+spreader': [0, 1],
   'climber+layered': [0, 2],
   'spreader+layered': [1, 2],
+  'climber+draper': [0, 3],
+  'spreader+draper': [1, 3],
+  'draper+layered': [2, 3],
 }
 
 function hash(i: number, j: number, k: number): number {

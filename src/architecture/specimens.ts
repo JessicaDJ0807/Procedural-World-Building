@@ -1,6 +1,8 @@
 import type { Building } from '../green/building'
 import { ROOT, type WildGrowth } from '../wildform/growth'
 import { BuildGame } from '../build/game'
+import { anchorForLiving, blockEdge, type Draper } from '../build/draper'
+import { readCurtain } from '../build/draperLiving'
 import { comboOf, growthDirections, type Combo, type Kind, type Living, type V3 } from '../build/living'
 import { D, H, W, type Town } from '../build/town'
 
@@ -32,8 +34,14 @@ export type Recipe = {
   columns: [number, number, number][]
   /** Seed pairs at the foot of a face: block x, z, facing dx, dz. */
   plant: [number, number, number, number][]
+  /** What is sown at each foot, in order (0 Climber, 1 Spreader); a Climber and a Spreader twice if not given. */
+  sow?: number[]
   seed: number
   rain: number
+  /** Drapers planted with the seeds, on a block's edge: block x, y, z, side dx, dz, top or bottom edge. */
+  drape?: [number, number, number, number, number, 'top' | 'bottom'][]
+  /** Plant a Draper on the first structure to mature, at the far end of its deck — as a player would. */
+  drapeOnLiving?: boolean
 }
 
 const TOWER = (h: number): Recipe['columns'] => [[6, 6, h]]
@@ -73,6 +81,23 @@ export const RECIPES: Record<Kind, Recipe[]> = {
     { kind: 'canopy', label: 'Spanning a short gap', columns: PAIR(2, 3, 3), plant: PAIR_PLANT(2), seed: 5, rain: 0.55 },
     { kind: 'canopy', label: 'High, neighbour out of reach', columns: PAIR(3, 5, 3), plant: PAIR_PLANT(3), seed: 5, rain: 0.55 },
   ],
+  // The Draper's forms: a Draper planted on the edge named, as a player clicks it. Found by a search of
+  // 357 runs over two searches (docs/project/architecture.md#the-drapers-forms).
+  walkway: [
+    { kind: 'walkway', label: 'Level, roof to roof', columns: PAIR(3, 3, 3), plant: [[4, 6, 1, 0]], sow: [0, 0], drape: [[4, 2, 6, 1, 0, 'top']], seed: 2, rain: 0.55 },
+    { kind: 'walkway', label: 'Down two storeys to a low roof', columns: PAIR(2, 3, 1), plant: [[4, 6, 1, 0]], sow: [0, 0], drape: [[4, 2, 6, 1, 0, 'top']], seed: 2, rain: 0.55 },
+    { kind: 'walkway', label: 'Up to a taller neighbour', columns: PAIR(3, 3, 5), plant: [[4, 6, 1, 0]], sow: [0, 0], drape: [[4, 2, 6, 1, 0, 'top']], seed: 2, rain: 0.55 },
+  ],
+  pod: [
+    { kind: 'pod', label: 'Under a two-storey eave', columns: TOWER(2), plant: [[6, 6, 0, 1]], sow: [1, 1], drape: [[6, 1, 6, 0, 1, 'top']], seed: 1, rain: 0.55 },
+    { kind: 'pod', label: 'High, four storeys up', columns: TOWER(4), plant: [[6, 6, 0, 1]], sow: [1, 1], drape: [[6, 3, 6, 0, 1, 'top']], seed: 1, rain: 0.55 },
+    { kind: 'pod', label: 'Under a wing, beside a tower', columns: [[6, 6, 4], [6, 7, 2]], plant: [[6, 7, 0, 1]], sow: [1, 1], drape: [[6, 1, 7, 0, 1, 'top']], seed: 1, rain: 0.55 },
+  ],
+  column: [
+    { kind: 'column', label: 'Holding up a walkway', columns: PAIR(2, 3, 3), plant: [[4, 6, 1, 0]], sow: [0, 0], drape: [[4, 2, 6, 1, 0, 'top']], seed: 2, rain: 0.55 },
+    { kind: 'column', label: 'Down a layered wall', columns: [[5, 6, 3], [6, 6, 3], [7, 6, 3]], plant: [[5, 6, 0, 1]], drape: [[7, 2, 6, 0, 1, 'top']], seed: 5, rain: 0.55 },
+    { kind: 'column', label: 'Onto a lower wing’s roof', columns: [[6, 6, 3], [6, 7, 1]], plant: [[6, 6, 0, 1]], drape: [[6, 2, 6, 0, 1, 'top']], seed: 3, rain: 0.55 },
+  ],
 }
 
 /** The plants at the step the node formed, as the Growth view draws them (growth units). */
@@ -86,6 +111,8 @@ export type GrowthPicture = {
   meeting: V3[]
   /** The average heading of each species near the node — what the planner read. */
   heading: { climber: V3; spreader: V3 }
+  /** For the Draper's forms: the curtain's strands as grown, and which Draper made it. */
+  strands: V3[][]
 }
 
 export type Specimen = {
@@ -93,6 +120,10 @@ export type Specimen = {
   town: Town
   building: Building
   living: Living
+  /** Structures already standing when it formed. The one it hangs from, if any (`hostOf`), is drawn as part of the site. */
+  context: Living[]
+  /** The Drapers as they hung when it formed: the curtain that made it, and any others. */
+  drapers: Draper[]
   combo: Combo
   /** The step the node formed. */
   bornAt: number
@@ -103,7 +134,7 @@ export type Specimen = {
 
 const MAX_STEPS = 3000
 
-function picture(g: WildGrowth, b: Building, l: Living): GrowthPicture {
+function picture(g: WildGrowth, b: Building, l: Living, drapers: Draper[]): GrowthPicture {
   const pos = (c: number): V3 => [b.px[c], b.py[c], b.pz[c]]
   const layers: GrowthPicture['layers'] = []
   const stems: GrowthPicture['stems'] = []
@@ -118,16 +149,31 @@ function picture(g: WildGrowth, b: Building, l: Living): GrowthPicture {
     else if (parent >= 0) stems.push({ a: pos(g.entryCell[parent]), b: pos(c), species: sp })
   }
   const meeting: V3[] = []
-  for (let i = 0; i < g.N; i++) {
-    if (comboOf(g, i) !== l.combo) continue
-    const p = pos(i)
-    if (Math.hypot(p[0] - l.node[0], p[1] - l.node[1], p[2] - l.node[2]) <= 1.35) meeting.push(p)
+  const curtain = l.draper !== undefined ? drapers.find((d) => d.id === l.draper) : undefined
+  if (curtain) {
+    // The Draper's meeting is what its curtain hung over: those cells, as the game read them.
+    for (const i of readCurtain(curtain, g, b).cells) meeting.push(pos(i))
+  } else {
+    for (let i = 0; i < g.N; i++) {
+      if (comboOf(g, i) !== l.combo) continue
+      const p = pos(i)
+      if (Math.hypot(p[0] - l.node[0], p[1] - l.node[1], p[2] - l.node[2]) <= 1.35) meeting.push(p)
+    }
   }
+  const strands = curtain ? curtain.strands.map((st) => st.path.slice(0, Math.min(st.path.length, Math.floor(st.length / 0.22) + 1))) : []
   const [climber, spreader] = growthDirections(g, b, l.node)
-  return { layers, stems, seeds, meeting, heading: { climber, spreader } }
+  return { layers, stems, seeds, meeting, heading: { climber, spreader }, strands }
 }
 
-/** Grows a recipe in a real Build game until its first structure forms. Throws if it isn't the recipe's kind. */
+const DRAPER_KINDS: Kind[] = ['walkway', 'pod', 'column']
+
+/**
+ * Grows a recipe in a real Build game until its structure forms. For the
+ * wall's kinds that is the first structure, and it must be the recipe's
+ * kind. For the Draper's, other structures may come first — a column needs
+ * one to hang from, and a walkway can be it — and the specimen is the first
+ * of the recipe's kind; what came before is shown with it, as context.
+ */
 export function grow(recipe: Recipe): Specimen {
   const t0 = performance.now()
   const game = new BuildGame()
@@ -145,13 +191,31 @@ export function grow(recipe: Recipe): Specimen {
     const near = [...b.ground]
       .filter((c) => Math.round(b.nx[c]) === dx && Math.round(b.nz[c]) === dz)
       .sort((p, q) => Math.hypot(b.px[p] - cx, b.pz[p] - cz) - Math.hypot(b.px[q] - cx, b.pz[q] - cz))
-    game.plant(0, near[0])
-    game.plant(1, near[1])
-    game.plant(0, near[6])
-    game.plant(1, near[7])
+    ;(recipe.sow ?? [0, 1, 0, 1]).forEach((sp, k) => game.plant(sp, near[[0, 1, 6, 7][k]]))
   }
-  while (!game.living.length && game.sim.step < MAX_STEPS) game.advance(10)
-  const living = game.living[0]
+  for (const [x, y, z, dx, dz, level] of recipe.drape ?? []) {
+    const edge = blockEdge(game.town, x, y, z, dx, dz, level)
+    if (!edge) throw new Error(`The ${recipe.kind} recipe “${recipe.label}” has no ${level} edge at ${x}, ${y}, ${z}`)
+    // Planted at the middle of the block named, along the edge's run.
+    const run = edge.path[1]
+    const mid: V3 = [(x - W / 2 + 0.5) * 3, run[1], (z - D / 2 + 0.5) * 3]
+    const s = Math.hypot(mid[0] - edge.path[0][0], mid[2] - edge.path[0][2])
+    game.plantDraper(edge, s)
+  }
+  const drapersKind = DRAPER_KINDS.includes(recipe.kind)
+  const target = () => (drapersKind ? game.living.find((l) => l.kind === recipe.kind) : game.living[0])
+  let drapedLiving = false
+  while (!target() && game.sim.step < MAX_STEPS) {
+    game.advance(10)
+    const host = game.living.find((l) => l.matured)
+    if (recipe.drapeOnLiving && !drapedLiving && host) {
+      drapedLiving = true
+      const tip = host.decks[0].centre.at(-1)!
+      const a = anchorForLiving(host, tip)
+      if (a) game.plantDraper(a.edge, a.s)
+    }
+  }
+  const living = target()
   if (!living) throw new Error(`The ${recipe.kind} recipe “${recipe.label}” grew nothing in ${MAX_STEPS} steps`)
   if (living.kind !== recipe.kind) throw new Error(`The ${recipe.kind} recipe “${recipe.label}” grew a ${living.kind} first`)
   return {
@@ -159,21 +223,30 @@ export function grow(recipe: Recipe): Specimen {
     town: game.town,
     building: game.building,
     living,
+    context: game.living.filter((l) => l !== living),
+    drapers: game.drapers.list.map((d) => ({ ...d, strands: d.strands.map((st) => ({ ...st })) })),
     combo: living.combo,
     bornAt: living.born,
-    growth: picture(game.sim.growth, game.building, living),
+    growth: picture(game.sim.growth, game.building, living, game.drapers.list),
     ms: performance.now() - t0,
   }
 }
 
+/** The structure a specimen hangs from — a column under a walkway's deck — or null. */
+export function hostOf(s: Specimen): Living | null {
+  const d = s.drapers.find((x) => x.id === s.living.draper)
+  const src = d?.edge.source
+  return src && 'living' in src ? (s.context.find((l) => l.id === src.living) ?? null) : null
+}
+
 /** A few measurements of a structure, from its geometry. */
-export function measure(l: Living): { length: number; height: number; decks: number; members: number; roots: number } {
-  const pts = [...l.decks.flatMap((d) => d.centre), ...l.frame.flat()]
+export function measure(l: Living): { length: number; height: number; decks: number; members: number; roots: number; cables: number } {
+  const pts = [...l.decks.flatMap((d) => d.centre), ...l.frame.flat(), ...(l.trunks ?? []).flat()]
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, z0 = Infinity, z1 = -Infinity
   for (const [x, y, z] of pts) {
     x0 = Math.min(x0, x); x1 = Math.max(x1, x)
     y0 = Math.min(y0, y); y1 = Math.max(y1, y)
     z0 = Math.min(z0, z); z1 = Math.max(z1, z)
   }
-  return { length: Math.hypot(x1 - x0, z1 - z0), height: y1 - y0, decks: l.decks.length, members: l.frame.length, roots: l.roots.length }
+  return { length: Math.hypot(x1 - x0, z1 - z0), height: y1 - y0, decks: l.decks.length, members: l.frame.length + (l.trunks?.length ?? 0), roots: l.roots.length, cables: l.cables?.length ?? 0 }
 }

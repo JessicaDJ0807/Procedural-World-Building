@@ -6,14 +6,24 @@ Jessica Hsiao · Procedural World Building
 watched as they form, taken apart into their structure, traced back to the
 plants that made them, and compared across contexts.*
 
-**Project → Architecture.** Five structures — Bridge, Balcony, Scaffold,
-Terrace, Canopy — with two or three variations each, every one a 3D specimen in
-a pale studio. Under it: Origin, Conditions, Construction, Variation, Impact.
+**Project → Architecture.** Eight structures — Bridge, Balcony, Scaffold,
+Terrace, Canopy, Suspended Walkway, Hanging Pod, Root Column — side by side,
+with two or three variations each, every one a 3D specimen in a pale studio.
+Under each: Origin, Conditions, Construction, Variation, Impact — and for the
+three the Draper takes part in, a note setting each against the form nearest
+to it.
+
+**One row, not two families.** The index first grouped the plates under "on
+the wall" and "with the Draper", which read as Climber and Spreader on one
+side and the Draper on the other. The three plants are peers, and each form
+is a combination of them, so the eight plates sit in one row, each labelled
+with its recipe.
 
 ## Contents
 
 - [Every specimen is a real Build game](#every-specimen-is-a-real-build-game)
 - [The variations](#the-variations)
+- [The Draper's forms](#the-drapers-forms)
 - [The formation timeline](#the-formation-timeline)
 - [Three views](#three-views)
 - [The studio](#the-studio)
@@ -59,12 +69,64 @@ hoped for.
 | Terrace | Free, on columns · Spanning to the neighbour | a neighbour in reach or not |
 | Canopy | Low, on columns · Spanning a short gap · High, neighbour out of reach | height (the node's) and reach |
 
+| Suspended Walkway | Level, roof to roof · Down two storeys to a low roof · Up to a taller neighbour | the neighbour's roof: level, two storeys down, two up |
+| Hanging Pod | Under a two-storey eave · High, four storeys up · Under a wing, beside a tower | where the curtain met the spread edge |
+| Root Column | Holding up a walkway · Down a layered wall · Onto a lower wing's roof | what it hangs from, and where it lands |
+
 **Terraces have two.** In every layout searched, a terrace either stands free
 on columns or spans to a neighbour in reach. Every free one formed at the
 roof line of a two-storey block, because a node has to be within a storey of
 the roof and at least two-thirds of a storey up. Two candidates for a third
 had the same deck, at the same height, on the same columns, so they were
 dropped.
+
+## The Draper's forms
+
+![A suspended walkway, a hanging pod and a root column, from the Architecture page](../images/architecture-draper-forms.jpg)
+
+*From the page: a walkway sloping down two storeys to a low roof; a pod under
+a two-storey eave; a root column holding up a walkway, drawn pale as site.*
+
+The Draper's forms are read from its curtain, not a wall cell's stack — what
+grows behind its strands, what has spread along its edge, what its strands
+reached below (the rules are in [build.md](build.md#the-drapers-forms)). What
+they add is a direction: **down**. They hang, descend and are held in tension
+where the wall's forms bear, spread and arch.
+
+**Specimens with a Draper.** A recipe can plant a Draper on a block's edge —
+as a player clicks it — or on the first structure to mature. A Draper form
+often follows another structure (a column needs something to hang from), so
+the specimen is the first structure of the recipe's kind. If it hangs from
+one, that host is drawn in the supporting buildings' pale material, without
+leaves, in every view: part of the site, not a second subject. (At first it
+was drawn in full colour, and a column holding up a walkway read as a page
+about the walkway.) Other structures standing nearby aren't drawn, as they
+aren't for the wall's forms, and only the specimen's own curtain is. The recipes came from 357
+runs over two searches — layouts, seeds, where the Draper was planted — and
+every Draper kind had many: walkways formed in every layout with Climber
+under the curtain and a building in reach (from step 200, as soon as the
+Draper was established), pods under every eave with Spreader at its top,
+columns most often from a Draper that had spread onto a balcony or walkway.
+
+**The distinctions, as the page draws them:**
+
+| | The wall's form | The Draper's |
+| --- | --- | --- |
+| Bridge / Suspended Walkway | arches up at its own level; a deck 0.3–0.4 units thick holds itself up | sags below its ends; a deck 0.14 thick hung from cables between masts; lands roof to roof, up or down two storeys |
+| Canopy / Hanging Pod | one broad deck held out over open ground, often on columns | hoops round a space, a floor inside, hung from above under a small lip; never touches the ground |
+| Scaffold / Root Column | three light rails spiral up past the roof: a frame to climb | one twisted trunk let down from above and flared into roots: a support |
+
+**The Structure view** colours the cables in the Draper's teal, and labels
+each form's own members — mast, suspension cable, hanger, slung deck; cap,
+woven hoops, floor, trailing strands; trunk, capital, bracket shelf, buttress
+roots. **The Growth view** draws the curtain's strands and anchor in teal, and
+rings the cells under the curtain the game counted. Pods and columns are
+framed from lower down, so their volume reads rather than their top.
+
+Getting the pod to read took one correction: its cap was first as long as a
+canopy's deck, and from the studio's camera it hid the basket — a canopy over
+some rings. It is now a lip as far as the pod's middle, with the hangers
+gathered to its end.
 
 ## The formation timeline
 
@@ -121,7 +183,7 @@ where points crowd.
 
 | File | What it holds |
 | --- | --- |
-| `specimens.ts` | The recipes; `grow()` runs a real Build game on one and captures the structure and the plants at its node; `measure()` |
+| `specimens.ts` | The recipes, with Drapers where a form needs one; `grow()` runs a real Build game on one and captures the structure, what stood before it, the curtains, and the plants at its node; `measure()` |
 | `SpecimenViewport.tsx` | The studio: one scene, specimen swapping, views, timeline, labels, camera easing |
 | `views.ts` | View modes and their colours |
 | `ArchitecturePage.tsx`, `architecture.css` | The page: plates, stage, timeline, variations, texts |
@@ -130,12 +192,16 @@ where points crowd.
 
 - Growing a specimen takes 35–120 ms in Node. Each is grown the first time it
   is opened, then kept.
-- **No leaks.** Cycling every structure and every view twice left GPU
-  geometries at 17 (20 before; the count is taken lazily), and only the
-  current specimen's 7 labels in the page.
-- In the browser, at 1440 and 390 wide: all 14 specimens render with no
-  errors, and every view and timeline position works. The page doesn't scroll
-  sideways at phone width.
+- **No leaks.** Back on the first bridge after cycling every structure and
+  view, GPU geometries read 19, and 19 again after a second cycle (17 on
+  first load; the count is taken lazily). A root column with its walkway and
+  curtains holds 50 while shown. Only the current specimen's 7 labels stay in
+  the page.
+- In the browser, at 1440 and 390 wide: all 23 specimens render with no
+  errors, and every view works. The page doesn't scroll sideways at phone
+  width; the eight plates scroll within their row.
+- All 23 recipes grow their kind in Node (24–100 ms each), the wall's 14 as
+  before the Draper's forms were added.
 
 ## Limitations
 
@@ -146,7 +212,12 @@ where points crowd.
 - **Terraces: two variations**, for the reason above.
 - **The specimens are first structures** in small towns. In a full game a
   structure can grow beside or on others, and look less isolated.
-- **Draper makes no architecture**, so it has no plate.
+- **A host is drawn complete, not as it grows.** The timeline grows the
+  specimen; what it hangs from is already there.
+- **A column on a wall can be crowded out.** It keeps the wall's five-unit
+  spacing from anything but what it hangs from, so on a busy wall the
+  balconies that formed first often take its place. The "Down a layered wall"
+  specimen formed after three; they aren't drawn.
 
 ## Notes
 

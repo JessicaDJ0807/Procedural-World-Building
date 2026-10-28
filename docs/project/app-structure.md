@@ -57,9 +57,12 @@ which is what it was before. Switching section never shows both sets at once.
 | --- | --- |
 | `/` | Project Overview |
 | `/project` | Project Overview |
-| `/project/explore` | Project Explore — archived, out of the tabs |
-| `/project/build` | Project Build |
+| `/project/play` | Project Play — the game's front door |
+| `/play` | The game, full-screen, with no header |
+| `/project/build` | Project Lab (the Build page; its address kept) |
+| `/project/architecture` | Project Architecture |
 | `/project/site` | Project Site |
+| `/project/explore` | Project Explore — archived, out of the tabs |
 | `/project/progress` | Project Progress |
 | `/project/decisions` | Project Decisions |
 | `/playground/objects` | Topic 1 |
@@ -118,7 +121,7 @@ Seven tabs, in the order a reviewer should read them:
 | Overview | What is Wildform? |
 | Play | Can I play it? — the game, full-screen at `/play` |
 | Lab | How does it work? — the Build page, every control showing |
-| Architecture | What does the system grow? — an atlas of the five structures |
+| Architecture | What does the system grow? — an atlas of the eight structures |
 | Site | How does the same idea scale to a real place? |
 | Progress | How did the project evolve? |
 | Decisions | Why were these design choices made? |
@@ -134,25 +137,35 @@ pages under its own heading rather than being deleted.
 `ProjectLayout`'s wide variant. The title, *Wildform*, and the tagline — *grow
 architecture by shaping how plants behave* — then the longer description and
 the principle (*the player controls the conditions, but not the exact final
-form*), with buttons to Build, the Site and Decisions. Then a hero capture
+form*), with buttons to Play, the Site and Decisions. Then a hero capture
 from Build, the loop as a chain (build → plant → grow → interact → mutate →
 adapt), the growth behaviors as four cards (Climber, Spreader, Draper, and
 Layered — dashed, as a derived state rather than a species), living
 architecture with a close-up, the current challenge, campus scale, and future
 environments under a heading tagged *Not built*.
 
-### Build
+### Play
 
-The main playable prototype: a lawn with two buildings to join, a budget of
-blocks placed Townscaper-style, Climber, Spreader and Draper to plant, and
-living architecture growing where they meet. Building and growing are one
-loop. A one-line goal card greets a first visit, top left of the scene, and
-stays dismissed per browser. See [Build](build.md).
+The front door to the game: the premise in a line, **Play**, **Continue a
+saved world**, three steps of how to play, and a way to the Lab. Play opens
+the game full-screen at `/play` — a HUD instead of a sidebar, a playful
+voice, a guided opening, four seasons, a seed counter beside the block
+budget, a win card, and a warning before leaving with unsaved changes. See
+[Play](play.md).
+
+### Lab
+
+The Build page, renamed in the tabs and kept at its address: the same game
+with every control and number showing — a lawn with two buildings to join, a
+budget of blocks placed Townscaper-style, Climber, Spreader and Draper to
+plant, the weather sliders, and living architecture growing where they meet.
+Building and growing are one loop. A one-line goal card greets a first visit,
+top left of the scene, and stays dismissed per browser. See [Build](build.md).
 
 ### Architecture
 
-`ProjectLayout`'s wide variant with a pale studio viewport as its centre: five
-structures in two or three variations each, every specimen a real Build game
+`ProjectLayout`'s wide variant with a pale studio viewport as its centre: eight
+structures, side by side, in two or three variations each, every specimen a real Build game
 grown until the structure formed, with a formation timeline and Material,
 Structure and Growth views. See [Living Architecture](architecture.md).
 
@@ -178,12 +191,13 @@ the three species, the presets and the decisions, as measured at the time.
 
 ### Decisions
 
-Six design decisions, for critique, as cards with **question**, **decision**
+Seven design decisions, for critique, as cards with **question**, **decision**
 (or earlier version → problem → current direction), **why**, and where it is
 still open, **to discuss**: simulation → gameplay, unlimited → constrained
-building, conditions not outcomes, the plant-behavior vocabulary, generic
-balcony → living mutations, and a lawn baseline with future environments
-(tagged *Not built*). Below, *The growth model underneath*: the five
+building, conditions not outcomes, the plant-behavior vocabulary (whose open
+question is now the walkway's effect on the goal), weather sliders → seasons,
+generic balcony → living mutations, and a lawn baseline with future
+environments (tagged *Not built*). Below, *The growth model underneath*: the five
 phase-02 decisions with their rules, evidence and open questions, and the
 table of numbers chosen rather than measured.
 

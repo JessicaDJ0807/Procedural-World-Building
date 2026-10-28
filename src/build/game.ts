@@ -6,7 +6,8 @@ import { Drapers, type Draper, type DraperEvent, type Edge } from './draper'
 import type { GrowthState } from '../wildform/growth'
 import { appendSurfaces, livingPatches, roofPatches, surfaceOverlay, type SurfaceInfo } from './surfaces'
 import { townToBuilding } from './townBuilding'
-import { COMBO_NAMES, MATURE_AT, connects, findNode, livingSupport, livingVolumes, planLiving, type Combo, type Living, type NodeSurfaces } from './living'
+import { COMBOS, COMBO_NAMES, KIND_TITLES, MATURE_AT, connects, findNode, livingSupport, livingVolumes, planLiving, type Combo, type Living, type NodeSurfaces } from './living'
+import { findDraperLiving } from './draperLiving'
 
 /**
  * The Build page's game: the town the player builds, the plants growing on
@@ -43,7 +44,20 @@ const MAX_BALCONIES = 3
 export type GameEvent = { step: number; text: string }
 
 /** The game's own bookkeeping a saved world carries. */
-export type Counters = { goalMet: boolean; connected: number; wasJoined: boolean; lastNodeCheck: number; declined: number[] }
+export type Counters = {
+  goalMet: boolean
+  connected: number
+  wasJoined: boolean
+  lastNodeCheck: number
+  declined: number[]
+  /** Seeds the player planted — Climber, Spreader, Draper. Absent in worlds saved before they were counted. */
+  seeds?: [number, number, number]
+  /** The seeds count only plantings since an older world was opened: kept through later saves, so it never turns into a full history. */
+  seedsPartial?: boolean
+}
+
+/** The species index of the Draper in seed counts: Climber 0 and Spreader 1 are Wildform's. */
+export const DRAPER_SEED = 2
 
 /** A saved world, decoded (worldState.ts): what `load` puts back. */
 export type LoadableWorld = {
@@ -59,8 +73,7 @@ export type LoadableWorld = {
   simEvents: GameEvent[]
 }
 
-/** Structure names for the event log, capitalised. */
-const TITLE: Record<Living['kind'], string> = { bridge: 'Bridge', balcony: 'Balcony', scaffold: 'Scaffold', terrace: 'Terrace', canopy: 'Canopy' }
+const TITLE = KIND_TITLES
 
 export type Environment = { rain: number; sunAzimuth: number }
 
@@ -100,6 +113,22 @@ export class BuildGame {
   /** Incremented whenever the building is rebuilt or growth removed, so a renderer rebuilds rather than appends. */
   revision = 0
   convertMs = 0
+  /**
+   * Seeds the player has planted: Climber, Spreader, Draper. Counted at the
+   * planting action — `plant` and `plantDraper` succeeding — and nowhere
+   * else, so growth, branching, regrowth after winter, a Draper spreading onto
+   * living architecture, and mutations never add to it. Planting can't be
+   * undone (Undo takes back blocks), so the count only rises, until a
+   * restart or a new world.
+   */
+  seeds: [number, number, number] = [0, 0, 0]
+  /**
+   * False for a world saved before seeds were counted: its counts are only
+   * what was planted since it was opened. Not reconstructed from the save —
+   * withered seedlings and fallen Drapers leave no trace, so any history
+   * read back would undercount without saying so.
+   */
+  seedsComplete = true
   private goalMet = false
   private connected = 0
   private wasJoined = false
@@ -126,6 +155,8 @@ export class BuildGame {
     this.wasJoined = false
     this.lastNodeCheck = 0
     this.declined = new Set()
+    this.seeds = [0, 0, 0]
+    this.seedsComplete = true
     this.rebuild(false)
   }
 
@@ -181,6 +212,7 @@ export class BuildGame {
     const d = this.drapers.plant(edge, s, this.sim.step)
     if (!d) return false
     this.changes++
+    this.seeds[DRAPER_SEED]++
     this.drapers.relayout(this.town, this.building, this.sim.world, this.sim.growth, this.living)
     this.drapers.advance(0, this.sim.step, this.town, this.building, this.sim.world, this.sim.growth, this.living)
     this.log(edge.kind === 'living' ? 'Draper planted on living architecture' : `Draper planted on a ${edge.kind === 'roof' ? 'roof edge' : edge.kind}`)
@@ -215,6 +247,8 @@ export class BuildGame {
     this.wasJoined = w.counters.wasJoined
     this.lastNodeCheck = w.counters.lastNodeCheck
     this.declined = new Set(w.counters.declined)
+    this.seeds = w.counters.seeds ? [...w.counters.seeds] : [0, 0, 0]
+    this.seedsComplete = !!w.counters.seeds && !w.counters.seedsPartial
     this.rebuild(false)
     this.sim.growth.restoreState(w.growth, this.sim.world, this.seed)
     this.sim.growth.markStress(this.sim.world)
@@ -228,7 +262,7 @@ export class BuildGame {
 
   /** What a saved world needs from the game, beyond what it can rebuild (worldState.ts). */
   get counters(): Counters {
-    return { goalMet: this.goalMet, connected: this.connected, wasJoined: this.wasJoined, lastNodeCheck: this.lastNodeCheck, declined: [...this.declined] }
+    return { goalMet: this.goalMet, connected: this.connected, wasJoined: this.wasJoined, lastNodeCheck: this.lastNodeCheck, declined: [...this.declined], seeds: [...this.seeds], ...(this.seedsComplete ? {} : { seedsPartial: true }) }
   }
 
   /** Seasons (game/seasons.ts): how warm it is, carried onto the growth. */
@@ -268,6 +302,7 @@ export class BuildGame {
   plant(species: number, cell: number): boolean {
     const ok = this.sim.plant(species, cell)
     if (ok) this.changes++
+    if (ok) this.seeds[species]++
     if (ok) this.log(`${SPECIES_NAMES[species]} planted`)
     return ok
   }
@@ -297,9 +332,18 @@ export class BuildGame {
     // A node, at most one per look.
     if (step - this.lastNodeCheck >= NODE_EVERY) {
       this.lastNodeCheck = step
-      const node = findNode(this.sim.growth, this.building, this.living, this.declined, this.nodeSurfaces)
+      // The Draper's meetings first: rarer, and each Draper makes one at most (draperLiving.ts).
+      const hung = findDraperLiving(this.drapers.list, this.sim.growth, this.building, this.town, this.living, step)
+      const node = hung ? null : findNode(this.sim.growth, this.building, this.living, this.declined, this.nodeSurfaces)
       const l = node ? planLiving(this.sim.growth, this.building, this.town, node, this.living.length + 1, this.nodeSurfaces) : null
-      if (node && l && l.kind === 'balcony' && this.living.filter((o) => o.kind === 'balcony').length >= MAX_BALCONIES) {
+      if (hung) {
+        hung.draper.formed = hung.living.id
+        this.living.push(hung.living)
+        added.push(hung.living)
+        const l = hung.living
+        this.log(`Mutation node: ${COMBO_NAMES[l.combo]}, floor ${Math.floor(l.node[1] / 3) + 1}`)
+        this.log(l.ends.to && l.kind !== 'column' ? `${TITLE[l.kind]} growing toward another building` : `${TITLE[l.kind]} begins to grow`)
+      } else if (node && l && l.kind === 'balcony' && this.living.filter((o) => o.kind === 'balcony').length >= MAX_BALCONIES) {
         this.declined.add(node.cell)
       } else if (node && l) {
         this.living.push(l)
@@ -377,9 +421,14 @@ export class BuildGame {
   }
 
   byCombo(): Record<Combo, number> {
-    const out: Record<Combo, number> = { 'climber+spreader': 0, 'climber+layered': 0, 'spreader+layered': 0 }
+    const out = Object.fromEntries(COMBOS.map((c) => [c, 0])) as Record<Combo, number>
     for (const l of this.living) out[l.combo]++
     return out
+  }
+
+  /** Every seed planted, of all three. */
+  get seedsPlanted(): number {
+    return this.seeds[0] + this.seeds[1] + this.seeds[2]
   }
 
   /** The last events, the game's and the simulation's, in step order. */

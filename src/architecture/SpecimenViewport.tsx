@@ -4,10 +4,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { applyViewControls } from '../cameraControls'
 import { createCameraGate, startRenderLoop, wakeOnInput } from '../renderLoop'
 import { livingObject, type LivingObject } from '../build/livingMesh'
+import { DraperView } from '../build/draperMesh'
 import { buildTown } from '../build/townMesh'
 import { TOWN_SCALE } from '../build/townBuilding'
 import type { Living, V3 } from '../build/living'
-import type { Specimen } from './specimens'
+import { hostOf, type Specimen } from './specimens'
 import { GROWTH_COLOURS, STRUCTURE_COLOURS, type ViewMode } from './views'
 
 type Label = { text: string; at: V3; modes: ViewMode[] }
@@ -23,6 +24,12 @@ type Label = { text: string; at: V3; modes: ViewMode[] }
  *
  * Labels are HTML, placed each frame at points of the structure itself (its
  * node, its deck, a frame member, a root), and only in the views that explain.
+ *
+ * The Draper's forms bring their context: the structure a column hangs from,
+ * drawn complete but in the supporting buildings' pale material and without
+ * leaves — part of the site, not a second subject — and the specimen's own
+ * Draper curtain, as it hung. Other structures standing nearby aren't drawn,
+ * as they aren't for the wall's forms.
  */
 export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen: Specimen; mode: ViewMode; age: number; resetToken: number }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -75,6 +82,7 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
     const structDeck = new THREE.MeshStandardMaterial({ color: STRUCTURE_COLOURS.deck, roughness: 0.9, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide })
     const structFrame = new THREE.MeshStandardMaterial({ color: STRUCTURE_COLOURS.frame, roughness: 0.7 })
     const structRoots = new THREE.MeshStandardMaterial({ color: STRUCTURE_COLOURS.roots, roughness: 0.8 })
+    const structCables = new THREE.MeshStandardMaterial({ color: STRUCTURE_COLOURS.cables, roughness: 0.6 })
     const ghost = new THREE.MeshStandardMaterial({ color: '#c9c2b6', roughness: 0.9, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide })
     const cellGeo = new THREE.PlaneGeometry(0.2, 0.2)
     const cellMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })
@@ -85,6 +93,8 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
       root: THREE.Group
       town: THREE.Mesh
       living: LivingObject
+      context: LivingObject[]
+      drapes: DraperView
       originals: Map<THREE.Mesh, THREE.Material | THREE.Material[]>
       growth: THREE.Group
       disposables: { dispose: () => void }[]
@@ -140,6 +150,20 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
         ring.quaternion.setFromUnitVectors(z, nodeN)
         g.add(ring)
       }
+      // The Draper's curtain, for the forms it makes: its strands as grown, and where it was planted.
+      if (G.strands.length) {
+        const pts: number[] = []
+        for (const st of G.strands) for (let k = 1; k < st.length; k++) pts.push(...st[k - 1], ...st[k])
+        const geo = new THREE.BufferGeometry()
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3))
+        const mat = new THREE.LineBasicMaterial({ color: GROWTH_COLOURS.draper })
+        g.add(new THREE.LineSegments(geo, mat))
+        disposables.push(geo, mat)
+        const anchor = new THREE.Mesh(seedGeo, new THREE.MeshBasicMaterial({ color: GROWTH_COLOURS.draper }))
+        disposables.push(anchor.material as THREE.Material)
+        anchor.position.copy(v3(G.strands[0][0]))
+        g.add(anchor)
+      }
       for (const sd of G.seeds) {
         const m = new THREE.Mesh(seedGeo, new THREE.MeshBasicMaterial({ color: sd.species === 0 ? GROWTH_COLOURS.climber : GROWTH_COLOURS.spreader }))
         disposables.push(m.material as THREE.Material)
@@ -168,6 +192,7 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
     /** Points on the structure to label, from its own geometry. */
     const labelsFor = (s: Specimen): Label[] => {
       const l: Living = s.living
+      if (l.kind === 'walkway' || l.kind === 'pod' || l.kind === 'column') return draperLabels(s)
       const out: Label[] = [{ text: 'Mutation node', at: l.node, modes: ['structure', 'growth'] }]
       const d = l.decks[0]
       if (d) out.push({ text: l.kind === 'scaffold' ? 'Stair pad' : 'Deck', at: d.centre[Math.floor(d.centre.length / 2)], modes: ['structure'] })
@@ -191,15 +216,51 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
       return out
     }
 
+    /** The Draper's forms, labelled by their own parts: the members that make each what it is. */
+    const draperLabels = (s: Specimen): Label[] => {
+      const l = s.living
+      const mid = (c: V3[] | undefined) => c && c[Math.floor(c.length / 2)]
+      const out: Label[] = [{ text: 'Mutation node', at: l.node, modes: ['structure', 'growth'] }]
+      const push = (text: string, at: V3 | undefined) => at && out.push({ text, at, modes: ['structure'] })
+      const cables = l.cables ?? []
+      if (l.kind === 'walkway') {
+        push('Slung deck', mid(l.decks[0]?.centre))
+        push('Mast', l.frame[0]?.at(-1))
+        push('Suspension cable', cables[0]?.[Math.floor(cables[0].length * 0.3)])
+        push('Hanger', mid(cables[3]))
+        push('Lands on the neighbour', l.decks[0]?.centre.at(-1))
+      } else if (l.kind === 'pod') {
+        const hoops = l.decks.filter((d) => d.width[0] < 0.5)
+        push('Cap', mid(l.decks[0]?.centre))
+        push('Woven hoops', hoops[2]?.centre[2])
+        push('Floor', mid(l.decks.at(-1)?.centre))
+        push('Hanger', mid(cables[0]))
+        push('Trailing strands', cables.at(-1)?.at(-1))
+      } else {
+        push('Trunk of twisted strands', mid(l.trunks?.[0]))
+        push('Capital', l.frame[0]?.[4])
+        push('Bracket shelf', mid(l.decks[0]?.centre))
+        const r = l.roots[0]
+        push('Buttress roots', r?.at(-1))
+      }
+      const G = s.growth
+      if (G.strands.length) out.push({ text: 'The Draper’s curtain', at: G.strands[0][Math.floor(G.strands[0].length * 0.6)], modes: ['growth'] })
+      if (G.seeds.length) out.push({ text: 'Seeds', at: G.seeds[0].p, modes: ['growth'] })
+      return out
+    }
+
     const applyMode = () => {
       if (!current) return
       const m = latest.current.mode
       const p = current.living.parts
       for (const [mesh, original] of current.originals) mesh.material = original
+      // The host is site, pale in every view; the curtain shows only in Material.
+      current.drapes.group.visible = m === 'material'
       if (m === 'structure') {
         for (const d of p.decks) d.material = structDeck
         for (const t of p.frame) t.material = structFrame
         for (const t of p.roots) t.material = structRoots
+        for (const t of p.cables) t.material = structCables
         p.leaves.visible = false
       } else if (m === 'growth') {
         for (const mesh of current.originals.keys()) mesh.material = ghost
@@ -228,7 +289,9 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
       const { centre, radius } = current
       const n = current.specimen.living.normal
       // Across the structure's longest extent: a bridge side-on, a deck in profile.
-      const pts = current.specimen.living.decks.flatMap((d) => d.centre)
+      // A pod or a column is seen from the front, off to one side: it has no span.
+      const upright = current.specimen.living.kind === 'pod' || current.specimen.living.kind === 'column'
+      const pts = upright ? [] : current.specimen.living.decks.flatMap((d) => d.centre)
       let span = new THREE.Vector3()
       for (const a of pts)
         for (const b of pts) {
@@ -249,7 +312,8 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
         across = new THREE.Vector3(n[0], 0, n[2])
         along = new THREE.Vector3(-n[2], 0, n[0])
       }
-      const dir = across.multiplyScalar(0.8).addScaledVector(along, 0.45).add(new THREE.Vector3(0, 0.55, 0)).normalize()
+      // Upright forms from lower down, so their volume reads rather than their top.
+      const dir = across.multiplyScalar(0.8).addScaledVector(along, 0.45).add(new THREE.Vector3(0, upright ? 0.28 : 0.55, 0)).normalize()
       const fit = (radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2))) * (camera.aspect < 1 ? 1.35 / camera.aspect : 1.05)
       const pos = centre.clone().addScaledVector(dir, fit)
       if (smooth) tween = { from: [camera.position.clone(), controls.target.clone()], to: [pos, centre.clone()], t: 0 }
@@ -266,6 +330,8 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
       if (!current) return
       scene.remove(current.root)
       current.living.dispose()
+      for (const o of current.context) o.dispose()
+      current.drapes.dispose()
       current.town.geometry.dispose()
       for (const d of current.disposables) d.dispose()
       for (const lab of current.labels) lab.el.remove()
@@ -285,6 +351,21 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
       const living = livingObject(s.living)
       living.grow(600)
       grown.add(living.group)
+      const host = hostOf(s)
+      const context = (host ? [host] : []).map((l) => {
+        const o = livingObject(l)
+        o.grow(600)
+        o.parts.leaves.visible = false
+        o.parts.knot.visible = false
+        o.group.traverse((x) => {
+          if (x instanceof THREE.Mesh) x.material = townMaterial
+        })
+        grown.add(o.group)
+        return o
+      })
+      const drapes = new DraperView()
+      drapes.update(s.drapers.filter((d) => d.id === s.living.draper), s.bornAt + 600)
+      grown.add(drapes.group)
       const disposables: Current['disposables'] = []
       const growth = growthGroup(s, disposables)
       grown.add(growth)
@@ -308,7 +389,7 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
         labelLayer.appendChild(el)
         return { el, at: v3(L.at).divideScalar(TOWN_SCALE), modes: L.modes }
       })
-      current = { specimen: s, root, town, living, originals, growth, disposables, labels, centre, radius }
+      current = { specimen: s, root, town, living, context, drapes, originals, growth, disposables, labels, centre, radius }
       floor.scale.setScalar(radius * 12)
       scene.fog = new THREE.Fog(STUDIO, radius * 4, radius * 9)
       key.position.copy(centre).add(new THREE.Vector3(-0.6, 1.3, 0.8).multiplyScalar(radius * 2.5))
@@ -394,7 +475,7 @@ export function SpecimenViewport({ specimen, mode, age, resetToken }: { specimen
       observer.disconnect()
       loop.dispose()
       controls.dispose()
-      for (const m of [townMaterial, structDeck, structFrame, structRoots, ghost, cellMat, floor.material as THREE.Material]) m.dispose()
+      for (const m of [townMaterial, structDeck, structFrame, structRoots, structCables, ghost, cellMat, floor.material as THREE.Material]) m.dispose()
       for (const g of [cellGeo, seedGeo, floor.geometry]) g.dispose()
       renderer.dispose()
       renderer.domElement.remove()

@@ -16,6 +16,15 @@ import { D, H, W, Town } from './town'
  * | a Climber on two layers   | Climber + Layered  | a scaffold: helical rails and stair pads up past the roof |
  * | a Spreader on two layers  | Spreader + Layered | a terrace (at a roof) or canopy, fanned out from the wall |
  *
+ * The Draper meets the others differently — it hangs in open air, off the
+ * wall cells — so its meetings are read from its curtain (draperLiving.ts):
+ *
+ * | Curtain                                         | Combination      | Grows                         |
+ * | ----------------------------------------------- | ---------------- | ----------------------------- |
+ * | from living architecture or over layered growth, rooted below | Draper + Layered | a root column      |
+ * | under an edge where Spreader has spread         | Spreader + Draper | a hanging pod                |
+ * | over Climber, high up, a building in reach      | Climber + Draper  | a suspended walkway          |
+ *
  * The Climber gives a vertical path, the Spreader horizontal reach; layered
  * growth is mass. So the combination sets the architectural identity, and
  * the context sets the form: the wall's facing, the plants' growth
@@ -30,8 +39,12 @@ import { D, H, W, Town } from './town'
  */
 
 export type V3 = [number, number, number]
-export type Combo = 'climber+spreader' | 'climber+layered' | 'spreader+layered'
-export type Kind = 'bridge' | 'balcony' | 'scaffold' | 'terrace' | 'canopy'
+export type Combo = 'climber+spreader' | 'climber+layered' | 'spreader+layered' | 'climber+draper' | 'spreader+draper' | 'draper+layered'
+export type Kind = 'bridge' | 'balcony' | 'scaffold' | 'terrace' | 'canopy' | 'walkway' | 'pod' | 'column'
+
+/** Every combination, the wall's then the Draper's: for tallies. */
+export const COMBOS: Combo[] = ['climber+spreader', 'climber+layered', 'spreader+layered', 'climber+draper', 'spreader+draper', 'draper+layered']
+export const KINDS: Kind[] = ['bridge', 'balcony', 'scaffold', 'terrace', 'canopy', 'walkway', 'pod', 'column']
 
 /** A swept surface along a centreline: a deck, a pad, a canopy. */
 export type Deck = { centre: V3[]; width: number[]; thickness: number[] }
@@ -49,6 +62,20 @@ export type Living = {
   frame: V3[][]
   /** Roots, braces and tendrils into walls and ground. */
   roots: V3[][]
+  /**
+   * Load-bearing strands bundled into a trunk — a root column's — drawn
+   * thick. Optional: the wall's structures have none, and saved worlds
+   * from before the Draper's forms don't carry the field.
+   */
+  trunks?: V3[][]
+  /**
+   * Tension members: suspension cables, hangers, strands trailing below —
+   * the Draper's contribution, drawn thin and in its teal. Not surfaces:
+   * too slight to grow on.
+   */
+  cables?: V3[][]
+  /** The Draper whose curtain made it, for the Draper's forms. */
+  draper?: number
   /** The block it grew from, and the block it reaches, if any (town grid). */
   ends: { from: [number, number, number]; to: [number, number, number] | null }
   matured: boolean
@@ -70,6 +97,9 @@ export const COMBO_NAMES: Record<Combo, string> = {
   'climber+spreader': 'Climber + Spreader',
   'climber+layered': 'Climber + Layered',
   'spreader+layered': 'Spreader + Layered',
+  'climber+draper': 'Climber + Draper',
+  'spreader+draper': 'Spreader + Draper',
+  'draper+layered': 'Draper + Layered',
 }
 export const KIND_NAMES: Record<Kind, string> = {
   bridge: 'living bridge',
@@ -77,33 +107,38 @@ export const KIND_NAMES: Record<Kind, string> = {
   scaffold: 'living scaffold',
   terrace: 'living terrace',
   canopy: 'living canopy',
+  walkway: 'suspended walkway',
+  pod: 'hanging pod',
+  column: 'root column',
 }
+/** One-word titles, for the event log ("Walkway begins to grow"). */
+export const KIND_TITLES: Record<Kind, string> = { bridge: 'Bridge', balcony: 'Balcony', scaffold: 'Scaffold', terrace: 'Terrace', canopy: 'Canopy', walkway: 'Walkway', pod: 'Pod', column: 'Column' }
 
 /** Cells of the same combination a node needs within NODE_RADIUS, by combination. */
-const NEED: Record<Combo, number> = { 'climber+spreader': 6, 'climber+layered': 2, 'spreader+layered': 2 }
+const NEED: Partial<Record<Combo, number>> = { 'climber+spreader': 6, 'climber+layered': 2, 'spreader+layered': 2 }
 const NODE_RADIUS = 1.2
 /** The growth there must be this old on average, in steps: established, not a passing tip. */
 const MIN_AGE = 25
 /** Nodes stay this far apart. */
-const SPACING = 5
-const MAX_STRUCTURES = 8
+export const SPACING = 5
+export const MAX_STRUCTURES = 8
 /** Not at the foot of a wall: a node there made its bridge a ramp from the lawn. */
 const MIN_HEIGHT = 1.8
 const S = 3
 
-const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
-const scale = (a: V3, k: number): V3 => [a[0] * k, a[1] * k, a[2] * k]
-const len = (a: V3) => Math.hypot(a[0], a[1], a[2])
-const norm = (a: V3): V3 => {
+export const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+export const scale = (a: V3, k: number): V3 => [a[0] * k, a[1] * k, a[2] * k]
+export const len = (a: V3) => Math.hypot(a[0], a[1], a[2])
+export const norm = (a: V3): V3 => {
   const l = len(a) || 1
   return [a[0] / l, a[1] / l, a[2] / l]
 }
-const flat = (a: V3): V3 => norm([a[0], 0, a[2]])
-const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-const UP: V3 = [0, 1, 0]
-const rotY = (a: V3, ang: number): V3 => [a[0] * Math.cos(ang) + a[2] * Math.sin(ang), a[1], -a[0] * Math.sin(ang) + a[2] * Math.cos(ang)]
+export const flat = (a: V3): V3 => norm([a[0], 0, a[2]])
+export const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+export const UP: V3 = [0, 1, 0]
+export const rotY = (a: V3, ang: number): V3 => [a[0] * Math.cos(ang) + a[2] * Math.sin(ang), a[1], -a[0] * Math.sin(ang) + a[2] * Math.cos(ang)]
 
-function hash(n: number): number {
+export function hash(n: number): number {
   let h = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b)
   h ^= h >>> 13
   h = Math.imul(h, 0xc2b2ae35)
@@ -143,15 +178,15 @@ export type NodeSurfaces = { site: (cell: number) => boolean; facing: (cell: num
  */
 export function findNode(g: WildGrowth, b: Building, living: Living[], skip: Set<number> = new Set(), surface?: NodeSurfaces): { cell: number; combo: Combo } | null {
   if (living.length >= MAX_STRUCTURES) return null
-  const byCombo: Record<Combo, number[]> = { 'climber+layered': [], 'spreader+layered': [], 'climber+spreader': [] }
+  const byCombo: Partial<Record<Combo, number[]>> = { 'climber+layered': [], 'spreader+layered': [], 'climber+spreader': [] }
   for (let i = 0; i < g.N; i++) {
     if (!(b.segment[i] >= 0 || surface?.site(i)) || b.py[i] < MIN_HEIGHT || skip.has(i)) continue
     const c = comboOf(g, i)
-    if (c) byCombo[c].push(i)
+    if (c) byCombo[c]!.push(i)
   }
   const MAX_LAYERS = g.stack.length / g.N
   for (const combo of ['climber+layered', 'spreader+layered', 'climber+spreader'] as Combo[]) {
-    const cells = byCombo[combo].sort((p, q) => b.py[q] - b.py[p])
+    const cells = byCombo[combo]!.sort((p, q) => b.py[q] - b.py[p])
     for (const c of cells) {
       const p = cellPos(b, c)
       if (living.some((l) => len(add(l.node, scale(p, -1))) < SPACING)) continue
@@ -162,7 +197,7 @@ export function findNode(g: WildGrowth, b: Building, living: Living[], skip: Set
         n++
         age += g.step - g.entryBirth[g.stack[o * MAX_LAYERS + g.depth[o] - 1]]
       }
-      if (n >= NEED[combo] && age / n >= MIN_AGE) return { cell: c, combo }
+      if (n >= NEED[combo]! && age / n >= MIN_AGE) return { cell: c, combo }
     }
   }
   return null
@@ -187,14 +222,14 @@ export function growthDirections(g: WildGrowth, b: Building, p: V3): V3[] {
   return sum.map((v) => (Math.hypot(v[0], v[2]) > 1e-3 ? flat(v) : ([0, 0, 0] as V3)))
 }
 
-type Hit = { point: V3; block: [number, number, number]; dist: number }
+export type Hit = { point: V3; block: [number, number, number]; dist: number }
 
 /**
  * Casts out from `origin` along each direction, at the origin's height and a
  * storey down or up, for a block of another building within `reach`. Stops
  * on its own building. Returns the nearest, preferring level.
  */
-function findTarget(town: Town, masses: Int32Array, own: number, origin: V3, dirs: V3[], reach: number, rises = [0, -S, S]): Hit | null {
+export function findTarget(town: Town, masses: Int32Array, own: number, origin: V3, dirs: V3[], reach: number, rises = [0, -S, S]): Hit | null {
   let best: Hit | null = null
   let bestScore = Infinity
   for (const dir of dirs) {
@@ -223,7 +258,7 @@ function findTarget(town: Town, masses: Int32Array, own: number, origin: V3, dir
 }
 
 /** How far a point can go along a direction before meeting its own building, up to `reach`. */
-function freeRun(town: Town, origin: V3, dir: V3, reach: number): number {
+export function freeRun(town: Town, origin: V3, dir: V3, reach: number): number {
   for (let t = 0.5; t <= reach; t += 0.25) {
     if (town.filled(...toTown(add(origin, scale(dir, t))))) return t - 0.4
   }
@@ -231,16 +266,16 @@ function freeRun(town: Town, origin: V3, dir: V3, reach: number): number {
 }
 
 /** The roof level above a block: the top of its column of blocks, in growth units. */
-function columnTop(town: Town, x: number, y: number, z: number): number {
+export function columnTop(town: Town, x: number, y: number, z: number): number {
   let top = y
   while (top + 1 < H && town.filled(x, top + 1, z)) top++
   return (top + 1) * S
 }
 
-const sample = (k: number, f: (t: number) => V3) => Array.from({ length: k }, (_, i) => f(i / (k - 1)))
+export const sample = (k: number, f: (t: number) => V3) => Array.from({ length: k }, (_, i) => f(i / (k - 1)))
 
 /** Root tendrils fanning from a point down a wall plane (or into the ground): `count` curves. */
-function rootFan(at: V3, along: V3, down: number, count: number, seed: number, out: V3 = [0, 0, 0]): V3[][] {
+export function rootFan(at: V3, along: V3, down: number, count: number, seed: number, out: V3 = [0, 0, 0]): V3[][] {
   return Array.from({ length: count }, (_, k) => {
     const spread = (k / Math.max(1, count - 1) - 0.5) * 2 * (0.6 + hash(seed + k) * 0.6)
     const drop = down * (0.6 + hash(seed + k * 7) * 0.5)
@@ -445,7 +480,7 @@ export function livingVolumes(l: Living): Volume[] {
 
 /** Wall cells a mature structure stands against: within 1 unit of its frame or roots. Support for climbers. */
 export function livingSupport(l: Living, b: Building): number[] {
-  const pts = [...l.frame.flat(), ...l.roots.flat()]
+  const pts = [...l.frame.flat(), ...l.roots.flat(), ...(l.trunks ?? []).flat()]
   let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity
   for (const p of pts) {
     x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); z0 = Math.min(z0, p[2])

@@ -385,6 +385,89 @@
   color: #c4572f;
 }
 
+/* The seed counter: the blocks readout's twin, at the end of the plants; tap for the breakdown. */
+.game-seeds-wrap {
+  position: relative;
+}
+
+.game-seeds {
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.game-seeds:hover,
+.game-seeds[aria-expanded='true'] {
+  background: rgba(92, 154, 78, 0.12);
+}
+
+.game-seeds-pop {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  z-index: 5;
+  min-width: 170px;
+  padding: 10px 14px 12px;
+  border-radius: 14px;
+  background: #fffdf7;
+  box-shadow: 0 10px 30px rgba(30, 40, 25, 0.22);
+  transform: translateX(-50%);
+  color: #2d3326;
+  text-align: left;
+}
+
+.game-seeds-pop p {
+  margin: 0;
+}
+
+.game-seeds-head {
+  margin-bottom: 6px !important;
+  color: #5c9a4e;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.game-seeds-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 14px;
+}
+
+.game-seeds-row i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.game-seeds-row strong {
+  margin-left: auto;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 16px;
+}
+
+.game-seeds-note {
+  max-width: 200px;
+  margin-top: 6px !important;
+  color: #6f7765;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.game-celebrate .game-celebrate-stats {
+  margin-bottom: 6px;
+  color: #2d3326;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 17px;
+  font-weight: 500;
+}
+
 .game-play {
   width: 48px;
   height: 48px;
@@ -488,6 +571,98 @@
   color: #fff;
 }
 
+.game-unsaved {
+  max-width: min(460px, calc(100vw - 32px));
+  padding: 24px 26px 22px;
+  border: none;
+  border-radius: 22px;
+  background: #fffdf7;
+  box-shadow: 0 20px 60px rgba(30, 40, 25, 0.3);
+  color: #2d3326;
+  text-align: center;
+}
+
+.game-unsaved::backdrop {
+  background: rgba(30, 40, 25, 0.4);
+}
+
+.game-unsaved h2 {
+  margin: 4px 0 8px;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.game-unsaved p {
+  margin: 0;
+  color: #4b5243;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.game-unsaved .game-unsaved-note {
+  margin-top: 12px;
+  color: #6b705f;
+  font-size: 13px;
+}
+
+.game-unsaved .game-unsaved-note.is-error {
+  color: #b5462a;
+}
+
+.game-unsaved-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #3f7a34;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.game-unsaved .is-error {
+  color: #b5462a;
+}
+
+.game-unsaved-name {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  text-align: left;
+  font-size: 13px;
+  color: #6b705f;
+}
+
+.game-unsaved-name input {
+  padding: 9px 12px;
+  border: 1px solid rgba(60, 70, 50, 0.3);
+  border-radius: 10px;
+  background: #fff;
+  color: #2d3326;
+  font: inherit;
+  font-size: 15px;
+}
+
+.game-unsaved-name em {
+  color: #b5462a;
+  font-style: normal;
+}
+
+.game-unsaved .game-celebrate-actions {
+  flex-wrap: wrap;
+}
+
+.game-celebrate-actions button.is-danger {
+  border-color: rgba(181, 70, 42, 0.45);
+  color: #b5462a;
+}
+
+.game-celebrate-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 @keyframes game-fade {
   from {
     opacity: 0;
@@ -508,6 +683,13 @@
 }
 
 @media (max-width: 640px) {
+  /* The counter sits near the right edge on a phone: open the breakdown leftward, inside the screen. */
+  .game-seeds-pop {
+    left: auto;
+    right: -6px;
+    transform: none;
+  }
+
   .game-objective {
     left: 64px;
     right: 12px;

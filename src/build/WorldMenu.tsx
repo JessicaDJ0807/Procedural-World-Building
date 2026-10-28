@@ -26,8 +26,21 @@ export type WorldSession = {
   dirty: boolean
   /** Ask before something destructive; resolves true to go ahead. */
   confirmDiscard: (what: string) => Promise<boolean>
-  /** New world, as the menu's own item: asks first if there are unsaved changes. */
-  startNew: () => Promise<void>
+  /** What is unsaved: the player's own changes, or only `grown` steps of growth since the save. */
+  edited: boolean
+  grown: number
+  /** Why saving isn't possible right now (signed out, no Firebase), or null. */
+  blocked: string | null
+  /** Saving is possible once the player signs in: Firebase is there, and nobody is. */
+  signedOut: boolean
+  /**
+   * Saves without a dialog: to the world's own record if it has one, else as
+   * a new world named `newName`. For the game's own leave dialog, which has
+   * to work where this menu is hidden (phone width).
+   */
+  save: (newName?: string) => Promise<boolean>
+  /** New world, as the menu's own item: asks first if there are unsaved changes, unless the caller already has. */
+  startNew: (confirmed?: boolean) => Promise<void>
 }
 
 const UNTITLED = 'Untitled world'
@@ -208,9 +221,9 @@ export function WorldMenu({ game, changes, step, onReplaced, onSession, initialB
     else setSaveAs({ initial: name === UNTITLED ? '' : name, asNew: true })
   }
 
-  const newWorld = async () => {
+  const newWorld = async (confirmed = false) => {
     setMenu(false)
-    if (!(await confirmDiscard('Start a new world'))) return
+    if (!confirmed && !(await confirmDiscard('Start a new world'))) return
     game.newWorld(Math.floor(Math.random() * 2 ** 31))
     setId(null)
     setName(UNTITLED)
@@ -221,7 +234,18 @@ export function WorldMenu({ game, changes, step, onReplaced, onSession, initialB
   }
 
   useEffect(() => {
-    onSession({ id, name, dirty, confirmDiscard, startNew: newWorld })
+    onSession({
+      id,
+      name,
+      dirty,
+      edited,
+      grown,
+      blocked,
+      signedOut: !dev && firebaseReady && !loading && !user,
+      confirmDiscard,
+      save: (newName) => (id ? doSave(name, false) : doSave(newName ?? name, true)),
+      startNew: newWorld,
+    })
   })
 
   const open = async (w: WorldListing) => {
@@ -267,7 +291,7 @@ export function WorldMenu({ game, changes, step, onReplaced, onSession, initialB
           </button>
           {menu && (
             <div className="world-menu" role="menu" onMouseLeave={() => setMenu(false)}>
-              <button type="button" role="menuitem" onClick={newWorld}>
+              <button type="button" role="menuitem" onClick={() => void newWorld()}>
                 New world
               </button>
               <button

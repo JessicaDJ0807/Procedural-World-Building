@@ -29,6 +29,7 @@ are the player's; what the plants make of them is the simulation's.
 - [Sky and light](#sky-and-light)
 - [The page](#the-page)
 - [Saving worlds](#saving-worlds)
+- [Seeds planted](#seeds-planted)
 - [Code](#code)
 - [Measured](#measured)
 - [Limitations](#limitations)
@@ -160,8 +161,8 @@ across — about 4 units down and 1.5 either side — not at the anchor (see
   and a new curtain starts there. Only a planted Draper spreads, at most
   twice.
 
-The Draper isn't part of the mutation rules yet. Its state (edge kind,
-strands, contacts, veil) is kept so that a rule can read it later.
+An established Draper takes part in the mutation rules through its curtain
+(see [The Draper's forms](#the-drapers-forms)).
 
 **Drawn as hanging vegetation, not lines:**
 - the stems are thin three-sided tubes, tapering, green-brown to fresher green;
@@ -245,6 +246,59 @@ growth mass:
 
 Each structure is a set of curves and swept surfaces, so no two come out
 alike.
+
+## The Draper's forms
+
+A Draper never enters a wall cell's stack — its strands hang in open air off
+the face — so its meetings can't be read from `comboOf`. They are read from
+the curtain instead (`draperLiving.ts`): what grows on the wall behind its
+grown strands (within 0.7 units of one), what has spread along the edge it
+hangs from, and what its strands have reached below. A Draper must be
+established first: hung 200 steps, with five strands.
+
+| The curtain | Combination | Grows |
+| --- | --- | --- |
+| hangs from living architecture, or over three cells of layered growth, with three strands down to the lawn or a roof at least 2.5 units below | **Draper + Layered** | a **root column** |
+| hangs over four Climber cells, from an edge at least 5.5 units up, with another building within five columns (level or up to two storeys up or down) | **Climber + Draper** | a **suspended walkway** |
+| hangs from an edge at least 4.5 units up where three Spreader cells have spread (on the edge, the roof beside it or just under it), with room below for the pod | **Spreader + Draper** | a **hanging pod** |
+
+Checked in that order, before the wall's nodes, and each Draper makes one
+structure at most. Where the conditions aren't met, nothing forms: a curtain
+over Climber with no building in reach stays a veil; a pod that would hit a
+block or come within half a unit of the lawn isn't grown.
+
+What the Draper brings is a direction the others don't have — down — so its
+forms hang, descend and are held in tension:
+
+- **Root column.** The landed strands nearest the curtain's middle twist into
+  a trunk: six strands spiralling round an axis from the edge to where they
+  landed, narrow in the middle, flaring at the foot into six buttress roots,
+  gripping the edge with a capital of five strands. Bracket shelves, one a
+  storey, grow out on alternating sides. Under a living deck it stands free;
+  on a wall, half a unit off the face. A foot on another building's roof makes
+  it a connection.
+- **Suspended walkway.** A thin deck (0.14 units, against a bridge's 0.3–0.4)
+  sagging below the line between its ends, hung by hangers from two cables
+  strung between masts at either end; strands trail from its edges. It lands
+  on the neighbour's roof when that is within two storeys up or down, so it
+  can slope where a bridge stays level.
+- **Hanging pod.** Under a lip grown from the Spreader's spread, seven open
+  hoops, widest a third of the way down and gathered to a point 3.1–3.5 units
+  below, ribs between, a floor across the belly, a mouth facing out; hangers
+  gather to the lip's end; strands trail below.
+
+Two new kinds of member carry this: **trunks** (drawn thick, and climbable
+surfaces like any frame member) and **cables** (thin, in the Draper's teal,
+not surfaces). Both are optional fields on a structure, so worlds saved before
+them load unchanged; a saved world round-trips both, and the Draper's record
+of what it formed, and carries on identically (checked for 400 steps after a
+reload).
+
+**Spacing.** Draper forms keep the wall's five-unit spacing, with two
+exceptions: a column may stand under the structure it hangs from, and two
+forms facing opposite ways may be two units apart. Without the second, a
+tower slinging walkways from both eaves — 3.6 units apart — only ever got
+one.
 
 ## Growing in stages
 
@@ -463,9 +517,10 @@ player asks:
    Sun: which walls it lights, from the growth model's sun — east and west
    as the game names its buildings, front and back as seen from where the
    camera starts. Changing either shows, for 2.5 s, how well every surface
-   now suits the selected plant — the game's planting tint — so the effect is
+   now suits the selected plant — the Lab's weather tint — so the effect is
    visible at once rather than hundreds of steps later. (The game itself has
-   no weather controls; see [Play](play.md#weather).)
+   no weather controls: its seasons set the weather; see
+   [Play](play.md#weather).)
 6. **Growth.** Transport controls: ▶ Play / Pause, Step, the step count;
    speed 1× / 4× / 16×.
 7. **Living architecture.** The outcome first, the recipe second: *Bridge /
@@ -506,13 +561,43 @@ What is saved is the world's state, not its scene:
 - the living architecture as planned;
 - every plant layer and growing tip;
 - the Drapers;
-- the weather, seed and step.
+- the weather, seed and step;
+- the seeds the player has planted (see [Seeds planted](#seeds-planted)).
 
 Loading rebuilds the rest through the same path as an edit (`BuildGame.load`).
 So a loaded world is not a picture of the saved one but the same simulation:
 in Node, its next 400 steps were identical to the original's. Stored in
 Firestore under `users/{uid}/worlds`, with the heavy part in chunks so no
 document nears 1 MiB — see [Firebase setup](firebase-setup.md#wildform-worlds).
+
+## Seeds planted
+
+Blocks are the player's direct construction; seeds their indirect influence.
+Both are counted, so how a player balances them can be seen: under the block
+budget the sidebar reads *Seeds planted 9*, then *Climber 4 · Spreader 4 ·
+Draper 1*. Play shows the same count (see [play.md](play.md#seeds-planted)).
+Nothing is limited by it — no seed budget, no score.
+
+The count lives on the game (`BuildGame.seeds`), the one state the Lab and
+Play share, and rises in exactly two places: `plant` and `plantDraper`,
+when they succeed. So it counts what the player did and nothing the
+simulation does:
+- a refused planting — the same plant twice on one cell, glass, a second
+  Draper where one hangs — counts nothing;
+- growth, branching, regrowth after winter, a Draper spreading onto living
+  architecture, and mutations count nothing (checked: 1,500 steps of a game
+  where Drapers spread and structures formed, and a winter and its regrowth,
+  left the count where it was).
+
+Plantings can't be undone — Undo takes back blocks — so the count only rises,
+until Restart or New world sets it to zero. It is saved with the game's other
+counters. A world saved before seeds were counted has no record of them, and
+the count isn't rebuilt from what is there: seedlings that withered and
+Drapers that fell leave no trace, so a rebuilt count would undercount without
+saying so. Such a world opens counting from zero, marked partial — shown as
+*3+* — and stays marked through later saves. Counts in a save that aren't
+three whole, non-negative numbers are ignored the same way. `npm test` runs
+these cases (`tests/seeds.test.ts`).
 
 ## Code
 
@@ -528,6 +613,7 @@ document nears 1 MiB — see [Firebase setup](firebase-setup.md#wildform-worlds)
 | `WorldMenu.tsx` | The world bar and its dialogs: Save, Save as, New world, My worlds, unsaved changes |
 | `surfaces.ts` | Pitched roofs and living architecture as cell patches stitched to the building; each cell's kind, slope, retention, attachment and per-behavior affinity |
 | `draper.ts` | The Draper: edges and anchoring, gravity-led strands, contact and rooting, vigour, the veil, spreading onto living architecture |
+| `draperLiving.ts` | The Draper's meetings, read from its curtain, and the three forms they grow: root column, suspended walkway, hanging pod |
 | `draperMesh.ts` | Drapers drawn: tapering stems, hanging leaves and clusters, the lip, rooted bases |
 | `groundCover.ts` | Ground spread round wall feet and living roots, by species, patchy |
 | `sky.ts` | The clear-day sky dome and the scene's light colours |
@@ -606,8 +692,15 @@ plant layer kept.
 - **Draper strands pass through living decks.** A strand from a roof edge
   above a bridge hangs straight through the deck; it starts a curtain on the
   deck's edge, but doesn't stop at it.
-- **The Draper isn't in the mutation rules.** It coexists with the other
-  plants and makes a veil over Climber; it forms no nodes yet.
+- **Walkways make the goal much easier.** On the stepping-stone run (a
+  three-storey tower between west and east), Climbers with a Draper on each
+  of the tower's eaves reached the goal on 10 of 10 seeds (median step about
+  900); Climber and Spreader, the bridge route, on 4 of 10. A walkway needs
+  only Climber under the curtain and a building in reach, where a bridge
+  needs the right meeting high enough on the right face. Whether walkways
+  should count toward the goal, or reach less far, is open.
+- **Draper forms aren't affected by the seasons' warmth.** The Draper's own
+  growth doesn't read it, so its forms come as readily in winter.
 - **Ground spread is drawn, not grown.** It follows the plants but does not
   feed back into the simulation: a bed doesn't seed new wall growth, and a
   block placed on a bed only clears the leaves under it.

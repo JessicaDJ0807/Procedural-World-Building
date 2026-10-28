@@ -59,6 +59,24 @@ const OUTCOMES: { combo: Combo; name: string; kinds: Kind[]; rule: string }[] = 
     kinds: ['terrace', 'canopy'],
     rule: 'A Spreader grown over two layers, in two cells together: a terrace if the roof is within a storey, else a canopy; it spans to another building in reach.',
   },
+  {
+    combo: 'draper+layered',
+    name: 'Root column',
+    kinds: ['column'],
+    rule: 'A Draper hanging from living architecture, or over layered growth, with three strands down to the lawn or a roof at least most of a storey below: its strands twist into a column. One a Draper.',
+  },
+  {
+    combo: 'climber+draper',
+    name: 'Suspended walkway',
+    kinds: ['walkway'],
+    rule: 'A Draper over Climber (four cells under its curtain), hung from a second-storey edge or higher, with another building within five columns, up to two storeys up or down: a deck slung from cables.',
+  },
+  {
+    combo: 'spreader+draper',
+    name: 'Hanging pod',
+    kinds: ['pod'],
+    rule: 'A Draper under an edge where Spreader has spread (three cells on or by it), with room below to hang a pod clear of blocks and the lawn: a basket of hoops under a cap.',
+  },
 ]
 
 const KIND_LABEL: Record<Kind, [string, string]> = {
@@ -67,9 +85,12 @@ const KIND_LABEL: Record<Kind, [string, string]> = {
   scaffold: ['scaffold', 'scaffolds'],
   terrace: ['terrace', 'terraces'],
   canopy: ['canopy', 'canopies'],
+  walkway: ['walkway', 'walkways'],
+  pod: ['pod', 'pods'],
+  column: ['column', 'columns'],
 }
 
-const KIND_TITLE: Record<Kind, string> = { bridge: 'Bridge', balcony: 'Balcony', scaffold: 'Scaffold', terrace: 'Terrace', canopy: 'Canopy' }
+const KIND_TITLE: Record<Kind, string> = { bridge: 'Bridge', balcony: 'Balcony', scaffold: 'Scaffold', terrace: 'Terrace', canopy: 'Canopy', walkway: 'Suspended walkway', pod: 'Hanging pod', column: 'Root column' }
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`
 
@@ -278,6 +299,19 @@ export function BuildPage() {
                 <span style={{ width: `${(left / BUDGET) * 100}%` }} />
               </span>
             </div>
+            {/* The same count as Play's (BuildGame.seeds): the player's plantings, never growth. */}
+            <p className="build-seeds" title={report?.seedsComplete === false ? 'This world was saved before seeds were counted: these are the plantings since it was opened.' : 'Each successful planting counts one; growth, regrowth and mutations don’t.'}>
+              Seeds planted{' '}
+              <strong>
+                {report ? report.seeds[0] + report.seeds[1] + report.seeds[2] : 0}
+                {report?.seedsComplete === false && '+'}
+              </strong>
+              {report && (
+                <span>
+                  Climber {report.seeds[0]} · Spreader {report.seeds[1]} · Draper {report.seeds[2]}
+                </span>
+              )}
+            </p>
             <div className="build-actions">
               <button
                 type="button"
