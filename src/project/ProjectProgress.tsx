@@ -103,7 +103,7 @@ const PHASES: Phase[] = [
       'Blocks and seeds both counted, so direct and indirect intervention can be compared',
     ],
     learning: 'How much control should the player have over a system whose value comes from emergence?',
-    figures: [{ src: '/project/build-hero.jpg', alt: 'The game after 1,100 steps: two buildings joined by living bridges through a stepping-stone tower, with Draper curtains and ground cover.' }],
+    figures: [{ src: '/project/wildform-world.jpg', alt: 'A world grown in the game, seen from the lawn in spring: buildings covered in Climber and Spreader, with a spiralling scaffold, balconies, a bridge, two hanging pods, a suspended walkway and Draper curtains.' }],
     see: { label: 'Play', route: { section: 'project', page: 'play' } },
   },
 ]

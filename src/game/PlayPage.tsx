@@ -26,7 +26,8 @@ export function PlayPage({ navigate }: { navigate: (route: Route) => void }) {
   return (
     <div className="play-page">
       <section className="play-hero">
-        <img src="/project/build-hero.jpg" alt="" />
+        {/* Framed for this banner: the world on the right, open sky and lawn on the left for the text. */}
+        <img src="/project/play-hero.jpg" alt="" />
         <div className="play-hero-text">
           <h1 className="game-display">Wildform</h1>
           <p className="play-premise">Two buildings that won’t talk to each other. Time to send in the plants.</p>

@@ -71,15 +71,15 @@ export function ProjectOverview({ navigate }: ProjectOverviewProps) {
         </>
       }
     >
-      <section className="project-section" aria-label="The game, after 1,100 steps">
+      <section className="project-section" aria-label="A world grown in the game">
         <figure className="project-figure">
           <img
-            src="/project/build-hero.jpg"
-            alt="The game after 1,100 steps: two buildings on a lawn joined by living bridges through a one-column stepping-stone tower. Teal Draper curtains hang from the roof edges and from under the west bridge; Climber and Spreader cover the tower and the east building; patchy ground cover spreads from their feet."
+            src="/project/wildform-world.jpg"
+            alt="A world in the game, seen from the lawn in spring: three clusters of buildings, cream and terracotta, covered in Climber and Spreader. On the left a scaffold spirals past the roof, a hanging pod clings to the wall and balconies stand out on root braces; a living bridge runs to the middle cluster, where a deck spreads across the roofs; on the right a suspended walkway hangs on cables to the last building, a second pod and teal Draper curtains beneath it. Ground cover spreads from the walls, and leaves and petals drift down."
           />
           <figcaption>
-            The game after 1,100 steps. The player placed three blocks — a stepping-stone tower — and planted; the plants
-            grew the two bridges that join the buildings.
+            A world grown in the game. The player placed the blocks and planted; the plants grew the rest — a scaffold past
+            the roof, balconies, a bridge, two hanging pods and a suspended walkway, with Draper curtains beneath it.
           </figcaption>
         </figure>
       </section>

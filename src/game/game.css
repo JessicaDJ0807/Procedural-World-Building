@@ -766,8 +766,10 @@
 
 .play-hero {
   position: relative;
-  height: min(72vh, 680px);
-  min-height: 420px;
+  /* No taller than the image's own proportions (2.04 : 1): a taller banner
+     crops away the open sky on the left that the text sits on. */
+  height: min(72vh, 680px, 49vw);
+  min-height: 360px;
   overflow: hidden;
 }
 
@@ -793,9 +795,41 @@
   align-content: center;
   gap: 14px;
   height: 100%;
-  max-width: 560px;
+  max-width: min(560px, 46%);
   padding: 0 clamp(20px, 6vw, 80px);
   color: #fbf8ef;
+}
+
+/*
+ * Narrower, there isn't room beside the world for the text, so a cover crop
+ * puts it behind the words whatever the image. There it stacks instead: the
+ * picture, cropped toward the buildings, then the text on the page's own
+ * ground.
+ */
+@media (max-width: 900px) {
+  .play-hero {
+    height: auto;
+    min-height: 0;
+  }
+
+  .play-hero img {
+    position: static;
+    height: clamp(220px, 46vw, 400px);
+    object-position: 72% 60%;
+  }
+
+  .play-hero-text {
+    max-width: 560px;
+  }
+
+  .play-hero::after {
+    display: none;
+  }
+
+  .play-hero-text {
+    height: auto;
+    padding: 22px 20px 30px;
+  }
 }
 
 .play-hero-text h1 {
