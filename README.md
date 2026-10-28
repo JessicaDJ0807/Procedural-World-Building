@@ -1,316 +1,129 @@
-# Procedural World Building
+# Wildform
 
-Coursework for a weekly design course, built with React, TypeScript, and
-Three.js. The app has two halves. **Playground** holds the topics — one per
-body of work, each taking a single technique apart with every parameter it has
-on screen. **Project** puts them back together: **Wildform**, a procedural building game
-where plants grow living architecture from conditions the player sets.
+*Grow architecture by shaping how plants behave.*
 
-Each topic is a page in the Playground and a chapter in the study notebook
-under [`docs/`](docs/). The app accumulates as the course goes rather than
-replacing what came before, so every earlier topic is still reachable and still
-runs.
+Jessica Hsiao · Procedural World Building — coursework for a weekly design
+course, built with React, TypeScript and Three.js.
 
-![Topic 3 — a voxel terrain with caves subtracted from it, meshed with surface nets](docs/images/readme-topic-3-voxels.png)
+![Wildform: a world grown in the game — three clusters of buildings covered in Climber and Spreader, with a spiralling scaffold, balconies, a bridge, hanging pods and a suspended walkway — beside the title, "Two buildings that won't talk to each other. Time to send in the plants.", and the Play and Continue buttons](docs/images/readme-wildform.jpg)
+
+**Wildform** is a procedural building game. The player builds a little — rigid
+blocks from a budget of thirty — and plants a lot: **Climber**, which climbs
+and follows edges; **Spreader**, which spreads toward the light; and
+**Draper**, which hangs from edges and falls with gravity. Where the plants
+meet and pile up, they grow **living architecture** the player never draws:
+bridges, balconies, scaffolds, terraces, canopies, and — where a Draper's
+curtain hangs over the others — suspended walkways, hanging pods and root
+columns. Each becomes new ground for the next round of growth. The goal: get
+two buildings that stand too far apart for plants alone *holding hands*.
+
+**The player controls the conditions, but not the exact final form.**
+
+    build → plant → grow → interact → mutate → adapt
 
 ## Contents
 
-- [The project](#the-project) — Wildform
-- [Topics](#topics) — the Playground
-  - [Topic 1 — Objects](#topic-1--objects)
-  - [Topic 2 — Maps](#topic-2--maps)
-  - [Topic 3 — Voxels](#topic-3--voxels)
-  - [Topic 4 — Shaders](#topic-4--shaders)
-  - [Topic 5 — Distributions](#topic-5--distributions)
-  - [Topic 6 — Paths](#topic-6--paths)
-  - [Topic 7 — Vector Fields](#topic-7--vector-fields)
-  - [Topic 8 — Branching](#topic-8--branching)
-- [Study notebook](#study-notebook) — the full documentation index
+- [How it plays](#how-it-plays)
+- [The pages](#the-pages)
+- [Where it came from: the Playground](#where-it-came-from-the-playground)
+- [Study notebook](#study-notebook)
 - [Keyboard](#keyboard)
 - [Getting started](#getting-started)
 - [Project structure](#project-structure)
 - [Conventions](#conventions)
 - [Built with](#built-with)
 
-## The project
+## How it plays
 
-**Wildform** — *grow architecture by shaping how plants behave.* A procedural
-building game: the player constructs the starting architecture from a limited
-budget of rigid blocks, plants growth behaviors, and shapes the environment;
-the plants grow, interact, and generate living architecture the player does
-not directly design. **The player controls the conditions, but not the exact
-final form.**
+**Build, plant, grow.** Two buildings stand on a lawn eight columns apart; a
+living bridge reaches five. So the player has to choose what to build — a
+stepping-stone tower, a wing pushed out — and where to plant, then let the
+plants do the rest. Blocks place themselves Townscaper-style: walls, roofs,
+arches and ledges work themselves out. Building and growing are one loop:
+editing the town mid-growth carries every plant onto the new building.
 
-    build → plant → grow → interact → mutate → adapt
+![The Lab after 1,100 steps: two buildings joined by living bridges through a stepping-stone tower, Draper curtains hanging from the roof edges and under a bridge, ground cover at the feet of the walls](docs/images/build-living.jpg)
 
-Eight pages, none of them a topic — the project cuts across all of them and is
-numbered by nothing:
+**Living architecture.** A structure's kind comes from what met — Climber and
+Spreader, a plant over layered growth, a Draper's curtain over the others —
+and its shape from the walls, the plants' headings and the space around it.
+It grows in stages, matures, then shades the plants under it, gives climbers
+support, and becomes a surface they grow on in turn.
 
-- **Overview** — what Wildform is: the loop, the growth behaviors, living
-  architecture, the current challenge, and future environments (not built).
-- **Play** — *Wildform, the game*, and the page to try first: full-screen, a
-  goal always on screen (*get these two buildings holding hands*), a guided
-  opening, a playful voice and a proper win, through four seasons you can
-  see — autumn leaves, rain, snow, brown leaves where plants wither. Blocks
-  and seeds planted are both counted, and leaving with unsaved changes asks
-  first. See
-  [`docs/project/play.md`](docs/project/play.md).
-- **Lab** (the Build page) — the same game with every control and number showing. Two buildings
-  stand on a lawn too far apart for plants to join; the player spends blocks
-  from a budget of 30 (Townscaper-style — walls, roofs, arches and ledges work
-  themselves out), plants **Climber** (climbs, follows edges), **Spreader**
-  (spreads, seeks light) and **Draper** (hangs from edges, follows gravity),
-  and sets the rain and sun. Where Climber and Spreader grow over each other —
-  **Layered**, a derived state, not a species — a mutation node grows living
-  architecture in stages: a bridge, balcony, scaffold, terrace or canopy,
-  shaped by what met and the space around it — and where a Draper's curtain
-  hangs over the others, a suspended walkway, hanging pod or root column —
-  which then shades and supports
-  the plants — and becomes a surface itself, its deck tops favouring the
-  Spreader, its ribs the Climber, its rims the Draper, so architecture grows
-  on architecture. Pitched roofs are surfaces too: flat roofs fill, steep ones
-  shed water and grow at their eaves. Drapers root where they reach the lawn; patchy ground cover
-  creeps from wall feet and roots. Goal: join the two buildings with living
-  architecture, and keep them two. Signed in, a world can be saved, reopened
-  paused where it was, duplicated to experiment, renamed and deleted — its
-  state, not its scene. See [`docs/project/build.md`](docs/project/build.md).
-- **Architecture** — *Living Architecture: an atlas of emergent forms.* The
-  eight structures — bridge, balcony, scaffold, terrace, canopy, suspended
-  walkway, hanging pod, root column — each a real Build game grown until the
-  structure formed, in two or three variations.
-  Watch it form on Build's own stages, see its structure, and trace the plants
-  that made it; with its origin, conditions, construction and impact. See
-  [`docs/project/architecture.md`](docs/project/architecture.md).
-- **Inhabitants** — *The little lives of Wildform.* Small creatures that live
-  on the green: they walk only where plants grow or on mature living
-  architecture, so two buildings are separate worlds until the plants join
-  them, and a maturing bridge is a route they go and discover. They live in
-  Play and the Lab (Show Inhabitants hides them, without stopping them), and
-  in a studio of their own — a portrait, four test scenes run by the same
-  agents, a live inspector and optional overlays. See
-  [`docs/project/inhabitants.md`](docs/project/inhabitants.md).
-- **Site** — *Wildform at campus scale.* The same environment logic on a real
-  place: Roosevelt Island from NYC Open Data, the six Cornell Tech buildings cut
-  into growth cells with procedural façades, lit by the real sun through a
-  simulated year with die-back, and a landscaped south of the island. Its plants
-  are the three species of the growth model Wildform grew from — ivy, moss and
-  a flowering vine — planted automatically or by clicking; Build's behaviors and
-  living architecture are the next step for the campus. A second study,
-  Roadside, grows the plants on the island's ground. See
-  [`docs/project/roosevelt-island.md`](docs/project/roosevelt-island.md).
-- **Progress** — how the project evolved, as four phases: procedural
-  foundations, site simulation, living architecture, Wildform — each with what
-  it tried and what it taught; then the phase-02 growth experiments in detail.
-- **Decisions** — the design decisions behind the pivots, for critique
-  (simulation → gameplay, constrained building, conditions not outcomes, the
-  plant-behavior vocabulary, living mutations, a lawn baseline with future
-  environments), then the five growth-model decisions underneath.
+![Three of the Draper's forms, from the Architecture page: a suspended walkway sloping down two storeys to a low roof, a hanging pod under an eave, and a root column holding up a walkway](docs/images/architecture-draper-forms.jpg)
 
-The midterm prototype, **Explore** — two species on an invented building
-growing one Living Platform — is archived: out of the tabs, still reachable
-from Progress, and its simulation is the one Build runs. See
-[`docs/project/wildform.md`](docs/project/wildform.md).
+**Seasons.** The year turns on its own: four seasons set the real rain, sun
+and warmth the plants grow by, eased across each change, and shown — leaf
+colour, sky, rain, snow, brown leaves falling where plants wither. Tuned over
+ten seeds so the goal comes as often as before, with winter costing about a
+third of the plants and spring growing them back.
 
-![Build after 1,100 steps: two buildings joined by living bridges through a stepping-stone tower, Draper curtains hanging from the roof edges and under a bridge, ground cover at the feet of the walls](docs/images/build-living.jpg)
+![The same world in spring, summer, autumn and winter](docs/images/play-seasons.jpg)
 
-## Topics
+**Inhabitants.** Small creatures live on the green: they walk only where
+plants grow or on mature living architecture, so two buildings are separate
+worlds to them until the plants join them, and a maturing bridge is a route
+they go and discover. They make the consequences of growth visible.
 
-The Playground. Each topic is one technique, taken apart.
+![The Inhabitants studio: two inhabitants on a living bridge, one labelled Exploring, and the inspector showing the other travelling across it, 51 cells from the east building](docs/images/readme-inhabitants.png)
 
-### [Topic 1 — Objects](docs/topics/topic-1-objects.md)
+Worlds can be saved and reopened, signed in, as state rather than a picture —
+a loaded world carries on growing exactly as it would have.
 
-A real-time WebGL object viewer. Five primitives swapped in place, a draggable
-XYZ gizmo storing orientation as a quaternion so the object never gimbal-locks,
-and material controls lit by a generated `RoomEnvironment` cubemap.
+## The pages
 
-![Topic 1 — a torus knot rendered at high metalness, centred in the viewport between the worlds library and the scene controls](docs/images/readme-topic-1-objects.png)
+The project is the app's **Project** section, eight pages:
 
-### [Topic 2 — Maps](docs/topics/topic-2-maps.md)
+- **Overview** — what Wildform is: the loop, the behaviors, living
+  architecture, the challenge, and future environments (not built).
+- **Play** — the game, full-screen at `/play`, and the page to try first: a
+  goal always on screen, a guided opening, a playful voice, the seasons, the
+  inhabitants, blocks and seeds counted, and a proper win.
+  [`play.md`](docs/project/play.md)
+- **Lab** — the same game with every control and number showing, the weather
+  sliders included: for taking it apart. [`build.md`](docs/project/build.md)
+- **Architecture** — an atlas of the eight structures, each a real game grown
+  until it formed, in two or three variations: watch it form, see its
+  structure, trace the plants that made it. [`architecture.md`](docs/project/architecture.md)
+- **Inhabitants** — a studio for the creatures: a portrait, four test scenes
+  run by the same agents as Play, a live inspector and overlays.
+  [`inhabitants.md`](docs/project/inhabitants.md)
+- **Site** — Wildform's environment logic at campus scale: Cornell Tech on
+  Roosevelt Island from NYC Open Data, lit by the real sun through a simulated
+  year. [`roosevelt-island.md`](docs/project/roosevelt-island.md)
+- **Progress** — how the project evolved, in four phases, with what each tried
+  and taught.
+- **Decisions** — the design decisions behind the pivots, for critique.
 
-Noise turned into ground, in two stages: *noise → shape → simulate*.
+The midterm prototype, **Explore**, is archived — out of the tabs, reachable
+from Progress — and its simulation is the one the game runs.
+[`wildform.md`](docs/project/wildform.md)
 
-The **Noise** tab opens first and shows one idea: *noise → modify noise → use it as a
-map*. Stack up to four noise layers — white, Perlin or cellular, each with its
-own octaves and its own ridged or billow fold — and blend them by add,
-subtract, multiply or max. Then terrace or power-curve the result, warp the
-lookup, mask an island, flood it — and see the noise map and the terrain it
-makes side by side, a profile cut through both, and the pseudocode the controls
-amount to with the live numbers in it. Eight presets, from Baseline to
-Mountains to Cells, are each the same pipeline with different switches.
+## Where it came from: the Playground
 
-![Topic 2 — the Noise tab on the Mountains preset: two noise layers, a broad one masking a ridged one, with the map, terrain, profile and pipeline pseudocode](docs/images/readme-topic-2-noise.png)
+The app's other half, the **Playground**, is the course itself: one topic for
+each body of work, each taking a single technique apart with every parameter
+on screen. Every earlier topic is still there and still runs. Each has a
+chapter in [`docs/topics/`](docs/topics/).
 
-**Simulate** runs processes on the Noise tab's field — the automaton and erosion,
-the operations that need neighbours and time. Behind it, as the **Original
-generator**, is the layered value-noise stack Topic 2 began with, kept with its
-volume and planet modes because the chapter's measurements and the showcase
-worlds were built on it:
-
-- **Layers** — a stack of value-noise fields, composited bottom-up with nine
-  blend modes. Defaults to a six-octave fBm stack, which measures at a Hurst
-  exponent of 0.75 with R² 0.990 — inside the band real topography occupies.
-- **Warp** — looks the field up at coordinates displaced by another noise
-  field, so strata fold and ridges curve.
-- **Automata** — a 3×3(×3) neighbour rule run to its fixed point, turning
-  speckled noise into connected landmasses and caves.
-- **Erosion** — droplet hydraulic erosion plus thermal slippage, which is what
-  cuts dendritic valley networks that noise alone never produces.
-- **Output** — eight per-cell shaping ops, six colour ramps interpolated in
-  OKLab, and three geometry modes: height field, point cloud, or planet.
-
-### [Topic 3 — Voxels](docs/topics/topic-3-voxels.md)
-
-Solids defined as one scalar function of position, rather than as a grid of
-samples, and combined with constructive solid geometry:
-
-- **Density fields** — eight primitives (sphere, box, torus, cylinder, cone,
-  half-space, gyroid, and terrain as a solid rather than a height map, so it
-  can have caves cut into it). Six of the eight return true Euclidean
-  distance, measured; the panel says which.
-- **CSG** — union, intersection and difference are `min`, `max` and
-  `max(a, −b)`. No polygon clipping and no intersection curves to solve. A
-  per-operation blend width turns any boolean into a weld or a fillet.
-- **Four meshers** over the same field — blocks (with optional greedy merging
-  of coplanar faces, 40–73% fewer quads and provably lossless), marching cubes
-  with a case table derived rather than transcribed, surface nets, and dual
-  contouring, which is the only one that can reconstruct a sharp corner:
-  measured error at a box's corners falls from 23.8% of a cell to 1.2%.
-
-The same field, meshed four ways — a box with four spheres drilled out of it,
-sampled at 40³. Only dual contouring reconstructs the box's edges:
-
-| Blocks | Marching cubes | Surface nets | Dual contouring |
-| --- | --- | --- | --- |
-| ![Blocks](docs/images/topic-3-mesher-blocks.jpg) | ![Marching cubes](docs/images/topic-3-mesher-marching.jpg) | ![Surface nets](docs/images/topic-3-mesher-surface.jpg) | ![Dual contouring](docs/images/topic-3-mesher-dual.jpg) |
-| 1,536 tris · 3,072 verts | 4,288 tris · 12,864 verts | 4,272 tris · 2,128 verts | 4,272 tris · 2,128 verts |
-
-### [Topic 4 — Shaders](docs/topics/topic-4-shaders.md)
-
-A shading study and four GPU simulations. Topics 1–3 computed on the CPU and
-handed finished geometry to the graphics card; this topic moves the work itself
-into a shader — first to decide what colour a surface is, then to decide what
-the surface *does*.
-
-- **Surface shading** — one eroded terrain, eight fragment shaders. The geometry,
-  the light and the camera never change, so the only thing that differs between
-  them is the answer to "what colour is this pixel?": matte diffuse, a
-  height palette, a slope-driven material, procedural noise, Fresnel and
-  atmosphere, all five layered, animated water that reads its own depth from
-  the heightfield, and a stylized contour map. The terrain is carved by Topic 2's own
-  droplet erosion, so the two topics share a landscape.
-- **Water ripples** — the wave equation on a 512² grid. Its stability limit is
-  measured rather than quoted: C = 0.500 stays bounded, C = 0.510 reaches a peak
-  amplitude of 4.4 × 10³⁰ within about 300 steps, bracketing the theoretical
-  CFL bound of exactly 1/2.
-- **Reaction–diffusion** — Gray–Scott. Two chemicals and four constants,
-  producing the coral and fish-skin patterns Turing described in 1952.
-- **Hydraulic erosion** — the virtual-pipe model, five passes per step. Not a
-  port of Topic 2's erosion but a different algorithm, because droplets are
-  serial by nature and a GPU cannot run them. Ground and sediment are a closed
-  system, held to 0.001% drift over 5,900 steps.
-- **Fish schooling** — Reynolds' three rules, one fish per texel. Every fish
-  reads every other, so 1,024 fish is 1,048,576 neighbour tests per step and
-  the O(N²) wall is a dial you can turn.
-
-The page uses two visual registers, both matte and both on a dark ground:
-**dusk after dark** for anything lit in 3D, and **slate and chalk** for the flat
-field views, which are maps rather than photographs.
-
-![The Topic 4 page: a matte eroded terrain on a dark ground, with the strategy selector and parameters in the sidebar](docs/images/readme-topic-4-shaders.png)
-
-### [Topic 5 — Distributions](docs/topics/topic-5-distributions.md)
-
-Where things appear. Trees, bushes and rocks are scattered over a small eroded
-terrain, each layer by its own rule: a product of soft factors for elevation,
-slope, distance to water and cluster noise, so any one of them can veto a
-point. Trees take the flatter valley floors, bushes crowd the shoreline, rocks
-take the steep rim and whatever vegetation leaves. Measured over four terrains,
-the mean slope under each layer always orders trees < bushes < rocks, and the
-bushes are always the layer closest to water.
-
-- **Rules you can edit** — slope window, elevation band, water influence and
-  clustering per layer, plus a density each.
-- **A probe** — hover the ground and every factor of every rule is printed for
-  that point, so a refusal always says which question refused it.
-- **Debug masks** — paint the terrain with any layer's probability, all three,
-  or the input fields the rules read.
-- **Variation from the ground** — broadleaf trees in the wet lowlands, trees
-  shrinking toward the treeline, rocks larger on steep ground and tilted to it.
-- Seeded and reproducible; five instanced meshes, re-scattered live in a few
-  milliseconds.
-
-![The Topic 5 page: trees, bushes and rocks around a lake, with the hover probe showing why each can or cannot grow at one point](docs/images/readme-topic-5-distributions.png)
-
-### [Topic 6 — Paths](docs/topics/topic-6-paths.md)
-
-How lines and terrain shape each other. Roads and rivers — up to four of each —
-on the same ground, all drawn as a 2D spline first and given height second, and
-opposite in who gives way. The **road** takes its heights from the terrain, smooths them into a
-grade, then cuts and fills the corridor to meet it: on the default route the
-steepest stretch falls from 73% on the ground to 26% on the road. The **river**
-lets the terrain choose its route, tracing downhill from a source with a water
-surface that only descends and a channel that only cuts. Held to its guides it
-climbs 0.41 units of ridge and has to trench 0.55 deep; let the terrain lead and
-it finds the valley and climbs nothing.
-
-- **Draggable control points** — the path and the ground it changes rebuild as
-  you drag; add or remove points, roads and rivers.
-- **Paths that meet** — rivers carve in order, so a later one can join an
-  earlier one's channel as a tributary; roads grade last, filling channels as
-  causeways and meeting each other at junctions.
-- **Debug view** — the 2D spline on a map plane above the terrain, drop lines to
-  its projected points, the centreline it was built to, and each path's
-  footprint tinted on the ground.
-- **Elevation profile** — the ground under the spline against the road grade or
-  the water surface and bed.
-
-![The Topic 6 page in debug view: two roads, three rivers including a tributary, each path's 2D spline above the terrain with drop lines to the ground, and the elevation profile](docs/images/readme-topic-6-paths.png)
-
-### [Topic 7 — Vector Fields](docs/topics/topic-7-vector-fields.md)
-
-Motion without geometry. Eighteen thousand particles, none with any motion of
-its own, each asking one 2D velocity field which way to go: a current left to
-right, vortices that bend it into swirls, slowly drifting curl noise, and
-whatever the mouse stirs in. Every term is divergence-free — checked
-numerically on screen — so particles flow around each other instead of piling
-into sinks, and the trails they leave in a fading half-float buffer are the
-field made visible.
-
-- **Show vector field** — an arrow grid over the dimmed trails, so the
-  particles can be seen doing what the arrows say.
-- **Draggable vortices** — move any vortex by its centre; drag anywhere else to
-  stir, which injects a decaying vortex dipole.
-- **Midpoint integration** — measured against Euler, which spirals a vortex
-  orbit outward by 78% in ten seconds and would empty every core.
-- Controls for particle count, flow speed, current, vortex count, strength and
-  radius, noise, and trail persistence; seeded and resize-safe.
-
-![Topic 7: particle trails flowing left to right and curling around six vortices, blue-white on a dark ground](docs/images/readme-topic-7-flow.jpg)
-
-### [Topic 8 — Branching](docs/topics/topic-8-branching.md)
-
-From a grammar to a forest, one stage at a time: *L-system → branch skeleton →
-tree geometry → levels of detail → distribution → instanced forest*. A string
-is rewritten in parallel, a 3D turtle walks it into a branch graph, the graph
-becomes tapered tubes and leaf clumps, and the tree is scattered over the ground
-and drawn at the detail its distance calls for.
-
-- **Grammar you can edit** — axiom, rules, iterations, angle, variation,
-  branch roll and tropism, with the string's growth per iteration and the
-  string itself on screen. Scrub *turtle progress* to watch it draw.
-- **Teaching views** — skeleton as rods, colour by generation, leaves on or
-  off, and a lineup of the same tree at all four LODs.
-- **Five distributions** — uniform, grid, jittered grid, clustered and Poisson
-  disk, told apart by their measured nearest-neighbour ratio (1.03, 2.00, 1.29,
-  0.70 and 1.58 at 400 trees).
-- **Levels of detail** — auto by distance with hysteresis, or manual; LOD
-  colours and rings on the ground. 76–85% fewer triangles in each preset's
-  opening view, drawn in 19 to 29 instanced draw calls whatever the tree count.
-- **Four presets** — Pine Forest, Ancient Oak Grove, Dense Young Forest, and an
-  Alien Coral Field that is the same machinery with a rule that never keeps a
-  leader.
-
-![Topic 8: an oak grove from above, LOD rings on the ground between the trees, with the presets and grammar in the sidebar](docs/images/readme-topic-8-branching.png)
+<table>
+<tr>
+<td width="50%" valign="top"><a href="docs/topics/topic-1-objects.md"><img src="docs/images/readme-topic-1-objects.png" alt="Topic 1: a torus knot at high metalness in the object viewer"></a><br><b><a href="docs/topics/topic-1-objects.md">1 · Objects</a></b> — a WebGL object viewer: five primitives, a quaternion gizmo that never gimbal-locks, materials lit by a generated environment.</td>
+<td width="50%" valign="top"><a href="docs/topics/topic-2-maps.md"><img src="docs/images/readme-topic-2-noise.png" alt="Topic 2: the Noise tab on the Mountains preset"></a><br><b><a href="docs/topics/topic-2-maps.md">2 · Maps</a></b> — noise into ground: layered noise shaped and warped, then an automaton and droplet erosion. The default stack measures a Hurst exponent of 0.75.</td>
+</tr>
+<tr>
+<td valign="top"><a href="docs/topics/topic-3-voxels.md"><img src="docs/images/readme-topic-3-voxels.png" alt="Topic 3: a voxel terrain with caves subtracted, meshed with surface nets"></a><br><b><a href="docs/topics/topic-3-voxels.md">3 · Voxels</a></b> — solids as distance fields joined by CSG, meshed four ways; dual contouring cuts corner error from 23.8% of a cell to 1.2%.</td>
+<td valign="top"><a href="docs/topics/topic-4-shaders.md"><img src="docs/images/readme-topic-4-shaders.png" alt="Topic 4: a matte eroded terrain with the strategy selector"></a><br><b><a href="docs/topics/topic-4-shaders.md">4 · Shaders</a></b> — eight surface shaders on one terrain, and four GPU simulations: ripples, reaction–diffusion, pipe erosion, fish schooling.</td>
+</tr>
+<tr>
+<td valign="top"><a href="docs/topics/topic-5-distributions.md"><img src="docs/images/readme-topic-5-distributions.png" alt="Topic 5: trees, bushes and rocks around a lake, with the hover probe"></a><br><b><a href="docs/topics/topic-5-distributions.md">5 · Distributions</a></b> — trees, bushes and rocks placed by rules a hover probe explains; over four terrains, slope always orders trees &lt; bushes &lt; rocks.</td>
+<td valign="top"><a href="docs/topics/topic-6-paths.md"><img src="docs/images/readme-topic-6-paths.png" alt="Topic 6: roads and rivers over the terrain in debug view"></a><br><b><a href="docs/topics/topic-6-paths.md">6 · Paths</a></b> — roads graded into the terrain, rivers carved by it; the default road's steepest stretch falls from 73% to 26%.</td>
+</tr>
+<tr>
+<td valign="top"><a href="docs/topics/topic-7-vector-fields.md"><img src="docs/images/readme-topic-7-flow.jpg" alt="Topic 7: particle trails curling around six vortices"></a><br><b><a href="docs/topics/topic-7-vector-fields.md">7 · Vector Fields</a></b> — eighteen thousand particles following a divergence-free field of current, vortices and curl noise.</td>
+<td valign="top"><a href="docs/topics/topic-8-branching.md"><img src="docs/images/readme-topic-8-branching.png" alt="Topic 8: an oak grove from above with LOD rings"></a><br><b><a href="docs/topics/topic-8-branching.md">8 · Branching</a></b> — from an L-system to an instanced forest with levels of detail: 76–85% fewer triangles in each preset's opening view.</td>
+</tr>
+</table>
 
 ## Study notebook
 
@@ -322,7 +135,7 @@ with a description of what each document covers — is in
 | --- | --- |
 | [`docs/topics/`](docs/topics/) | One chapter per topic: what it does, how it works, and the decisions behind it |
 | [`docs/analysis/`](docs/analysis/) | Measurement and comparison reports that outgrew their chapter |
-| [`docs/project/`](docs/project/) | The project — Wildform: Build, the Roosevelt Island site, the archived midterm, the growth model underneath and the ideas notebook — plus infrastructure: the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
+| [`docs/project/`](docs/project/) | The project — Wildform: Play, the Lab, Architecture, Inhabitants, the Roosevelt Island site, the archived midterm, the growth model underneath and the ideas notebook — plus infrastructure: the showcase worlds, the visual system, how the app is divided into Playground and Project, Firebase setup and auth, and the survey that preceded it |
 | [`docs/images/`](docs/images/) | Screenshots, all captured from the running app |
 
 ## Keyboard
@@ -364,6 +177,9 @@ to your account — parameters only, never geometry, because the generator is
 deterministic. See [`docs/project/firebase-setup.md`](docs/project/firebase-setup.md).
 
 ## Project structure
+
+<details>
+<summary>The source tree</summary>
 
 ```
 src/
@@ -605,6 +421,8 @@ storage.rules                 Owner-scoped Storage access rules
 CLAUDE.md                     Working agreements, for AI assistants and humans
 ```
 
+</details>
+
 Adding a topic is one page component in `src/pages/`, one entry in the
 `PLAYGROUND` array in `routes.ts` — the Playground opens on the last entry —
 one line in `PLAYGROUND_PAGES` in `App.tsx`, and one chapter in `docs/topics/`.
@@ -615,6 +433,9 @@ goes.
 
 Decisions specific to a topic live in that topic's chapter. These hold
 everywhere.
+
+<details>
+<summary>Read the conventions</summary>
 
 **Chrome is neutral so the worlds do not have to be.** Every colour the
 interface uses is a semantic token in `src/index.css` — neutral charcoal
@@ -729,6 +550,8 @@ rather than being discarded.
 
 These conventions are restated in [`CLAUDE.md`](CLAUDE.md), which is where an
 AI assistant working in this repo will actually look for them.
+
+</details>
 
 ## Built with
 
