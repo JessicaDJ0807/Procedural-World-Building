@@ -10,7 +10,7 @@ drag of the mouse stirs it.
 
 [← back to the README](../../README.md) · [study notebook index](../README.md)
 
-![The Topic 7 viewport: particle trails flowing left to right and curling around six vortices, blue-white on a dark ground](../images/readme-topic-7-flow.jpg)
+![The Topic 7 page: particle trails flowing left to right and curling around six vortices, blue-white on a dark ground, with the field and particle controls in the sidebar](../images/readme-topic-7-flow.jpg)
 
 ## Contents
 

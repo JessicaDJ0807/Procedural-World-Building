@@ -58,14 +58,16 @@ colour, sky, rain, snow, brown leaves falling where plants wither. Tuned over
 ten seeds so the goal comes as often as before, with winter costing about a
 third of the plants and spring growing them back.
 
-![The same world in spring, summer, autumn and winter](docs/images/play-seasons.jpg)
+![One world through the year, close on a tower with a hanging pod and a suspended walkway: fresh green in spring, deep green in summer, red-orange leaves and a warm sky in autumn, a cool cast with snow falling and brown leaves dropping in winter — inhabitants walking on the walkway throughout](docs/images/readme-seasons.gif)
 
 **Inhabitants.** Small creatures live on the green: they walk only where
 plants grow or on mature living architecture, so two buildings are separate
 worlds to them until the plants join them, and a maturing bridge is a route
 they go and discover. They make the consequences of growth visible.
 
-![The Inhabitants studio: two inhabitants on a living bridge, one labelled Exploring, and the inspector showing the other travelling across it, 51 cells from the east building](docs/images/readme-inhabitants.png)
+![The four coats, each in one of the four animations: Moss idle, Lichen walking, Blossom discovering, Bark puzzled](docs/images/readme-inhabitants-poses.gif)
+
+![The Inhabitants studio: two inhabitants walking across a living bridge, the camera following, while the inspector beside it counts down the cells left to the east building](docs/images/readme-inhabitants-crossing.gif)
 
 Worlds can be saved and reopened, signed in, as state rather than a picture —
 a loaded world carries on growing exactly as it would have.
@@ -112,7 +114,7 @@ chapter in [`docs/topics/`](docs/topics/).
 <td width="50%" valign="top"><a href="docs/topics/topic-2-maps.md"><img src="docs/images/readme-topic-2-noise.png" alt="Topic 2: the Noise tab on the Mountains preset"></a><br><b><a href="docs/topics/topic-2-maps.md">2 · Maps</a></b> — noise into ground: layered noise shaped and warped, then an automaton and droplet erosion. The default stack measures a Hurst exponent of 0.75.</td>
 </tr>
 <tr>
-<td valign="top"><a href="docs/topics/topic-3-voxels.md"><img src="docs/images/readme-topic-3-voxels.png" alt="Topic 3: a voxel terrain with caves subtracted, meshed with surface nets"></a><br><b><a href="docs/topics/topic-3-voxels.md">3 · Voxels</a></b> — solids as distance fields joined by CSG, meshed four ways; dual contouring cuts corner error from 23.8% of a cell to 1.2%.</td>
+<td valign="top"><a href="docs/topics/topic-3-voxels.md"><img src="docs/images/readme-topic-3-voxels.png" alt="Topic 3: a gyroid intersected with a sphere, its tunnels opening all over the surface, in the Magma palette"></a><br><b><a href="docs/topics/topic-3-voxels.md">3 · Voxels</a></b> — solids as distance fields joined by CSG, meshed four ways; dual contouring cuts corner error from 23.8% of a cell to 1.2%.</td>
 <td valign="top"><a href="docs/topics/topic-4-shaders.md"><img src="docs/images/readme-topic-4-shaders.png" alt="Topic 4: a matte eroded terrain with the strategy selector"></a><br><b><a href="docs/topics/topic-4-shaders.md">4 · Shaders</a></b> — eight surface shaders on one terrain, and four GPU simulations: ripples, reaction–diffusion, pipe erosion, fish schooling.</td>
 </tr>
 <tr>
