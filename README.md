@@ -50,7 +50,7 @@ and its shape from the walls, the plants' headings and the space around it.
 It grows in stages, matures, then shades the plants under it, gives climbers
 support, and becomes a surface they grow on in turn.
 
-![Three of the Draper's forms, from the Architecture page: a suspended walkway sloping down two storeys to a low roof, a hanging pod under an eave, and a root column holding up a walkway](docs/images/architecture-draper-forms.jpg)
+![All eight living structures from the Architecture page, each a specimen grown in a real game: a bridge between two towers, a balcony braced out from a wall, a scaffold spiralling up beside a tower, a terrace on columns, a canopy held out from a wall, a suspended walkway slung between two towers, a hanging pod under an eave, and a root column holding up a walkway](docs/images/readme-architecture.jpg)
 
 **Seasons.** The year turns on its own: four seasons set the real rain, sun
 and warmth the plants grow by, eased across each change, and shown — leaf
@@ -58,16 +58,16 @@ colour, sky, rain, snow, brown leaves falling where plants wither. Tuned over
 ten seeds so the goal comes as often as before, with winter costing about a
 third of the plants and spring growing them back.
 
-![One world through the year, close on a tower with a hanging pod and a suspended walkway: fresh green in spring, deep green in summer, red-orange leaves and a warm sky in autumn, a cool cast with snow falling and brown leaves dropping in winter — inhabitants walking on the walkway throughout](docs/images/readme-seasons.gif)
+![One world in its four seasons, close on a tower with a hanging pod, a suspended walkway and a living bridge: fresh green in spring, deep green in summer, red-orange leaves falling under a warm sky in autumn, a cool cast with snow in winter — inhabitants in each](docs/images/readme-seasons.jpg)
 
 **Inhabitants.** Small creatures live on the green: they walk only where
 plants grow or on mature living architecture, so two buildings are separate
 worlds to them until the plants join them, and a maturing bridge is a route
 they go and discover. They make the consequences of growth visible.
 
-![The four coats, each in one of the four animations: Moss idle, Lichen walking, Blossom discovering, Bark puzzled](docs/images/readme-inhabitants-poses.gif)
+<p><img src="docs/images/readme-inhabitants-animations.gif" width="100%" alt="The four coats, each in one of the four animations: Moss idle, Lichen walking, Blossom discovering, Bark puzzled"></p>
 
-![The Inhabitants studio: two inhabitants walking across a living bridge, the camera following, while the inspector beside it counts down the cells left to the east building](docs/images/readme-inhabitants-crossing.gif)
+<p><img src="docs/images/readme-inhabitants-bridge.gif" width="100%" alt="The Inhabitants studio: two inhabitants walking across a living bridge, the camera following, while the inspector beside it counts down the cells left to the east building"></p>
 
 Worlds can be saved and reopened, signed in, as state rather than a picture —
 a loaded world carries on growing exactly as it would have.

@@ -177,12 +177,11 @@ season's line says.
 
 ## What the seasons look like
 
-![The same world in spring, summer, autumn and winter, close on a tower with a hanging pod, a suspended walkway and inhabitants](../images/play-seasons.jpg)
+![The same world in spring, summer, autumn and winter, close on a tower with a hanging pod, a suspended walkway and a living bridge](../images/readme-seasons.jpg)
 
 *One world, captured from the game close up, so the leaves and weather show:
-spring of its second year (step 2,240), then summer (about step 800), autumn
-(1,240) and winter (1,690) of its first. The README has the same four as a
-moving loop — snow, rain and falling leaves included.*
+spring of its second year (step 2,320), then summer (840), autumn (1,320)
+and winter (1,770) of its first — leaves falling in autumn, snow in winter.*
 
 The weather changed the growth but, apart from the sun's direction, nothing
 you could see. Now the scene follows the season too (`seasonLook.ts`, drawn

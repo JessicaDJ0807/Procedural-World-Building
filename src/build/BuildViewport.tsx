@@ -727,6 +727,8 @@ export function BuildViewport(props: Props) {
     window.addEventListener('keyup', onKey)
 
     let pending = 0
+    /** Fractional growth steps carried between `__buildAdvanceFrame` calls (dev only). */
+    let frameCarry = 0
     let reportAt = 0
     let shadowStep = -1
     const loop = startRenderLoop((delta) => {
@@ -810,6 +812,26 @@ export function BuildViewport(props: Props) {
         renderer.shadowMap.needsUpdate = true
         report()
         loop.wake()
+        return game.sim.step
+      }
+      // Dev only: advance exactly `seconds` of play — growth at `speed`, the weather, the
+      // inhabitants — and draw it. A headless browser renders a frame every few seconds and
+      // each frame steps at most 0.1 s, so a GIF captured in real time showed weather barely moving.
+      w.__buildAdvanceFrame = (seconds: number, speed = 4) => {
+        frameCarry += seconds * STEPS_PER_SECOND * speed
+        const whole = Math.floor(frameCarry)
+        frameCarry -= whole
+        if (whole > 0) advance(whole)
+        if (vegetation) vegetation.uStep.value = game.sim.step + frameCarry
+        applyLook()
+        fx?.update(seconds, renderer.domElement.height)
+        if (population && inhabitantsView) {
+          population.update(game, seconds)
+          inhabitantsView.sync(population.agents, seconds)
+        }
+        renderer.shadowMap.needsUpdate = true
+        controls.update()
+        renderer.render(scene, camera)
         return game.sim.step
       }
       w.__buildProject = (p: number[]) => {
