@@ -6,7 +6,7 @@ triangles four different ways.
 
 [← back to the README](../../README.md) · [study notebook index](../README.md)
 
-![The Topic 3 page: the Gyroid ball scene — a gyroid intersected with a sphere, so its tunnels open all over the surface — at 96³ with the Magma palette, the shape stack and mesher controls in the sidebar](../images/readme-topic-3-voxels.png)
+![The Topic 3 page: the Gyroid ball scene — a gyroid intersected with a sphere, so its tunnels open all over the surface — at 96³ with the Magma palette, the shape stack and mesher controls in the sidebar](../images/readme-topic-3-gyroid.png)
 
 ## Contents
 

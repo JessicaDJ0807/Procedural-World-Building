@@ -114,7 +114,7 @@ chapter in [`docs/topics/`](docs/topics/).
 <td width="50%" valign="top"><a href="docs/topics/topic-2-maps.md"><img src="docs/images/readme-topic-2-noise.png" alt="Topic 2: the Noise tab on the Mountains preset"></a><br><b><a href="docs/topics/topic-2-maps.md">2 · Maps</a></b> — noise into ground: layered noise shaped and warped, then an automaton and droplet erosion. The default stack measures a Hurst exponent of 0.75.</td>
 </tr>
 <tr>
-<td valign="top"><a href="docs/topics/topic-3-voxels.md"><img src="docs/images/readme-topic-3-voxels.png" alt="Topic 3: a gyroid intersected with a sphere, its tunnels opening all over the surface, in the Magma palette"></a><br><b><a href="docs/topics/topic-3-voxels.md">3 · Voxels</a></b> — solids as distance fields joined by CSG, meshed four ways; dual contouring cuts corner error from 23.8% of a cell to 1.2%.</td>
+<td valign="top"><a href="docs/topics/topic-3-voxels.md"><img src="docs/images/readme-topic-3-gyroid.png" alt="Topic 3: a gyroid intersected with a sphere, its tunnels opening all over the surface, in the Magma palette"></a><br><b><a href="docs/topics/topic-3-voxels.md">3 · Voxels</a></b> — solids as distance fields joined by CSG, meshed four ways; dual contouring cuts corner error from 23.8% of a cell to 1.2%.</td>
 <td valign="top"><a href="docs/topics/topic-4-shaders.md"><img src="docs/images/readme-topic-4-shaders.png" alt="Topic 4: a matte eroded terrain with the strategy selector"></a><br><b><a href="docs/topics/topic-4-shaders.md">4 · Shaders</a></b> — eight surface shaders on one terrain, and four GPU simulations: ripples, reaction–diffusion, pipe erosion, fish schooling.</td>
 </tr>
 <tr>
@@ -122,7 +122,7 @@ chapter in [`docs/topics/`](docs/topics/).
 <td valign="top"><a href="docs/topics/topic-6-paths.md"><img src="docs/images/readme-topic-6-paths.png" alt="Topic 6: roads and rivers over the terrain in debug view"></a><br><b><a href="docs/topics/topic-6-paths.md">6 · Paths</a></b> — roads graded into the terrain, rivers carved by it; the default road's steepest stretch falls from 73% to 26%.</td>
 </tr>
 <tr>
-<td valign="top"><a href="docs/topics/topic-7-vector-fields.md"><img src="docs/images/readme-topic-7-flow.jpg" alt="Topic 7: particle trails curling around six vortices"></a><br><b><a href="docs/topics/topic-7-vector-fields.md">7 · Vector Fields</a></b> — eighteen thousand particles following a divergence-free field of current, vortices and curl noise.</td>
+<td valign="top"><a href="docs/topics/topic-7-vector-fields.md"><img src="docs/images/readme-topic-7-vector-fields.jpg" alt="Topic 7: particle trails curling around six vortices"></a><br><b><a href="docs/topics/topic-7-vector-fields.md">7 · Vector Fields</a></b> — eighteen thousand particles following a divergence-free field of current, vortices and curl noise.</td>
 <td valign="top"><a href="docs/topics/topic-8-branching.md"><img src="docs/images/readme-topic-8-branching.png" alt="Topic 8: an oak grove from above with LOD rings"></a><br><b><a href="docs/topics/topic-8-branching.md">8 · Branching</a></b> — from an L-system to an instanced forest with levels of detail: 76–85% fewer triangles in each preset's opening view.</td>
 </tr>
 </table>
