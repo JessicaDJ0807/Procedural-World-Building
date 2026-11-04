@@ -42,7 +42,17 @@ plants do the rest. Blocks place themselves Townscaper-style: walls, roofs,
 arches and ledges work themselves out. Building and growing are one loop:
 editing the town mid-growth carries every plant onto the new building.
 
-![The Lab after 1,100 steps: two buildings joined by living bridges through a stepping-stone tower, Draper curtains hanging from the roof edges and under a bridge, ground cover at the feet of the walls](docs/images/build-living.jpg)
+![The game in its second spring, goal complete: a suspended walkway slung from the west building to the stepping-stone tower, a living bridge on to the east building, a balcony on root columns, walls and a roof terrace grown over, petals in the air and inhabitants on three of the buildings — with the goal, the season, and the toolbar counting 27 blocks and 28 seeds](docs/images/readme-play.jpg)
+
+**Three plants, three directions.** Each grows by its own tendency. The
+**Climber** goes up, following edges — window frames, string courses,
+corners. The **Spreader** goes sideways toward the light, in bands along each
+floor. The **Draper** goes down: from a roof edge or a living deck it lets
+strands fall under gravity until they gather into a curtain and root where
+they reach the lawn. Below, each from a single seed on the same wall, over
+400 steps.
+
+<p><img src="docs/images/readme-plant-climber.gif" width="33%" alt="A Climber growing from one seed at the foot of a three-storey wall: thin vines rise, branch, and work across the façade along the window frames and corners"><img src="docs/images/readme-plant-spreader.gif" width="33%" alt="A Spreader growing from one seed at the foot of the same wall: leafy growth spreads sideways in bands along each floor"><img src="docs/images/readme-plant-draper.gif" width="33%" alt="A Draper planted on the same wall's roof edge: strands hang down and lengthen, gathering into a curtain"></p>
 
 **Living architecture.** A structure's kind comes from what met — Climber and
 Spreader, a plant over layered growth, a Draper's curtain over the others —
