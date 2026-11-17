@@ -14,6 +14,7 @@ import { GamePage } from './game/GamePage'
 import { PlayPage } from './game/PlayPage'
 import { ArchitecturePage } from './architecture/ArchitecturePage'
 import { InhabitantsPage } from './inhabitants/InhabitantsPage'
+import { ProjectHowItWorks } from './project/ProjectHowItWorks'
 import { SitePage } from './site/SitePage'
 import { ProjectOverview } from './project/ProjectOverview'
 import { ProjectProgress } from './project/ProjectProgress'
@@ -63,6 +64,7 @@ const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => Rea
   ),
   play: (navigate) => <PlayPage navigate={navigate} />,
   build: () => <BuildPage />,
+  how: (navigate) => <ProjectHowItWorks navigate={navigate} />,
   architecture: (navigate) => <ArchitecturePage navigate={navigate} />,
   inhabitants: (navigate) => <InhabitantsPage navigate={navigate} />,
   site: () => <SitePage />,

@@ -60,6 +60,7 @@ which is what it was before. Switching section never shows both sets at once.
 | `/project/play` | Project Play — the game's front door |
 | `/play` | The game, full-screen, with no header |
 | `/project/build` | Project Lab (the Build page; its address kept) |
+| `/project/how` | Project How it works |
 | `/project/architecture` | Project Architecture |
 | `/project/inhabitants` | Project Inhabitants |
 | `/project/site` | Project Site |
@@ -115,13 +116,14 @@ to reconsider — and swapping a library in would touch one file.
 
 ## What the Project pages are
 
-Eight tabs, in the order a reviewer should read them:
+Nine tabs, in the order a reviewer should read them:
 
 | Page | Question it answers |
 | --- | --- |
 | Overview | What is Wildform? |
 | Play | Can I play it? — the game, full-screen at `/play` |
-| Lab | How does it work? — the Build page, every control showing |
+| Lab | Can I take it apart? — the Build page, every control showing |
+| How it works | How does it work? — every mechanism, stage by stage, with its technique, numbers and code |
 | Architecture | What does the system grow? — an atlas of the eight structures |
 | Inhabitants | Who lives in it? — the creatures on the green, and a studio to test them |
 | Site | How does the same idea scale to a real place? |
@@ -163,6 +165,16 @@ budget of blocks placed Townscaper-style, Climber, Spreader and Draper to
 plant, the weather sliders, and living architecture growing where they meet.
 Building and growing are one loop. A one-line goal card greets a first visit,
 top left of the scene, and stays dismissed per browser. See [Build](build.md).
+
+### How it works
+
+`ProjectLayout`'s wide variant: the pipeline as a row of stages (each a link
+to its section), a table of the techniques, then one section per stage —
+blocks, building rules, growth cells, fields, growth, the mutation grammar,
+living architecture — and alongside them the Draper, seasons, inhabitants,
+rendering and saving. Each names its technique, explains how it works, gives
+its key numbers and lists its code. The long form is
+[How Wildform works](how-it-works.md).
 
 ### Architecture
 

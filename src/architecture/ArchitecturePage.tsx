@@ -34,7 +34,7 @@ const ENTRIES: Entry[] = [
     construction:
       'A knot swells at the node; rails, a keel and roots draw out along their length; the deck fills in as two halves from either end that meet in the middle; the raw fibre turns to stone; leaves open from the node outward.',
     variation:
-      'The gap sets the span, and the arch rises an eighth of whatever it spans, so a longer bridge rises higher. The Spreader’s heading bows it sideways and chooses which face it aims for.',
+      'The gap sets the span, and the arch rises about 6% of whatever it spans, so a longer bridge rises higher. The Spreader’s heading bows it sideways and chooses which face it aims for.',
     impact:
       'Once mature (300 steps after the node) its deck shades the wall and ground beneath it, the walls its roots grip become support for climbing, and its deck, rims and underside become new surfaces. A bridge between two separate buildings is a living connection — the game’s goal.',
   },
@@ -104,7 +104,7 @@ const ENTRIES: Entry[] = [
       'A connection, like a bridge, when it joins two buildings — it counts toward the game’s goal. Its narrow deck shades little. Masts and roots are support for climbing, the deck a new strip of ground; the cables carry nothing for plants.',
     versus: {
       name: 'Bridge',
-      text: 'A bridge arches up off the wall at its own level and holds itself up: a deck 0.3–0.4 units thick, rising an eighth of its span. A walkway hangs: a deck 0.14 thick, sagging below its ends, held from above by cables and masts — and it takes height in its stride, up or down two storeys, roof to roof.',
+      text: 'A bridge arches up off the wall at its own level and holds itself up: a deck 0.3–0.4 units thick, its arch rising about 6% of its span. A walkway hangs: a deck 0.14 thick, sagging below its ends, held from above by cables and masts — and it takes height in its stride, up or down two storeys, roof to roof.',
     },
   },
   {

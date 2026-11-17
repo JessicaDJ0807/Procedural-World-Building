@@ -226,7 +226,8 @@ growth mass:
 - **Bridge.** From the node, a cast along the wall's facing, turned toward the
   Spreader's growth and fanned ±20° and ±40°, at the node's height and a
   storey up or down, finds the nearest face of *another* building within five
-  columns. The deck arches between them, rising an eighth of its span and
+  columns. The deck arches between them — a quadratic Bézier whose control point is
+  raised 0.12 of the span, so its crown rises about 6% of it — and is
   bowed sideways the way the Spreader was growing. It grows as two halves
   from either end that meet in the middle, each flaring into a root plate on
   its wall. Under it, two edge rails and a sagging keel.

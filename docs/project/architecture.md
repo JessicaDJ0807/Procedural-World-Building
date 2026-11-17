@@ -63,7 +63,7 @@ hoped for.
 
 | Kind | Variation | What differs |
 | --- | --- | --- |
-| Bridge | Two-column gap · Three columns, to a taller tower · Four-column gap | span 2.0 / 3.0 / 4.0 blocks; the arch rises an eighth of its span |
+| Bridge | Two-column gap · Three columns, to a taller tower · Four-column gap | span 2.0 / 3.0 / 4.0 blocks; the arch rises about 6% of its span |
 | Balcony | Swung west · Swung east · Straight out, higher | the Spreader's heading: west, east, or out from the wall |
 | Scaffold | Arm to a taller neighbour · Arm down to a lower roof · Nothing in reach | what its crown finds within four columns |
 | Terrace | Free, on columns · Spanning to the neighbour | a neighbour in reach or not |

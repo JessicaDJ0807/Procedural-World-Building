@@ -964,3 +964,185 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- How it works ---- */
+
+.how-pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how-pipeline li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.how-pipeline li + li::before {
+  content: '→';
+  color: var(--text-muted);
+}
+
+.how-pipeline button,
+.how-alongside button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.how-pipeline button:hover,
+.how-alongside button:hover {
+  background: var(--surface-hover);
+}
+
+.how-num {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent, #6c8ebf);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.how-loop-note {
+  margin-top: 12px !important;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.how-alongside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.how-alongside button {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+.how-table {
+  width: 100%;
+  max-width: 880px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.how-table th,
+.how-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.how-table th {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.how-table td:first-child {
+  color: var(--text-primary);
+}
+
+.how-table td:last-child {
+  color: var(--text-secondary);
+}
+
+.how-stage {
+  max-width: 880px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  scroll-margin-top: 16px;
+}
+
+.how-kicker {
+  margin: 0 0 4px !important;
+  color: var(--text-muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.how-summary {
+  color: var(--text-primary) !important;
+  font-size: 16px;
+}
+
+.how-steps {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.how-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.how-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how-numbers li {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.how-code {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 !important;
+}
+
+.how-code code {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Each stage's name is a heading, not the section label style the other pages' h2s use. */
+.how-stage h2 {
+  margin: 0 0 6px;
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
