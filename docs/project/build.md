@@ -826,8 +826,9 @@ neither stay open.
 the meadow, and on to the west building's outer wall; a fainter trail branches
 off it to the south-west; and a fainter one still comes out of the
 south-eastern woods to the east building's far corner — three on each of four
-seeds. Routed, not drawn: A* over a 1-unit grid where a cell costs
-1 + 40 × slope² (+3 in the open valley, kept as a sightline), so a path takes
+seeds, as tuned. Routed, not drawn: A* over a 1-unit grid where a cell costs
+1 + 40 × slope² (+3 in the open valley, kept as a sightline; the 40 is the
+Lab's *Slope avoidance*), so a path takes
 the gentle way over the clearing's rim. Out in the meadow a path keeps 3.5 units
 off the buildable grid; it comes onto the town's lawn only to reach *one*
 building's outer side, never into the gap between the buildings or 4.5 units
@@ -966,8 +967,69 @@ Environment:
 - *Density* (Low / Medium / High) and *New landscape* (a new seed) — saved
   with the world, so they are changes (a world becomes unsaved). Growth, the
   town and the inhabitants carry on untouched.
+- In the Lab only, the **river and the footpaths**' parameters — below.
 
-**Saved** as the seed and density only (`landscape` in the save), never the
+**River and footpaths in the Lab.** Under the seed, eight sliders take apart
+the two lines through the land (`LandLinesPanel.tsx`, `StreamSettings` and
+`PathSettings` in `landscape.ts`):
+
+| | Slider | What it changes | Tuned | Range |
+| --- | --- | --- | --- | --- |
+| River | Width | The stream's half-width, × | 1 | 0.5–1.5 |
+| | Meander | Its wander across its line, × | 1 | 0.25–2 |
+| | Distance from town | How far its line keeps off the grid along the ridge's foot (+ up to 2.5 by noise) | 10 | 10–14 |
+| | Pools | Pools at the sharpest bends | 3 | 0–4 |
+| Footpaths | Paths | Main path · and its branch · and the east trail | 3 | 0–3 |
+| | Width | Their widths, × | 1 | 0.5–2 |
+| | Slope avoidance | *k* in a cell's price, 1 + *k* × slope² | 40 | 0–120 |
+| | Wear | How worn into the grass, × (capped at fully worn) | 1 | 0.3–1.5 |
+
+<p><img src="../images/lab-river-paths-panel.png" width="220" align="right" alt="The Lab's Landscape controls: Show decorations, Density, the seed and New landscape, then River — Width, Meander, Distance from town, Pools — and Footpaths — Paths, Width, Slope avoidance, Wear — and a Reset river and paths button"></p>
+
+Each default is the value the land was tuned at, so the tuned land is exactly
+what it was: stream, paths and every height identical on five seeds, before
+and after (and tested). Fewer paths leave the others exactly where they were —
+the random draws stay in order. The stream cuts the ground, so a change to it
+rebuilds the land, not only its decorations; a slider moves its number at once
+but reaches the game only once it has been still for 300 ms, because the
+rebuild (about a second at Medium, nearly all of it the decorations — the land
+itself is 42–84 ms) would otherwise run on every pointer move.
+
+**The ranges are measured, not guessed.** Each limit is as far as that
+slider goes, alone, with the banks inside the bound the tuned land is tested
+to — the steepest under 0.9, under 2% of bank samples over 0.6, on all five
+test seeds (the hills test's own measure). Seed 4, where the stream crosses a
+side slope at the ridge's foot, gives first; it already reads 0.87 as tuned.
+What set each limit there:
+
+- **Width 2 reached 1.41.** A wider stream ate its banks' room near the town.
+  So a wider stream now also keeps further off, by 2 units for each 1× of
+  width it adds: at 1.5× its steepest bank fell from 1.34 to 0.81. That
+  didn't save 2×: moved out 3, 4 or 5 per width, seed 4 still read 0.96–1.12 —
+  further out, the stream is on the ridge's slope and cuts into it. 1.6× read
+  0.90, so the limit is 1.5.
+- **Distance 18 reached 1.08, 16 1.19, 15 0.91** — the same climb onto the
+  ridge. 14 reads 0.72. Nearer than 10 was ruled out when the stream was tuned
+  (at 7–9.5 its banks stood at 1 in 1.6).
+- **Five pools 0.91, four 0.87**; **meander 0 0.94, 0.25 0.73, 2 0.88** (2.5
+  0.92). Not monotonic — meander 1.5 read 0.90 — which is why the limits
+  stop at values that passed rather than at a fitted curve.
+
+Several at their limits at once can go further: width 1.5, meander 2,
+distance 14 and four pools reached 1.08 on seed 4, at 0.7% of its bank
+samples — a few steep spots, not a cliff. At every limit the town's ground is
+still exactly `lawnHeight`, the stream still runs downhill and 9 or more off
+the grid, and no path enters the gap between the buildings (tested). The
+paths' sliders don't touch the ground's shape, only where paths are laid.
+Slope avoidance does what it says: mean length over five seeds 29 units at 0,
+42 as tuned, 55 at 120, the steepest grade along a path 0.34 at 0 and 0.28
+for both others.
+
+![The Lab, seed 1: the river as tuned beside the same river at 1.5× width, 2× meander and four pools — wider, and on a different course along the ridge's foot — and, from overhead, the footpaths at slope avoidance 0, the main path cutting nearly straight in from the west, and at 120, winding round the rim](../images/lab-river-paths.jpg)
+
+**Saved** as the seed and density (`landscape` in the save), and the river's
+and paths' parameters if the Lab has set them — brought back into range on
+loading, and a world that has none gets the tuned ones. Never the
 objects: the same seed and density give the same land, so a reopened world's
 land is the same tuft for tuft (checked in the browser: 4,860 / 340 / 200 /
 700 after a reload). A new world's land takes the world's seed; a world saved

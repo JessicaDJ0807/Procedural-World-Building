@@ -16,7 +16,7 @@ import { SURFACE, SURFACE_NAMES, type SurfaceKind } from './surfaces'
 import { GLASS } from '../green/building'
 import { SPECIES_NAMES } from '../wildform/names'
 import { lawnMesh, shapeLawn } from './lawn'
-import { Landscape } from './landscape'
+import { Landscape, landShapeKey } from './landscape'
 import { LandscapeDecor } from './landscapeDecor'
 import { SeasonFx, type SeasonLook } from './seasonFx'
 import { Population } from '../inhabitants/population'
@@ -210,14 +210,17 @@ export function BuildViewport(props: Props) {
     placeSun()
 
     // The land round the town (landscape.ts): hills and colour on the lawn, and decorations on it.
-    // Rebuilt only when the game's landscape seed or density changes — a new land, not a new game.
-    let landscape = new Landscape(game.landscape.seed)
+    // Rebuilt only when the game's landscape changes — its seed, density, or the stream's or paths'
+    // parameters (the Lab) — a new land, not a new game.
+    const newLand = () => new Landscape(game.landscape.seed, game.landscape)
+    let landscape = newLand()
+    let shapeKey = landShapeKey(game.landscape)
     const lawn = lawnMesh(landscape)
     scene.add(lawn)
     const decor = new LandscapeDecor()
     decor.build(landscape, game.landscape.density)
     scene.add(decor.group)
-    let landKey = `${game.landscape.seed}:${game.landscape.density}`
+    let landKey = `${shapeKey}:${game.landscape.density}`
 
     // The rigid town.
     const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 })
@@ -250,12 +253,16 @@ export function BuildViewport(props: Props) {
     grown.add(...ground.meshes)
     let groundAt = -Infinity
     const syncLand = () => {
-      const key = `${game.landscape.seed}:${game.landscape.density}`
+      const shape = landShapeKey(game.landscape)
+      const key = `${shape}:${game.landscape.density}`
       if (key === landKey) return
-      const reseeded = landscape.seed !== game.landscape.seed
+      // A new seed, or the stream or paths changed (the Lab): the land itself is rebuilt — the
+      // stream cuts the ground, so its parameters change the lawn's heights, not just its lines.
+      const reshaped = shape !== shapeKey
       landKey = key
-      if (reseeded) {
-        landscape = new Landscape(game.landscape.seed)
+      shapeKey = shape
+      if (reshaped) {
+        landscape = newLand()
         shapeLawn(lawn, landscape)
         // Ground cover tints the lawn from a copy of its colours: take the new ones.
         ground.rebaseLawn()
@@ -1039,7 +1046,7 @@ export function BuildViewport(props: Props) {
   }, [debug])
   // The render loop sleeps when nothing moves: showing or hiding the decorations,
   // or a new land or density (pages re-render this on changing them), must wake it.
-  const landKeyNow = `${props.game.landscape.seed}:${props.game.landscape.density}`
+  const landKeyNow = `${landShapeKey(props.game.landscape)}:${props.game.landscape.density}`
   useEffect(() => {
     api.current?.wake()
   }, [decorations, landKeyNow])

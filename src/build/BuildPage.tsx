@@ -10,6 +10,7 @@ import { WorldMenu, type WorldSession } from './WorldMenu'
 import { useShowInhabitants } from '../inhabitants/visibility'
 import { newLandscape, useShowDecorations } from './landscapePrefs'
 import { DENSITIES, DENSITY_NAMES } from './landscape'
+import { LandLinesPanel } from './LandLinesPanel'
 import { COMBO_NAMES, type Combo, type Kind } from './living'
 import { BUDGET } from './town'
 import '../study/study.css'
@@ -453,6 +454,7 @@ export function BuildPage() {
                 New landscape
               </button>
             </div>
+            <LandLinesPanel game={game} onChanged={() => landBump((n) => n + 1)} />
           </section>
 
           {/* ---- Growth ---- */}

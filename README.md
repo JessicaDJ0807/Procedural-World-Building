@@ -153,7 +153,8 @@ The project is the app's **Project** section, nine pages:
   states and routes — with Pause, Step and a time scale.
   [`play.md`](docs/project/play.md)
 - **Lab** — the same game with every control and number showing, the weather
-  sliders included: for taking it apart. [`build.md`](docs/project/build.md)
+  sliders and the river's and footpaths' parameters included: for taking it
+  apart. [`build.md`](docs/project/build.md)
 - **How it works** — every mechanism in the order the data flows, each with its
   technique, how it works, its key numbers and its code.
   [`how-it-works.md`](docs/project/how-it-works.md)
@@ -416,6 +417,7 @@ src/
 │   ├── features.ts           Lines through the land: nearest-segment index, rounding, A* routing
 │   ├── landscapeDecor.ts     The land drawn: trees, decorations, water, paths, their seasons
 │   ├── landscapePrefs.ts     Show decorations: a display preference shared by Play and the Lab
+│   ├── LandLinesPanel.tsx    The Lab's river and footpath sliders
 │   ├── living.ts             Mutation nodes and what grows from each combination
 │   ├── draperLiving.ts       The Draper's meetings, read from its curtain: root column, hanging pod, suspended walkway
 │   ├── livingMesh.ts         Living architecture drawn, grown in stages

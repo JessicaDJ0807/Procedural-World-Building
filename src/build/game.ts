@@ -8,7 +8,7 @@ import { appendSurfaces, livingPatches, roofPatches, surfaceOverlay, type Surfac
 import { townToBuilding } from './townBuilding'
 import { COMBOS, COMBO_NAMES, KIND_TITLES, MATURE_AT, connects, findNode, livingSupport, livingVolumes, nodeCandidates, planLiving, type Combo, type Living, type NodeCandidate, type NodeSurfaces } from './living'
 import { findDraperLiving } from './draperLiving'
-import type { Density, LandscapeSettings } from './landscape'
+import type { Density, LandscapeSettings, PathSettings, StreamSettings } from './landscape'
 
 /**
  * The Build page's game: the town the player builds, the plants growing on
@@ -232,7 +232,8 @@ export class BuildGame {
   newWorld(seed: number) {
     this.seed = seed
     this.env = { ...DEFAULT_ENV }
-    this.landscape = { seed, density: this.landscape.density }
+    // The density and the stream's and paths' parameters carry over, like a preference; the land is new.
+    this.landscape = { ...this.landscape, seed }
     this.restart()
   }
 
@@ -277,9 +278,24 @@ export class BuildGame {
     return { goalMet: this.goalMet, connected: this.connected, wasJoined: this.wasJoined, lastNodeCheck: this.lastNodeCheck, declined: [...this.declined], seeds: [...this.seeds], ...(this.seedsComplete ? {} : { seedsPartial: true }) }
   }
 
-  /** A new land (a new seed) or a new density. Saved with the world, so it is a change; growth and the town are untouched. */
-  setLandscape(next: { seed?: number; density?: Density }) {
-    this.landscape = { ...this.landscape, ...next }
+  /**
+   * A new land (a new seed), a new density, or new stream or path parameters (merged into
+   * the current ones). Saved with the world, so it is a change; growth and the town are untouched.
+   */
+  setLandscape(next: { seed?: number; density?: Density; stream?: Partial<StreamSettings>; paths?: Partial<PathSettings> }) {
+    const { stream, paths, ...rest } = next
+    this.landscape = {
+      ...this.landscape,
+      ...rest,
+      ...(stream ? { stream: { ...this.landscape.stream, ...stream } } : {}),
+      ...(paths ? { paths: { ...this.landscape.paths, ...paths } } : {}),
+    }
+    this.changes++
+  }
+
+  /** The stream's and paths' parameters back to the land's tuned defaults. */
+  resetLandscapeLines() {
+    this.landscape = { seed: this.landscape.seed, density: this.landscape.density }
     this.changes++
   }
 

@@ -2,7 +2,7 @@
 // town's ground, and never changing the game. Run with `npm test`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { KEEP, KINDS, Landscape, QUIET, capOf, outside, scatter } from '../src/build/landscape'
+import { KEEP, KINDS, Landscape, PATH_DEFAULTS, PATH_LIMITS, QUIET, STREAM_DEFAULTS, STREAM_LIMITS, capOf, inGap, outside, scatter, toBuilding } from '../src/build/landscape'
 import { lawnHeight } from '../src/build/lawn'
 import { BuildGame } from '../src/build/game'
 import { deserializeWorld, serializeWorld } from '../src/build/worldState'
@@ -340,4 +340,94 @@ test('the clearing’s accents: one of each, apart, off the lawn, paths and wate
     }
     for (const t of scatterTrees(L, 'medium')) for (const a of acc) assert.ok(Math.hypot(a.x - t.x, a.z - t.z) >= 2.2)
   }
+})
+
+test('the Lab’s stream and path parameters: their defaults are the tuned land, exactly', () => {
+  for (const seed of [1, 4, 9]) {
+    const a = new Landscape(seed)
+    const b = new Landscape(seed, { stream: { ...STREAM_DEFAULTS }, paths: { ...PATH_DEFAULTS } })
+    assert.deepEqual(b.stream, a.stream)
+    assert.deepEqual(b.paths, a.paths)
+    for (const [x, z] of samples(300, 60)) assert.equal(b.height(x, z), a.height(x, z))
+  }
+})
+
+test('at every limit of the stream and the paths, the town’s ground is untouched and the paths keep out of the gap', () => {
+  const ends = [
+    ...(Object.keys(STREAM_LIMITS) as (keyof typeof STREAM_LIMITS)[]).flatMap((k) => STREAM_LIMITS[k].map((v) => ({ stream: { [k]: v } }))),
+    ...(Object.keys(PATH_LIMITS) as (keyof typeof PATH_LIMITS)[]).flatMap((k) => PATH_LIMITS[k].map((v) => ({ paths: { [k]: v } }))),
+    { stream: { width: 1.5, meander: 2, distance: 14, pools: 4 } },
+  ]
+  for (const lines of ends) {
+    const L = new Landscape(4, lines)
+    for (const [x, z] of samples(400, 12)) if (outside(x, z) < KEEP) assert.equal(L.height(x, z), lawnHeight(x, z), JSON.stringify(lines))
+    for (let i = 0; i < L.stream.x.length; i++) {
+      assert.ok(outside(L.stream.x[i], L.stream.z[i]) >= 9, JSON.stringify(lines))
+      if (i) assert.ok(L.stream.level![i] <= L.stream.level![i - 1] + 1e-9)
+    }
+    for (const p of L.paths) for (let i = 0; i < p.x.length; i++) assert.ok(!inGap(p.x[i], p.z[i]) && toBuilding(p.x[i], p.z[i]) >= 0.5, JSON.stringify(lines))
+  }
+})
+
+test('the stream at each of its limits keeps the banks’ bound, on the seed that gives first', () => {
+  // Seed 4, where the stream crosses a side slope at the ridge's foot: 0.87 at the defaults, and
+  // where each limit was set (landscape.ts, STREAM_LIMITS) — 0.73–0.88 there. Same measure as the
+  // hills test: a 1.5 grid, steepest bank under 0.9, under 2% of bank samples over 0.6.
+  for (const k of Object.keys(STREAM_LIMITS) as (keyof typeof STREAM_LIMITS)[])
+    for (const v of STREAM_LIMITS[k]) {
+      const L = new Landscape(4, { stream: { [k]: v } })
+      let banks = 0, n = 0, over = 0
+      for (let x = -90; x <= 90; x += 1.5)
+        for (let z = -90; z <= 90; z += 1.5) {
+          if (L.streamEdge(x, z) >= 12) continue
+          const e = 0.5
+          const s = Math.hypot(L.height(x + e, z) - L.height(x - e, z), L.height(x, z + e) - L.height(x, z - e)) / (2 * e)
+          banks = Math.max(banks, s)
+          n++
+          if (s > 0.6) over++
+        }
+      assert.ok(banks < 0.9 && over < 0.02 * n, `${k} ${v}: steepest bank ${banks.toFixed(2)}, ${over} of ${n} over 0.6`)
+    }
+})
+
+test('fewer paths leave the rest where they were; slope avoidance trades length for grade', () => {
+  const all = new Landscape(9)
+  for (const count of [0, 1, 2]) {
+    const L = new Landscape(9, { paths: { count } })
+    assert.equal(L.paths.length, count)
+    assert.deepEqual(L.paths, all.paths.slice(0, count))
+  }
+  // Mean length over five seeds: straighter with no price on slope, longer with a high one.
+  const mean = (slope: number) => {
+    let len = 0, n = 0
+    for (const seed of [1, 4, 9, 23, 77]) for (const p of new Landscape(seed, { paths: { slope } }).paths) {
+        len += p.s[p.s.length - 1]
+        n++
+      }
+    return len / n
+  }
+  const flat = mean(0), tuned = mean(40), steep = mean(120)
+  assert.ok(flat < tuned && tuned < steep, `${flat.toFixed(0)} < ${tuned.toFixed(0)} < ${steep.toFixed(0)}`)
+})
+
+test('a world saves its stream and path parameters, brought into range; older saves get the tuned ones', () => {
+  const g = new BuildGame()
+  g.setLandscape({ stream: { width: 1.25 }, paths: { count: 1 } })
+  g.setLandscape({ stream: { pools: 2 } })
+  assert.deepEqual(g.landscape.stream, { width: 1.25, pools: 2 })
+  const { head, body } = serializeWorld(g)
+  const h = new BuildGame()
+  h.load(deserializeWorld(head, body))
+  assert.deepEqual(h.landscape.stream, { ...STREAM_DEFAULTS, width: 1.25, pools: 2 })
+  assert.deepEqual(h.landscape.paths, { ...PATH_DEFAULTS, count: 1 })
+  // Out of range, or not numbers: clamped, or the lower limit.
+  const odd = JSON.parse(body)
+  odd.landscape.stream = { width: 9, pools: 2.6, meander: 'x' }
+  const k = new BuildGame()
+  k.load(deserializeWorld(head, JSON.stringify(odd)))
+  assert.deepEqual(k.landscape.stream, { width: 1.5, meander: 0.25, distance: 10, pools: 3 })
+  // Reset: back to a world with none, which is the tuned land.
+  h.resetLandscapeLines()
+  assert.equal(h.landscape.stream, undefined)
+  assert.equal(h.landscape.paths, undefined)
 })

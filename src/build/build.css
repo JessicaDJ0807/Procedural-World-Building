@@ -1055,3 +1055,32 @@
   font-size: 12px;
   cursor: pointer;
 }
+
+/* The Lab's river and footpath parameters, under the landscape's seed. */
+.build-land-lines {
+  margin-top: 6px;
+}
+
+.build-land-lines-head {
+  margin: 12px 0 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.build-land-lines-reset {
+  margin-top: 10px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.build-land-lines-reset:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+}

@@ -32,8 +32,74 @@ export const DENSITIES: Density[] = ['low', 'medium', 'high']
 export const DENSITY_NAMES: Record<Density, string> = { low: 'Low', medium: 'Medium', high: 'High' }
 const DENSITY_SCALE: Record<Density, number> = { low: 0.45, medium: 1, high: 1.7 }
 
-/** What a world saves about its land. */
-export type LandscapeSettings = { seed: number; density: Density }
+/**
+ * The stream's and the footpaths' parameters, set in the Lab. Each default is
+ * the value the land was tuned at, so a world that has none (every world saved
+ * before these existed) gets exactly the land it always had.
+ */
+export type StreamSettings = {
+  /** Its width, as a multiple of the tuned width. */
+  width: number
+  /** How far it wanders across its line, as a multiple of the tuned wander. */
+  meander: number
+  /** How far its line keeps off the buildable grid along the ridge's foot, in units (10–12.5 by noise at 10). */
+  distance: number
+  /** Pools, at the sharpest bends. */
+  pools: number
+}
+export type PathSettings = {
+  /** 0 none · 1 the main path · 2 and its branch · 3 and the trail to the east building. */
+  count: number
+  /** Their width, as a multiple of the tuned widths. */
+  width: number
+  /** What steepness costs a route: a cell's price is 1 + this × slope². */
+  slope: number
+  /** How worn they are, as a multiple of the tuned wear (capped at fully worn). */
+  wear: number
+}
+export const STREAM_DEFAULTS: StreamSettings = { width: 1, meander: 1, distance: 10, pools: 3 }
+export const PATH_DEFAULTS: PathSettings = { count: 3, width: 1, slope: 40, wear: 1 }
+/**
+ * The range each parameter may take, in the Lab and in a saved world: as far
+ * as each goes, alone, with the banks still inside the bound the tuned land is
+ * tested to (steepest under 0.9, under 2% of bank samples over 0.6) on all five
+ * test seeds. Measured: width 2 reached 1.41, distance 18 1.08, distance 16
+ * 1.19, five pools 0.91, a meander of 0 0.94 — seed 4, where the stream
+ * crosses a side slope at the ridge's foot, is the one that gives first; at the
+ * limits it reads 0.73–0.88. Several at their limits at once can go further: a
+ * width of 1.5, meander 2, distance 14 and four pools reached 1.08 there, at
+ * 0.7% of its bank samples. The stream comes no nearer the grid than its tuned
+ * 10: at 7–9.5 its banks were squeezed against the town's flat ground and
+ * stood at 1 in 1.6.
+ */
+export const STREAM_LIMITS: Record<keyof StreamSettings, [number, number]> = { width: [0.5, 1.5], meander: [0.25, 2], distance: [10, 14], pools: [0, 4] }
+export const PATH_LIMITS: Record<keyof PathSettings, [number, number]> = { count: [0, 3], width: [0.5, 2], slope: [0, 120], wear: [0.3, 1.5] }
+
+/** Fills in defaults and keeps every value in range (and the counts whole): the land a set of parameters stands for. */
+export function streamSettings(v?: Partial<StreamSettings>): StreamSettings {
+  return within({ ...STREAM_DEFAULTS, ...v }, STREAM_LIMITS, ['pools'])
+}
+export function pathSettings(v?: Partial<PathSettings>): PathSettings {
+  return within({ ...PATH_DEFAULTS, ...v }, PATH_LIMITS, ['count'])
+}
+function within<T extends Record<string, number>>(v: T, limits: Record<keyof T, [number, number]>, whole: (keyof T)[]): T {
+  const out = { ...v }
+  for (const k of Object.keys(limits) as (keyof T)[]) {
+    const [lo, hi] = limits[k]
+    const x = Number(v[k])
+    const n = Number.isFinite(x) ? Math.max(lo, Math.min(hi, x)) : lo
+    out[k] = (whole.includes(k) ? Math.round(n) : n) as T[keyof T]
+  }
+  return out
+}
+
+/** What shapes the land itself (not its density): the seed and the lines' parameters, as one string. */
+export function landShapeKey(s: LandscapeSettings): string {
+  return JSON.stringify([s.seed, streamSettings(s.stream), pathSettings(s.paths)])
+}
+
+/** What a world saves about its land. `stream` and `paths` only when changed from their defaults. */
+export type LandscapeSettings = { seed: number; density: Density; stream?: Partial<StreamSettings>; paths?: Partial<PathSettings> }
 
 const smooth = (a: number, b: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)))
@@ -122,14 +188,19 @@ class Perlin {
 
 export class Landscape {
   readonly seed: number
+  /** The stream's and the paths' parameters, defaults filled in (the Lab sets them). */
+  readonly streamSettings: StreamSettings
+  readonly pathSettings: PathSettings
   private hills: Perlin
   private wet: Perlin
   private rich: Perlin
   private cluster: Perlin
   private woods: Perlin
 
-  constructor(seed: number) {
+  constructor(seed: number, lines: { stream?: Partial<StreamSettings>; paths?: Partial<PathSettings> } = {}) {
     this.seed = seed
+    this.streamSettings = streamSettings(lines.stream)
+    this.pathSettings = pathSettings(lines.paths)
     this.hills = new Perlin(seed * 7919 + 1)
     this.wet = new Perlin(seed * 7919 + 2)
     this.rich = new Perlin(seed * 7919 + 3)
@@ -1220,7 +1291,7 @@ const FREEBOARD = 0.24
  * - **Pace**: quicker where it narrows (0.75 / half-width, held to 0.6–1.6), and the phase that
  *   lets the shader move its pattern with it.
  */
-function streamShape(line: { x: number[]; z: number[]; s: number[] }, seed: number) {
+function streamShape(line: { x: number[]; z: number[]; s: number[] }, seed: number, set: StreamSettings = STREAM_DEFAULTS) {
   const n = new Perlin(seed * 7727 + 5)
   const N = line.x.length
   // Signed bend: the turn between neighbouring directions per unit, smoothed over ±5 points.
@@ -1238,11 +1309,11 @@ function streamShape(line: { x: number[]; z: number[]; s: number[] }, seed: numb
     }
     return sum / w
   })
-  // Pools at the three sharpest bends from 10 to 110 units down, at least 16 apart.
+  // Pools at the sharpest bends (three, as tuned) from 10 to 110 units down, at least 16 apart.
   const pools: number[] = []
   const byBend = line.s.map((s, i) => ({ s, k: Math.abs(curve[i]) })).filter((p) => p.s > 10 && p.s < 110).sort((a, b) => b.k - a.k)
   for (const p of byBend) {
-    if (pools.length >= 3) break
+    if (pools.length >= set.pools) break
     if (pools.every((q) => Math.abs(q - p.s) > 16)) pools.push(p.s)
   }
   const poolAt = (s: number) => pools.reduce((m, q) => Math.max(m, Math.exp(-(((s - q) / 3.5) ** 2))), 0)
@@ -1251,14 +1322,15 @@ function streamShape(line: { x: number[]; z: number[]; s: number[] }, seed: numb
   const half = line.s.map((s, i) => {
     const base = 0.55 + 0.25 * (0.5 + n.noise(s * 0.05, 8.8)) + 0.07 * n.noise(s * 0.21, 1.3)
     const bendy = 1 + 0.5 * smooth(0.02, 0.1, Math.abs(curve[i]))
-    return base * bendy * (1 + 0.8 * poolAt(s)) * (0.25 + 0.75 * smooth(0, 10, s)) * (1 + 0.25 * smooth(30, 120, s))
+    return set.width * base * bendy * (1 + 0.8 * poolAt(s)) * (0.25 + 0.75 * smooth(0, 10, s)) * (1 + 0.25 * smooth(30, 120, s))
   })
   const skew = curve.map((k) => Math.max(-0.3, Math.min(0.3, k * 3)))
   const bend = curve.map((k) => Math.max(-1, Math.min(1, k / 0.08)))
   const deep = line.s.map((s) => 1 + 0.7 * poolAt(s))
   const rocky = line.s.map((s) => smooth(0.5, 0.72, 0.5 + n.noise(s * 0.045, 4.2)))
   const lush = line.s.map((s, i) => smooth(0.45, 0.68, 0.5 + n.noise(s * 0.05, 7.7)) * (1 - 0.6 * rocky[i]))
-  const pace = half.map((h) => Math.max(0.6, Math.min(1.6, 0.75 / h)))
+  // Faster where it narrows — by its own narrowing, not the Lab's width, so a wider stream isn't a slower one.
+  const pace = half.map((h) => Math.max(0.6, Math.min(1.6, (0.75 * set.width) / h)))
   const phase: number[] = [0]
   for (let i = 1; i < N; i++) phase.push(phase[i - 1] + (line.s[i] - line.s[i - 1]) / ((pace[i] + pace[i - 1]) / 2))
   return { half, skew, bend, deep, rocky, lush, pace, phase }
@@ -1298,6 +1370,13 @@ function offGrid(bearing: number, gap: number): number {
  * that never comes back within reach of its own banks, and doesn't run across
  * a hillside too near the town for the bank it would need — is kept.
  */
+/**
+ * Units a stream keeps further off the grid for each width above its tuned one. Without it a
+ * 1.5-wide stream ate its banks' room near the town, and they stood at 1.34 on seed 4; moved out
+ * by 2 per width, 0.81. (3–5 per width didn't save width 2: further out, it climbs the ridge.)
+ */
+const WIDER_OFF = 2
+
 function planStream(L: Landscape): Line {
   const rand = mulberry32(L.seed * 7727 + 3)
   const n = new Perlin(L.seed * 7727 + 4)
@@ -1309,7 +1388,10 @@ function planStream(L: Landscape): Line {
   // 10–12.5 units off the grid: closer, its banks were squeezed between the water and the town's
   // flat ground on the hollow's slope (at 7–9.5 they ran to 1 in 1.6; at 9–11.5, under the ridge,
   // to 0.64).
-  const margin = (b: number) => offGrid(b, 10 + 2.5 * (0.5 + n.noise(b * 2.3, 1.7)))
+  const set = L.streamSettings
+  // A wider stream keeps further off by what it adds, so its banks keep the room they had.
+  const off = set.distance + WIDER_OFF * Math.max(0, set.width - 1)
+  const margin = (b: number) => offGrid(b, off + 2.5 * (0.5 + n.noise(b * 2.3, 1.7)))
   const build = (bIn: number) => {
     const xs: number[] = []
     const zs: number[] = []
@@ -1338,12 +1420,13 @@ function planStream(L: Landscape): Line {
       if (i === 0 || i + 1 === xs.length) return 0
       const tx = xs[i + 1] - xs[i - 1], tz = zs[i + 1] - zs[i - 1]
       const len = Math.hypot(tx, tz) || 1
-      let o = n.noise(i * 0.31, 4.4) * (run[i] === 1 ? 1.0 : 2.4)
+      let o = n.noise(i * 0.31, 4.4) * (run[i] === 1 ? 1.0 : 2.4) * set.meander
       if (run[i] !== 1) {
         let best = Infinity
         const centre = o
+        // Searched over a span that shrinks with a wander under 1, so a small wander keeps near its line.
         for (let k = -6; k <= 6; k++) {
-          const q = centre + k * 0.5
+          const q = centre + k * 0.5 * Math.min(1, set.meander)
           const h = L.baseHeight(xs[i] + (-tz / len) * q, zs[i] + (tx / len) * q) + 0.03 * q * q
           if (h < best) {
             best = h
@@ -1389,11 +1472,11 @@ function planStream(L: Landscape): Line {
       sx = nx
       sz = nz
     }
-    keepOffGrid(sx, sz, 9.5)
+    keepOffGrid(sx, sz, off - 0.5)
     const [cx, cz] = chaikin(sx, sz, 2)
-    keepOffGrid(cx, cz, 9.5)
+    keepOffGrid(cx, cz, off - 0.5)
     const line = resample(cx, cz, 0.6)
-    const shape = streamShape(line, L.seed)
+    const shape = streamShape(line, L.seed, set)
     const half = shape.half
     const level: number[] = []
     const bank: number[] = []
@@ -1712,13 +1795,14 @@ function shapePath(pts: [number, number][], seed: number, wander: number): { x: 
  */
 function planPaths(L: Landscape): Line[] {
   const rand = mulberry32(L.seed * 104729 + 11)
+  const set = L.pathSettings
   const cost = (x: number, z: number) => {
     if (outside(x, z) < 3.5) return Infinity
     // No crossing: a path that met the stream would want a bridge.
     if (L.streamEdge(x, z) < 1.6) return Infinity
     const s = L.slope(x, z)
-    // Steep ground costs the square of its steepness; the open valley is kept as a sightline.
-    return 1 + 40 * s * s + 3 * L.corridor(x, z)
+    // Steep ground costs the square of its steepness (40, as tuned); the open valley is kept as a sightline.
+    return 1 + set.slope * s * s + 3 * L.corridor(x, z)
   }
   const lines: Line[] = []
   const finish = (shape: { x: number[]; z: number[]; s: number[] }, width: number, strength: number, fadeTown: boolean, seed: number): Line => {
@@ -1729,12 +1813,12 @@ function planPaths(L: Landscape): Line[] {
       // comes to a single building's door rather than through the meadow.
       const woods = L.forest(shape.x[i], shape.z[i])
       const lawn = 1 - 0.3 * smooth(3, 0, outside(shape.x[i], shape.z[i]))
-      return width * (0.85 + 0.3 * (0.5 + n.noise(s * 0.13, 2.5))) * (1 - 0.35 * woods) * lawn
+      return set.width * width * (0.85 + 0.3 * (0.5 + n.noise(s * 0.13, 2.5))) * (1 - 0.35 * woods) * lawn
     })
     const wear = shape.s.map((s) => {
       // A few worn-thin stretches, where the grass has come back across it.
       const faded = 1 - 0.55 * smooth(0.6, 0.85, 0.5 + n.noise(s * 0.085, 5.5))
-      return strength * smooth(0, 14, s) * (fadeTown ? smooth(0, 2.5, len - s) : 1) * faded * (0.85 + 0.15 * (0.5 + n.noise(s * 0.21, 9.5)))
+      return Math.min(1, strength * set.wear) * smooth(0, 14, s) * (fadeTown ? smooth(0, 2.5, len - s) : 1) * faded * (0.85 + 0.15 * (0.5 + n.noise(s * 0.21, 9.5)))
     })
     return { ...shape, half, wear }
   }
@@ -1744,10 +1828,13 @@ function planPaths(L: Landscape): Line[] {
     if (inGap(x, z) || toBuilding(x, z) < 0.6) return Infinity
     if (L.streamEdge(x, z) < 1.6) return Infinity
     const s = L.slope(x, z)
-    return 1 + 40 * s * s + 3 * L.corridor(x, z)
+    return 1 + set.slope * s * s + 3 * L.corridor(x, z)
   }
   // The main path: from the forest to the west, through the meadow, and on to the west building's
   // outer (west) wall — it ended 3.5 units short of the grid at first.
+  // As many as the Lab asks for, in this order; the random draws stay in the same order too,
+  // so fewer paths leave the rest exactly where they were.
+  if (set.count < 1) return lines
   const bearing = ((232 + rand() * 30) * Math.PI) / 180
   const from = atBearing(bearing, edgeToward(L, bearing) + 22)
   const to: [number, number] = [-11.2, -1.5 + rand() * 4]
@@ -1763,7 +1850,7 @@ function planPaths(L: Landscape): Line[] {
   for (let i = 0; i < main.x.length; i++) if (Math.abs(outside(main.x[i], main.z[i]) - 10) < Math.abs(outside(main.x[j], main.z[j]) - 10)) j = i
   const b2 = ((198 + rand() * 26) * Math.PI) / 180
   const far = atBearing(b2, edgeToward(L, b2) + 18)
-  const branchWalk = route([main.x[j], main.z[j]], far, cost)
+  const branchWalk = set.count >= 2 ? route([main.x[j], main.z[j]], far, cost) : null
   if (branchWalk && branchWalk.length > 4) {
     // Walked from the forest end in, so it fades in the forest and meets the main path at full strength.
     const b = finish(shapePath(branchWalk.reverse(), L.seed * 31 + 3, 0.8), 0.42, 0.6, false, L.seed * 31 + 4)
@@ -1775,7 +1862,7 @@ function planPaths(L: Landscape): Line[] {
   const b3 = ((128 + rand() * 28) * Math.PI) / 180
   const start = atBearing(b3, edgeToward(L, b3) + 14)
   const corner: [number, number] = [FOOTPRINTS[1].x1 + 0.7, FOOTPRINTS[1].z1 + 0.8 + rand() * 0.6]
-  const eastWalk = route(start, corner, toward)
+  const eastWalk = set.count >= 3 ? route(start, corner, toward) : null
   if (eastWalk && eastWalk.length > 4) lines.push(finish(shapePath(eastWalk, L.seed * 31 + 5, 0.9), 0.36, 0.62, true, L.seed * 31 + 6))
   return lines
 }

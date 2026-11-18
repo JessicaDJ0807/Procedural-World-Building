@@ -2,7 +2,7 @@ import type { GrowthState } from '../wildform/growth'
 import type { Draper } from './draper'
 import type { BuildGame, Counters, Environment, GameEvent, LoadableWorld } from './game'
 import type { Living } from './living'
-import type { LandscapeSettings } from './landscape'
+import { pathSettings, streamSettings, type LandscapeSettings } from './landscape'
 import { D, H, W } from './town'
 
 /**
@@ -199,7 +199,8 @@ function landscapeOf(v: unknown): LandscapeSettings | undefined {
   const seed = Number(v.seed)
   const density = v.density
   if (!Number.isInteger(seed) || (density !== 'low' && density !== 'medium' && density !== 'high')) return undefined
-  return { seed, density }
+  // The stream's and paths' parameters, if the world has any: brought into range, the rest defaults.
+  return { seed, density, ...(isObject(v.stream) ? { stream: streamSettings(v.stream) } : {}), ...(isObject(v.paths) ? { paths: pathSettings(v.paths) } : {}) }
 }
 
 /** Three non-negative whole counts, or undefined if the save has none (or none that make sense). */
