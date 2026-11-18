@@ -6,7 +6,7 @@ import { Drapers, type Draper, type DraperEvent, type Edge } from './draper'
 import type { GrowthState } from '../wildform/growth'
 import { appendSurfaces, livingPatches, roofPatches, surfaceOverlay, type SurfaceInfo } from './surfaces'
 import { townToBuilding } from './townBuilding'
-import { COMBOS, COMBO_NAMES, KIND_TITLES, MATURE_AT, connects, findNode, livingSupport, livingVolumes, planLiving, type Combo, type Living, type NodeSurfaces } from './living'
+import { COMBOS, COMBO_NAMES, KIND_TITLES, MATURE_AT, connects, findNode, livingSupport, livingVolumes, nodeCandidates, planLiving, type Combo, type Living, type NodeCandidate, type NodeSurfaces } from './living'
 import { findDraperLiving } from './draperLiving'
 import type { Density, LandscapeSettings } from './landscape'
 
@@ -339,6 +339,20 @@ export class BuildGame {
       left -= n
     }
     return added
+  }
+
+  /**
+   * What the node rules find now — the same cells, skip list and surfaces as the next look —
+   * for the debug view. A reading: nothing forms. (A Draper's meetings are read from its
+   * curtain by other rules, draperLiving.ts, and aren't listed.)
+   */
+  nodeCandidates(): NodeCandidate[] {
+    return nodeCandidates(this.sim.growth, this.building, this.living, this.declined, this.nodeSurfaces)
+  }
+
+  /** The step of the next look for a node. */
+  get nextNodeCheck(): number {
+    return this.lastNodeCheck + NODE_EVERY
   }
 
   private advanceStretch(steps: number): Living[] {

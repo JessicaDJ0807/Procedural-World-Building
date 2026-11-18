@@ -17,6 +17,7 @@ needs. In **Play** and the
 - [The premise: they live on the green](#the-premise-they-live-on-the-green)
 - [Navigation](#navigation)
 - [Behavior](#behavior)
+  - [In plain words](#in-plain-words)
   - [Two layers: what it wants, how it goes about it](#two-layers-what-it-wants-how-it-goes-about-it)
   - [Needs and nature](#needs-and-nature)
   - [Choosing a goal](#choosing-a-goal)
@@ -68,6 +69,92 @@ building is rebuilt (a block placed, a structure maturing) and as growth
 spreads or withers — and inhabitants find their cells again by position.
 
 ## Behavior
+
+### In plain words
+
+*The idea first; the exact rules and numbers follow in the sections below.*
+
+**Two questions.** Every inhabitant is always answering two:
+
+1. **What do I want?** — its **goal**: explore, rest, seek shelter or observe.
+   It picks one by scoring all four. (The studio's *What it wants* bars.)
+2. **What am I doing right now?** — its **state**: idle, travelling,
+   resting… (The boxes in the studio's state graph.)
+
+A goal is the plan; a state is the current step of the plan. One goal passes
+through several states. Getting out of the rain:
+
+| | State | What's happening |
+| --- | --- | --- |
+| 1 | Idle | It stands and thinks. It's raining, so it picks the goal *seek shelter*. |
+| 2 | Travelling | It walks to the canopy. |
+| 3 | Resting | It arrives and stays put under it. |
+| 4 | Idle | The rain stops; it decides what to do next. |
+
+Every plan starts and ends at **Idle**.
+
+**Reading the state graph.**
+- **Boxes** are the states it can be in; the green one is where it is now.
+- **Arrows** are the allowed ways to move from one state to another — no
+  arrow, no direct jump.
+- **The gold arrow** is the move it just made.
+- **Click a box** to read what it means, what leads into it, and what leads
+  out.
+- **"Any state"** (dashed) is a shortcut for things that can happen whatever
+  it's doing — the plants under it wither, say, and it's *Stranded*. Rather
+  than an arrow from every box, those arrows come from "any state".
+
+The states fall into four groups, and the whole graph is really
+**think → walk → stay → think again**:
+
+| Group | States | |
+| --- | --- | --- |
+| Thinking | Idle | standing still, deciding |
+| Walking somewhere | Exploring, Discovering, Travelling | somewhere unfamiliar; to a new structure; to a chosen spot to rest, shelter or look out |
+| Staying put | Resting, Observing | until its energy is back, or the weather clears; looking round from up high |
+| Something went wrong | No route, Stranded | it can't reach where it wanted; the plants under it died |
+
+**How it picks a goal.** Whenever it's at Idle, it gives each of the four
+goals a score — a few reasons for and against, added up — and picks the
+highest.
+
+| Goal | Pushes it up | Pulls it down |
+| --- | --- | --- |
+| Explore | feeling curious; a curious nature; something new nearby, especially a structure it hasn't seen | a cautious nature; tiredness; discomfort; bad weather or cold out there |
+| Rest | tiredness; a cautious nature (a little); a comfortable spot nearby | — |
+| Seek shelter | somewhere reachable feels much better than here (under a canopy in the rain); discomfort | the shelter being far |
+| Observe | a good high lookout nearby (a balcony, a roof); a little curiosity | tiredness; discomfort; bad weather out there |
+
+Two examples, the same inhabitant:
+- **Rested, curious, a sunny spring day, a new bridge just matured nearby.**
+  Explore scores high (curious, and something new in reach); Rest near zero
+  (not tired); Seek shelter isn't possible (it's comfortable already); Observe
+  middling (there's a balcony). It explores — and walks to the bridge.
+- **Tired, in a downpour.** Explore drops (tired, and wet out there), Rest
+  rises, and Seek shelter jumps (under the canopy is much drier). It seeks
+  shelter.
+
+What feeds the scores:
+- **Needs, which change as it lives.** *Energy* falls while it walks and comes
+  back while it rests. *Comfort* follows the place it stands — rain, cold and
+  sun lower it, cover overhead raises it. *Curiosity* builds while it stays in
+  one place, and new places use it up.
+- **Nature, which never changes.** Each is born more or less *curious* and more
+  or less *cautious*, so the same situation sends a curious one exploring and
+  a cautious one to places it knows.
+- **Only places it can actually reach.** It only considers places it can walk
+  to over the plants. With no shelter in reach, *Seek shelter* is greyed out
+  with the reason — never chosen and then failed.
+
+**It doesn't flip-flop.** Once it has a goal it sticks with it: it looks again
+every 1.5 seconds, but changes course only if something else is clearly better
+(by 0.25), or it's exhausted (energy under 0.1 while exploring). And the goal
+it has just finished is a little less appealing straight away, so it doesn't
+do the same thing over and over.
+
+**Seeing it happen.** On the Inhabitants page, click a goal under *What it
+wants* to see exactly these reasons with their numbers; under *Try it*, change
+its energy or curiosity, or make it rain, and watch the choice change.
 
 ### Two layers: what it wants, how it goes about it
 
@@ -271,12 +358,33 @@ drooping leaf with no route, or stranded.
 - **They follow the world:** the graph is rebuilt every 10 growth steps (at
   most twice a second) and whenever the building is.
 - **They only read the game.** Nothing about them is saved; a loaded or new
-  world gets new inhabitants (`game.epoch`).
+  world gets new inhabitants (`game.epoch`) — with the same natures, which come
+  from the world's seed and their number, but fresh needs and new places.
 - **Show Inhabitants** — in Play's Worlds menu, and a checkbox under the
   Lab's Growth controls — hides the models only: the inhabitants carry on
   walking underneath, and reappear where they have got to. It is a display
   preference kept in the browser (`localStorage`), shared by Play and the
   Lab, and never counted as a change, so it never marks a world unsaved.
+- **In plain words — when and where one appears:**
+  - *When.* They live only on walkable green — plants on walls and roofs, or
+    a mature structure; never bare wall or the lawn. The game wants one for
+    every 120 walkable cells, up to six, and checks each time it rebuilds its
+    map of where they can walk (every 10 growth steps, or at once when
+    something is built or a structure matures; at most twice a second). So a
+    freshly planted world has none; as the plants spread, the first appears at
+    120 walkable cells, the second at 240. They arrive with growth, never on a
+    timer.
+  - *Where.* Green that connects is one region (each building covered in
+    plants is its own until a bridge joins them). A new one goes only to a
+    region of at least 30 cells — never a scrap — and to the one with fewest
+    inhabitants so far, the biggest among equals: two green buildings each get
+    one before either gets a second. The cell in it is chosen from the world's
+    seed, so it's repeatable. It already knows the structures in its region;
+    what joins later is a discovery.
+  - *How.* It appears on that cell, standing on the green, at Idle — no
+    arrival animation yet.
+  - *Never.* None leave or die: if the plants under one wither it is
+    *Stranded* and waits. The count never goes down when the green shrinks.
 - While they're alive the scene keeps drawing — at 30 frames a second when
   shown, 8 while hidden — since they move with the game paused.
 

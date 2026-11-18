@@ -913,3 +913,204 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Debug: a small disclosure under the season card; technical, quiet, out of the way --- */
+
+.debug-panel {
+  margin-top: 8px;
+  width: 248px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 14px;
+  background: rgba(255, 253, 247, 0.86);
+  box-shadow: 0 6px 24px rgba(40, 50, 30, 0.14);
+  backdrop-filter: blur(6px);
+  color: #3d4636;
+  font-size: 12.5px;
+}
+
+.debug-panel:not(.is-open) {
+  width: auto;
+  display: inline-block;
+}
+
+.debug-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  color: #3d4636;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.debug-badge {
+  margin-left: auto;
+  padding-left: 8px;
+  color: #8a6d2f;
+  font-weight: 500;
+}
+
+.debug-body {
+  display: grid;
+  gap: 8px;
+  max-height: calc(100vh - 230px);
+  padding: 0 12px 12px;
+  overflow-y: auto;
+}
+
+.debug-body fieldset {
+  margin: 0;
+  padding: 6px 0 0;
+  border: none;
+  border-top: 1px solid #e3e0d6;
+}
+
+.debug-body legend {
+  padding: 0;
+  color: #8a8f80;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.debug-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.debug-row input {
+  margin: 0;
+  accent-color: #5c9a4e;
+}
+
+.debug-swatches {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.debug-swatches i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
+}
+
+.debug-sim {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.debug-sim button {
+  padding: 3px 8px;
+  border: 1px solid #d8d4c8;
+  border-radius: 8px;
+  background: #fff;
+  color: #3d4636;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.debug-sim button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.debug-sim button[aria-pressed='true'] {
+  border-color: #5c9a4e;
+  background: rgba(92, 154, 78, 0.14);
+}
+
+.debug-step,
+.debug-speed-value {
+  color: #6b7262;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.debug-speed {
+  display: grid;
+  grid-template-columns: auto 1fr 40px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.debug-speed input {
+  accent-color: #5c9a4e;
+}
+
+.debug-note {
+  margin: 4px 0 0;
+  color: #8a8f80;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* Labels the Debug layer places over the scene: small, monospace, never in the way of a click. */
+.debug-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.debug-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(20, 24, 18, 0.72);
+  color: #f2f2ea;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10.5px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.debug-label.is-formed {
+  border-left: 3px solid #ff6fae;
+}
+
+.debug-label.is-ready {
+  border-left: 3px solid #f08a3c;
+}
+
+.debug-label.is-meets {
+  border-left: 3px solid #f0b03c;
+}
+
+.debug-label.is-gathering {
+  border-left: 3px solid #e8d27a;
+  opacity: 0.85;
+}
+
+.debug-label.is-crowded {
+  border-left: 3px solid #9a9a9a;
+  opacity: 0.7;
+}
+
+.debug-label.is-inhabitant {
+  border-left: 3px solid #ffffff;
+}
+
+.debug-label.is-no-route,
+.debug-label.is-stranded {
+  border-left-color: #e48a7a;
+}

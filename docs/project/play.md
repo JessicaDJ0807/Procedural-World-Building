@@ -25,6 +25,7 @@ navigation.
 - [Inhabitants](#inhabitants)
 - [The landscape](#the-landscape)
 - [Leaving with unsaved changes](#leaving-with-unsaved-changes)
+- [The Debug layer](#the-debug-layer)
 - [Type](#type)
 - [Code](#code)
 - [Limitations](#limitations)
@@ -312,6 +313,92 @@ Esc stay, Back again warns again, Leave without saving leaves, and Save and
 leave refuses an empty name, then saves (to the dev store) and leaves. Closing
 the tab still gets the browser's own prompt.
 
+## The Debug layer
+
+![Play with the Debug panel open and paused at step 380: growth nodes dotted over the tower in each plant's colour, the walkway labelled with its combination and how far it is from maturing, two gathering Climber + Spreader clusters labelled 6/6 cells but 19/25 and 12/25 steps old, and inhabitants labelled with their state](../images/play-debug.png)
+
+A developer and presentation tool, not a feature: **Debug**, under the season
+card, collapsed by default, every view off. It draws what the simulation is
+doing over the scene (`src/build/debugLayer.ts`) and meters its time
+(`BuildViewport`); the panel is `src/game/DebugPanel.tsx`. Nothing in it is
+saved with a world, and none of it decides anything: every view reads the
+simulation's own data.
+
+| View | What it draws | From |
+| --- | --- | --- |
+| Growth nodes | a dot for every layer of growth, in its plant's colour, raised by its level in the cell's stack, and a faint line to the layer it grew from; the Draper's strand nodes as far as each has grown | the growth's layer stack and `entryParent`; each strand's `path` up to its `length` |
+| Growth direction | an arrow at every active tip, along its direction | `tipDirections()` — the vector `advance` scores each neighbour's "along" term by; a Draper strand's next path segment |
+| Surface suitability | a translucent tile on every cell: green ≥ 0.6, yellow 0.3–0.6, red above 0.1, grey never entered (≤ 0.1, glass, blocked) | `world.suitability` for the selected plant — the fields' number, which already folds in pitched-roof runoff, a deck's top or underside, and each species' liking (`surfaces.ts`) |
+| Interaction radius | white dots where both plants share a cell; a blue ring of 1.2 round each gathering place (the cells inside are the ones counted); a violet 5-unit ring round each structure's node, inside which none may form | `contacts()`; the node rules' `NODE_RADIUS` and `SPACING` |
+| Mutation points | markers by status — gathering (yellow), qualifies (amber), the next to form (orange), too near a structure (grey), formed (pink) — labelled with the combination, cells against cells needed, age against age needed, and the step it forms at | `BuildGame.nodeCandidates()` |
+| State & target | each inhabitant's state and goal; a line to where it's going | the agent's `behavior`, `goal`, `destinationPos` |
+| Navigation paths | its planned route, cell by cell; where it has been since the view was turned on (grey) | the agent's `path` — the A* route it is walking |
+
+**Mutation points are the game's own rule, not a prediction.** `findNode` and
+`nodeCandidates` share their code: the cells considered, the gathering within
+`NODE_RADIUS`, the age and spacing tests. A test checks, at every one of 420
+steps of the bridge fixture, that the candidate marked *next to form* is
+exactly the node `findNode` returns. A Draper's meetings are found by other
+rules (read from its curtain, `draperLiving.ts`) and aren't shown as
+candidates — the structures they make are.
+
+**Reading changes nothing.** The growth's accessors (`tipDirections`,
+`tipSpecies`) return copies; `nodeCandidates` forms nothing. Tested: a game
+read by every view's data at every step for 500 steps ends with the same
+growth, the same structures, born at the same steps, as one never read.
+
+**Simulation.**
+- *Pause* freezes growth, the inhabitants, the weather and the water; the
+  camera, the overlays and the panel carry on. (Play's own ▶/❚❚ pauses growth
+  only — the inhabitants keep walking, as they always have.)
+- *Step 1 tick* — paused — is one growth step, and the inhabitants, weather
+  and water moved on by the time a step takes at the current ⏩ speed,
+  1 / (8 × speed) seconds, so they keep pace with the growth. Presses that
+  arrive within one slow frame are each a tick (at first two presses in one
+  frame were one).
+- *Speed*, 0.25× to 4×, scales one time value that growth, inhabitants,
+  weather and water all read, on top of ⏩. Growth still advances by whole
+  steps from an accumulator, so a given amount of simulated time gives the
+  same steps whatever the frame rate; the inhabitants integrate their own
+  time step, as before.
+
+Measured in the browser: simulated seconds per real second came out 0.250,
+0.500, 1.000, 2.000 and 4.000 at the five speeds, and growth 8.6, 15.0, 31.9,
+62.5 and 127.5 steps per second of frame time against 8, 16, 32, 64 and 128
+expected (Play at 4×; the headless renderer ran four to six frames in five
+seconds, hence the rounding). Paused, the step held for three seconds; three
+Step presses gave exactly three steps.
+
+**Out of the way.** Debug objects cast no shadows and can't be clicked (every
+`raycast` does nothing; picking only ever tests the town, lawn and plants):
+with every view on, clicking the grid still placed a block. The technical
+views draw over the scene, without depth testing — just off the surface, the
+growth nodes were hidden in the plants' own foliage; the suitability tiles
+are depth-tested, on their surfaces. Labels are small, monospace, and never
+placed on top of one another (a label that would overlap one already placed
+is left out). Everything off, the layer is empty and hidden: on, then off,
+the frame was identical to the pixel. A restart or a loaded world is drawn at
+once, and while any view is on the render loop stays awake at 15 fps, so the
+views follow the world even paused.
+
+**Cost**, on a grown world of 10,375 cells and 2,845 layers: rebuilding the
+nodes 1.5 ms, directions 0.1, suitability 2.4, the node rules' candidates 6.6
+(they compare each candidate cell with the rest), radius 0.3; each at most
+four times a second, only when its data changed. The inhabitants' views,
+ten times a second.
+
+**Not drawn, because the data isn't there:**
+- *A collision radius at growth tips.* The plants don't collide: they
+  interact by growing into the same cell (layering). The only distances in
+  the rules are the node rules' 1.2 and 5, which is what the radius view
+  shows.
+- *Mutation candidates for the Draper* (above).
+- *A traveled path* isn't recorded by the inhabitants; the grey trail is
+  recorded by the view itself, from when it was turned on.
+- *Suitability for the Draper*: it hangs from edges and has no wall
+  suitability, so with the Draper selected the view shows the Climber's (it
+  says so).
+
 ## Type
 
 Everything the game says — title, objective, coach, voice, the win — is in
@@ -320,6 +407,12 @@ stay in the app's sans. The panels are pale and rounded, floating on the
 scene, unlike the site's dark chrome.
 
 ## Code
+
+The Debug layer: `src/build/debugLayer.ts` (the views), `src/game/DebugPanel.tsx`
+(the panel), the timing in `BuildViewport`, `BuildGame.nodeCandidates` and
+`living.ts`'s `nodeCandidates` (the node rules, shared with `findNode`), and
+`WildGrowth.tipDirections` / `tipSpecies` (read-only copies);
+`tests/debug.test.ts`.
 
 `src/game/`:
 

@@ -190,9 +190,10 @@ const STAGES: Stage[] = [
       'Leaves and stems are instanced meshes; each instance carries its birth step, and a vertex shader opens leaves and thickens stems with age — no geometry rebuilt as plants grow.',
       'The sky is a shader dome with fBm clouds; ground cover is a tile grid broken into patches by value noise, a leaf per tile fixed by a hash so leaves never jump.',
       'The render loop draws only while something moves; idle, nothing is drawn. Shadow maps refresh only while a structure is still growing.',
+      'Play’s Debug panel draws the simulation’s own data over the scene — every growth layer, each tip’s direction, each cell’s suitability, the node rules’ radii and candidates (shared with the game’s findNode), the inhabitants’ states and routes — and meters its time: pause, one step, a shared time scale. It reads, never decides.',
     ],
-    numbers: ['leaves open over 30 steps', 'ground tiles 0.5 units', '0 frames drawn when idle'],
-    code: ['src/wildform/wildVegetation.ts', 'src/green/vegetation.ts', 'src/build/sky.ts', 'src/build/groundCover.ts', 'src/renderLoop.ts'],
+    numbers: ['leaves open over 30 steps', 'ground tiles 0.5 units', '0 frames drawn when idle', 'debug views rebuilt ≤ 4×/s, ≤ 6.6 ms'],
+    code: ['src/wildform/wildVegetation.ts', 'src/green/vegetation.ts', 'src/build/sky.ts', 'src/build/groundCover.ts', 'src/renderLoop.ts', 'src/build/debugLayer.ts'],
   },
   {
     id: 'saving',

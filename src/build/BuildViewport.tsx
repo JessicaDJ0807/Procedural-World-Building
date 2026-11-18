@@ -24,6 +24,7 @@ import { InhabitantsView } from '../inhabitants/inhabitantMesh'
 import { KINDS, KIND_NAMES, type Combo, type Kind } from './living'
 import { livingObject, type LivingObject } from './livingMesh'
 import { D, W } from './town'
+import { DebugLayer, type DebugOptions } from './debugLayer'
 import { TOWN_SCALE } from './townBuilding'
 import { buildTown, cellX, cellZ, worldToCell } from './townMesh'
 
@@ -103,11 +104,18 @@ type Props = {
   /** After a successful planting of Climber or Spreader, with the cell. */
   onPlanted?: (species: number, cell: number) => void
   onReport: (report: GameReport) => void
+  /**
+   * The Debug layer (debugLayer.ts): what to draw over the scene, and the simulation's
+   * timing — frozen, a time scale for growth, inhabitants and weather alike, and a Step
+   * counter. Undefined, or all off at scale 1: the scene and its timing as they always were.
+   */
+  debug?: DebugOptions
 }
 
 /** A press that moves less than this many pixels is a click, not an orbit. */
 const CLICK_SLOP = 5
 const STEPS_PER_SECOND = 8
+const DEBUG_NONE: DebugOptions = { nodes: false, directions: false, suitability: false, radius: false, mutations: false, inhabitants: false, paths: false, paused: false, timeScale: 1, stepToken: 0 }
 const MAX_STEPS_PER_FRAME = 24
 const NOTE_MS = 3600
 const GROUND_EVERY = 16
@@ -276,6 +284,13 @@ export function BuildViewport(props: Props) {
       groundAt = game.sim.step
     }
     const maturedSeen = new Set<number>()
+
+    // The Debug layer: drawn in growth units with the plants, its labels over the canvas.
+    const debugLayer = new DebugLayer(container)
+    grown.add(debugLayer.group)
+    let debugStep = latest.current.debug?.stepToken ?? 0
+    // Dev only: real and simulated seconds summed over frames, so a check can read the time scale's effect independent of frame rate.
+    const timing = { frames: 0, seconds: 0, simSeconds: 0 }
 
     // The inhabitants: they read the game and move themselves; nothing here writes to the world.
     const population = latest.current.inhabitants !== undefined ? new Population() : null
@@ -807,26 +822,61 @@ export function BuildViewport(props: Props) {
       decor.group.visible = latest.current.decorations !== false
       applyLook()
       const { running, speed } = latest.current
+      // The Debug layer's timing: one time scale for everything that moves with time — growth,
+      // inhabitants, weather, water — and a freeze that stops them all (the camera and the
+      // overlays carry on). Off (scale 1, not frozen), `simDelta` is `delta`: as it always was.
+      const dbg = latest.current.debug
+      const frozen = !!dbg?.paused
+      const simDelta = frozen ? 0 : delta * (dbg?.timeScale ?? 1)
       // Inhabitants keep the loop awake: at 30 fps shown, and slowly while hidden, since they carry on.
       const living = !!population && population.agents.length > 0
       const shown = latest.current.inhabitants === true
-      loop.setMaxFps(running ? 30 : living ? (shown ? 30 : 8) : 60)
+      const inspecting = DebugLayer.active(latest.current.debug)
+      loop.setMaxFps(running ? 30 : living ? (shown ? 30 : 8) : inspecting ? 15 : 60)
       if (population && inhabitantsView) {
-        population.update(game, delta, !!latest.current.look)
+        population.update(game, simDelta, !!latest.current.look)
         inhabitantsView.visible = shown
-        inhabitantsView.sync(population.agents, delta)
+        inhabitantsView.sync(population.agents, simDelta)
       }
-      if (running) {
-        pending += delta * STEPS_PER_SECOND * speed
+      if (running && !frozen) {
+        pending += simDelta * STEPS_PER_SECOND * speed
         const whole = Math.min(Math.floor(pending), MAX_STEPS_PER_FRAME)
         if (whole > 0) advance(whole)
         pending = Math.min(pending - whole, 1)
         if (vegetation) vegetation.uStep.value = game.sim.step + pending
         // The weather moves while time does; paused, it holds still like the plants.
-        fx?.update(delta, renderer.domElement.height)
-        decor.tick(delta)
+        fx?.update(simDelta, renderer.domElement.height)
+        decor.tick(simDelta)
       } else if (vegetation) {
         vegetation.uStep.value = game.sim.step
+      }
+      // Step: frozen, one growth step — and everything else moved on by the time one step takes
+      // at this speed (1 / (8 × speed) s), so the inhabitants and weather keep pace with the growth.
+      // As many ticks as Steps were pressed since the last frame: two presses inside one slow
+      // frame were one tick at first.
+      if (dbg && dbg.stepToken !== debugStep) {
+        const presses = Math.max(0, Math.min(20, dbg.stepToken - debugStep))
+        debugStep = dbg.stepToken
+        if (frozen) {
+          const tick = 1 / (STEPS_PER_SECOND * speed)
+          for (let k = 0; k < presses; k++) {
+            advance(1)
+            if (population && inhabitantsView) {
+              population.update(game, tick, !!latest.current.look)
+              inhabitantsView.sync(population.agents, tick)
+            }
+            fx?.update(tick, renderer.domElement.height)
+            decor.tick(tick)
+          }
+          pending = 0
+          if (vegetation) vegetation.uStep.value = game.sim.step
+          report()
+        }
+      }
+      if (import.meta.env.DEV) {
+        timing.frames++
+        timing.seconds += delta
+        timing.simSeconds += simDelta
       }
       const now = performance.now()
       if (game.sim.revision * 1000 + game.revision !== drawnRevision) syncPlants()
@@ -841,12 +891,13 @@ export function BuildViewport(props: Props) {
       keepCameraInWorld()
       decor.setCamera(camera.position)
       renderer.render(scene, camera)
+      debugLayer.update(game, population, dbg ?? DEBUG_NONE, latest.current.species, camera, container.clientWidth, container.clientHeight, delta)
       const noting = placeNote(now)
       if (running && now - reportAt > 300) {
         reportAt = now
         report()
       }
-      return running || noting || (!!population && population.agents.length > 0) || gate(camera.position, controls.target)
+      return running || noting || inspecting || (!!population && population.agents.length > 0) || gate(camera.position, controls.target)
     })
     const resize = () => {
       const { clientWidth: w, clientHeight: h } = container
@@ -866,6 +917,8 @@ export function BuildViewport(props: Props) {
       w.__buildGame = game
       w.__buildRefresh = refresh
       w.__inhabitants = population
+      w.__debugLayer = debugLayer
+      w.__debugTiming = timing
       w.__landscape = () => ({ landscape, decor })
       w.__buildGround = ground
       w.__buildDrapes = drapes
@@ -908,6 +961,7 @@ export function BuildViewport(props: Props) {
         renderer.shadowMap.needsUpdate = true
         controls.update()
         renderer.render(scene, camera)
+        debugLayer.update(game, population, latest.current.debug ?? DEBUG_NONE, latest.current.species, camera, container.clientWidth, container.clientHeight, seconds)
         return game.sim.step
       }
       w.__buildProject = (p: number[]) => {
@@ -971,6 +1025,7 @@ export function BuildViewport(props: Props) {
       dome.geometry.dispose()
       fx?.dispose()
       inhabitantsView?.dispose()
+      debugLayer.dispose()
       decor.dispose()
       ghost.geometry.dispose()
       renderer.dispose()
@@ -978,7 +1033,10 @@ export function BuildViewport(props: Props) {
     }
   }, [])
 
-  const { revision, stepToken, running, surfaceView, hint, decorations } = props
+  const { revision, stepToken, running, surfaceView, hint, decorations, debug } = props
+  useEffect(() => {
+    api.current?.wake()
+  }, [debug])
   // The render loop sleeps when nothing moves: showing or hiding the decorations,
   // or a new land or density (pages re-render this on changing them), must wake it.
   const landKeyNow = `${props.game.landscape.seed}:${props.game.landscape.density}`

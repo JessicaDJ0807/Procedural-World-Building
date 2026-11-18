@@ -171,6 +171,51 @@ const cellPos = (b: Building, i: number): V3 => [b.px[i], b.py[i], b.pz[i]]
  */
 export type NodeSurfaces = { site: (cell: number) => boolean; facing: (cell: number) => V3 }
 
+/** One place the node rules looked at, and what they found there. */
+export type NodeCandidate = {
+  cell: number
+  combo: Combo
+  /** Cells of the same combination within NODE_RADIUS, and how many it needs. */
+  count: number
+  need: number
+  /** Their average age, steps, and the age needed. */
+  age: number
+  minAge: number
+  /** Too near an existing structure (SPACING). */
+  crowded: boolean
+  /** It meets every rule. */
+  meets: boolean
+  /** The first that meets every rule, in `findNode`'s order: the next look (every 10 steps) forms its node here. */
+  ready: boolean
+}
+
+export const NODE_RULES = { NODE_RADIUS, MIN_AGE, MIN_HEIGHT, SPACING, NEED }
+
+/** The cells the node rules consider, by combination: walls, roofs and structure surfaces at least MIN_HEIGHT up, holding a combination. */
+function nodeCells(g: WildGrowth, b: Building, skip: Set<number>, surface?: NodeSurfaces) {
+  const byCombo: Partial<Record<Combo, number[]>> = { 'climber+layered': [], 'spreader+layered': [], 'climber+spreader': [] }
+  for (let i = 0; i < g.N; i++) {
+    if (!(b.segment[i] >= 0 || surface?.site(i)) || b.py[i] < MIN_HEIGHT || skip.has(i)) continue
+    const c = comboOf(g, i)
+    if (c) byCombo[c]!.push(i)
+  }
+  return byCombo
+}
+
+/** How many cells of the combination gather within NODE_RADIUS of `c`, and their average age. */
+function gather(g: WildGrowth, b: Building, cells: number[], c: number) {
+  const MAX_LAYERS = g.stack.length / g.N
+  const p = cellPos(b, c)
+  let n = 0
+  let age = 0
+  for (const o of cells) {
+    if (len(add(cellPos(b, o), scale(p, -1))) > NODE_RADIUS) continue
+    n++
+    age += g.step - g.entryBirth[g.stack[o * MAX_LAYERS + g.depth[o] - 1]]
+  }
+  return { n, age: n ? age / n : 0 }
+}
+
 /**
  * Looks for a place a node can form: a wall cell where enough of one
  * combination has gathered, mature enough, clear of other structures.
@@ -178,29 +223,42 @@ export type NodeSurfaces = { site: (cell: number) => boolean; facing: (cell: num
  */
 export function findNode(g: WildGrowth, b: Building, living: Living[], skip: Set<number> = new Set(), surface?: NodeSurfaces): { cell: number; combo: Combo } | null {
   if (living.length >= MAX_STRUCTURES) return null
-  const byCombo: Partial<Record<Combo, number[]>> = { 'climber+layered': [], 'spreader+layered': [], 'climber+spreader': [] }
-  for (let i = 0; i < g.N; i++) {
-    if (!(b.segment[i] >= 0 || surface?.site(i)) || b.py[i] < MIN_HEIGHT || skip.has(i)) continue
-    const c = comboOf(g, i)
-    if (c) byCombo[c]!.push(i)
-  }
-  const MAX_LAYERS = g.stack.length / g.N
+  const byCombo = nodeCells(g, b, skip, surface)
   for (const combo of ['climber+layered', 'spreader+layered', 'climber+spreader'] as Combo[]) {
     const cells = byCombo[combo]!.sort((p, q) => b.py[q] - b.py[p])
     for (const c of cells) {
       const p = cellPos(b, c)
       if (living.some((l) => len(add(l.node, scale(p, -1))) < SPACING)) continue
-      let n = 0
-      let age = 0
-      for (const o of cells) {
-        if (len(add(cellPos(b, o), scale(p, -1))) > NODE_RADIUS) continue
-        n++
-        age += g.step - g.entryBirth[g.stack[o * MAX_LAYERS + g.depth[o] - 1]]
-      }
-      if (n >= NEED[combo]! && age / n >= MIN_AGE) return { cell: c, combo }
+      const { n, age } = gather(g, b, cells, c)
+      if (n >= NEED[combo]! && age >= MIN_AGE) return { cell: c, combo }
     }
   }
   return null
+}
+
+/**
+ * Every place the node rules would look at now, with what they find — for the
+ * debug view. The same cells, the same gathering, the same thresholds as
+ * `findNode` (tested to agree: its first `ready` candidate in this order is
+ * `findNode`'s node). Only a reading: it forms nothing. One entry per cell
+ * holding a combination; the debug view thins them.
+ */
+export function nodeCandidates(g: WildGrowth, b: Building, living: Living[], skip: Set<number> = new Set(), surface?: NodeSurfaces): NodeCandidate[] {
+  const byCombo = nodeCells(g, b, skip, surface)
+  const out: NodeCandidate[] = []
+  let first = living.length < MAX_STRUCTURES
+  for (const combo of ['climber+layered', 'spreader+layered', 'climber+spreader'] as Combo[]) {
+    const cells = byCombo[combo]!.sort((p, q) => b.py[q] - b.py[p])
+    for (const c of cells) {
+      const p = cellPos(b, c)
+      const crowded = living.some((l) => len(add(l.node, scale(p, -1))) < SPACING)
+      const { n, age } = gather(g, b, cells, c)
+      const meets = !crowded && n >= NEED[combo]! && age >= MIN_AGE
+      out.push({ cell: c, combo, count: n, need: NEED[combo]!, age, minAge: MIN_AGE, crowded, meets, ready: meets && first })
+      if (meets) first = false
+    }
+  }
+  return out
 }
 
 /** The average direction each species was growing in, near a point: horizontal unit vectors, or zero. Exported for the Architecture page's Growth view. */

@@ -126,7 +126,10 @@ The project is the app's **Project** section, nine pages:
   architecture, the challenge, and future environments (not built).
 - **Play** — the game, full-screen at `/play`, and the page to try first: a
   goal always on screen, a guided opening, a playful voice, the seasons, the
-  inhabitants, blocks and seeds counted, and a proper win.
+  inhabitants, blocks and seeds counted, and a proper win. A **Debug** panel
+  draws what the simulation is doing — growth nodes and tip directions, surface
+  suitability, the node rules' radii and mutation candidates, inhabitants'
+  states and routes — with Pause, Step and a time scale.
   [`play.md`](docs/project/play.md)
 - **Lab** — the same game with every control and number showing, the weather
   sliders included: for taking it apart. [`build.md`](docs/project/build.md)

@@ -4,6 +4,8 @@ import { DRAPER_SWATCH } from '../build/draperMesh'
 import { BuildGame } from '../build/game'
 import { BUDGET } from '../build/town'
 import { WorldMenu, type WorldSession } from '../build/WorldMenu'
+import { DebugPanel } from './DebugPanel'
+import { DEBUG_OFF, type DebugOptions } from '../build/debugLayer'
 import { UnsavedDialog } from './UnsavedDialog'
 import { useShowInhabitants } from '../inhabitants/visibility'
 import { newLandscape, nextDensity, useShowDecorations } from '../build/landscapePrefs'
@@ -72,6 +74,8 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
   const [species, setSpecies] = useState(0)
   const [running, setRunning] = useState(false)
   const [speed, setSpeed] = useState(4)
+  // The Debug layer: display and timing only, kept for this visit — never saved with a world.
+  const [debug, setDebug] = useState<DebugOptions>(DEBUG_OFF)
   const [revision, setRevision] = useState(0)
   const [report, setReport] = useState<GameReport | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -277,7 +281,7 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
 
   return (
     <div className="game">
-      <BuildViewport game={game} tool={tool} species={species} running={running} speed={speed} stepToken={0} revision={revision} surfaceView="off" onPlanted={onPlanted} onAdvance={applyWeather} look={look} inhabitants={showInhabitants} decorations={showDecorations} onReport={onReport} />
+      <BuildViewport game={game} tool={tool} species={species} running={running} speed={speed} stepToken={0} revision={revision} surfaceView="off" onPlanted={onPlanted} onAdvance={applyWeather} look={look} inhabitants={showInhabitants} decorations={showDecorations} onReport={onReport} debug={debug} />
 
       <div className="game-top-left">
         <button type="button" className="game-chip" onClick={exit} aria-label="Leave the game">
@@ -297,6 +301,7 @@ export function GamePage({ navigate }: { navigate: (route: Route) => void }) {
             {now.next.emoji} {now.next.name} in {now.left.toLocaleString()} steps
           </p>
         </div>
+        <DebugPanel value={debug} onChange={setDebug} suitabilityFor={species === 1 ? 'Spreader' : species === 0 ? 'Climber' : 'Climber (the Draper hangs from edges and has no wall suitability of its own)'} step={report?.step ?? game.sim.step} />
       </div>
 
       <div className="game-objective" role="status">

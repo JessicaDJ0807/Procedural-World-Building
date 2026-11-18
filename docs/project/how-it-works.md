@@ -429,6 +429,14 @@ three.js, WebGL.
   something moves; idle, nothing is drawn. Shadow maps refresh only when
   needed — every eight steps while a structure is still growing.
 
+**The Debug layer** (Play's Debug panel, `debugLayer.ts`) draws the
+simulation's own data — growth layers, tip directions, `world.suitability`,
+the node rules' radii and candidates (`nodeCandidates`, sharing `findNode`'s
+code and tested to agree with it), the inhabitants' states, targets and A*
+routes — and meters time with one scale for growth, inhabitants and weather,
+a freeze, and a one-step tick. It reads and never decides; see
+[play.md](play.md#the-debug-layer).
+
 ## 12. Saving
 
 `src/build/worldState.ts`, `src/firebase/worlds.ts`. A world is saved as

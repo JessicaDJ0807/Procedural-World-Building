@@ -70,7 +70,7 @@ export const SUBSTRATE = [
   [1, 1.2, 0],
 ]
 const WALL = 0
-const ENTER_CUTOFF = 0.1
+export const ENTER_CUTOFF = 0.1
 /** A fall in env below this is shrugged off. */
 const STRESS_TOLERANCE = 0.12
 /** Chance per step, per unit of stress beyond the tolerance. */
@@ -231,6 +231,16 @@ export class WildGrowth {
   /** The cells active tips are on, for the interaction view. */
   tipCells(): Int32Array {
     return this.tips.slice(0, this.tipCount)
+  }
+
+  /** Each active tip's direction — the one `advance` scores neighbours along — three numbers a tip. A copy: reading it changes nothing. */
+  tipDirections(): Float32Array {
+    return this.tipDir.slice(0, this.tipCount * 3)
+  }
+
+  /** Each active tip's species. A copy. */
+  tipSpecies(): Uint8Array {
+    return this.tipSp.slice(0, this.tipCount)
   }
 
   reset(seed: number, seeds: Seed[], world: World) {
