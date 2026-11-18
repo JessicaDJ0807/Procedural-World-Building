@@ -23,6 +23,7 @@ navigation.
 - [The win](#the-win)
 - [Seeds planted](#seeds-planted)
 - [Inhabitants](#inhabitants)
+- [The landscape](#the-landscape)
 - [Leaving with unsaved changes](#leaving-with-unsaved-changes)
 - [Type](#type)
 - [Code](#code)
@@ -194,6 +195,21 @@ weather, so it turns as gradually:
   the way), a dull brown-green in winter. Stems stay as they are. The tint is
   patched onto each leaf material the game draws, after the leaf's own aging,
   so a young tip is still young-green first.
+- **The land turns with them.** At first only the forest's broadleaf canopy
+  took the tint: in autumn the shrubs, saplings, ferns and grass under orange
+  trees stayed summer-green. Each layer now follows by its own amount
+  (`seasonFx.tint`'s strength, `LandscapeDecor.seasonal`): broadleaves fully;
+  shrubs, tall shrubs and saplings 85%; ferns 80%, to bronze; grass tufts 45%,
+  toward straw like the golden lawn; conifers 10%, enough to sit in the
+  season's light while staying green — at 18% the firs went khaki and read as
+  dying. Flowers keep their colours, but their heads open with the year —
+  fuller in spring, a third in autumn, gone in winter.
+- **The stream and paths.** The water stays blue in autumn, against the
+  orange, with a few leaves floating down it; it runs a little fuller in
+  spring, and lower, cooler and greyer in winter with frost at its edges; its
+  reeds go gold, then die back;
+  fallen leaves gather along the paths and banks in autumn, and the paths'
+  earth shows paler in winter.
 - **The lawn, the sky and the light.** Summer: a deeper sky, warmer and
   stronger sun (2.9 against 2.6), a drier lawn. Autumn: a golden lawn, a warm
   horizon, lower light (2.3). Winter: a pale frosty lawn, a pale grey-blue
@@ -203,8 +219,12 @@ weather, so it turns as gradually:
   below, every drop (900) at 0.8 — so autumn's 0.72 pours and summer's 0.45
   barely spits; in winter the same rain falls as snow. Autumn also has
   falling leaves, spring a few petals.
-- **Winter's toll, visible.** When a plant layer withers, brown leaves drop
-  from that spot on the wall, lie on the lawn a moment, and fade.
+- **Winter's toll, visible.** When a plant layer withers, leaves drop
+  from that spot on the wall, lie on the lawn a moment, and fade. They're
+  brown through most of the year, but in autumn about four in five take the
+  season's oranges and reds: brown leaves dropping from the town, among
+  orange ones in the air and under orange trees, read as two different
+  things happening.
 
   ![Brown leaves falling from the tower in winter and lying round its foot](../images/play-fallen-leaves.jpg)
 
@@ -260,6 +280,15 @@ walkable cells, up to six), and go and see a structure when one joins the
 ground they can reach. **Show Inhabitants**, at the foot of the Worlds menu,
 hides them without stopping them; it's a display preference, so it never
 marks a world unsaved. See [Inhabitants](inhabitants.md).
+
+## The landscape
+
+The town stands in a procedural landscape — a meadow clearing in a forest,
+a ridge behind it, ground coloured by moisture and fertility, and grass,
+shrubs, ferns, saplings, rocks and flowers kept clear of the buildings (see [build.md](build.md#the-landscape)). The Worlds menu's
+*Landscape* group hides the decorations (a display preference, never an
+unsaved change), changes their density, or draws a new landscape — those two
+are saved with the world. Nothing in the land touches the game.
 
 ## Leaving with unsaved changes
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { firebaseReady } from '../firebase/config'
 import { useAuth } from '../firebase/authContext'
 import { describeFirestoreError } from '../firebase/configs'
@@ -96,6 +96,12 @@ const ago = (d: Date | null) => {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' })
 }
 
+/**
+ * An option at the foot of the menu: a check (`checked`), or an action that may
+ * show its current value (Density · Medium). `heading` starts a small group.
+ */
+export type DisplayItem = { label: string; checked?: boolean; value?: string; heading?: string; onClick: () => void }
+
 type Props = {
   game: BuildGame
   /** The game's change count now (from the report): the player's own edits. */
@@ -110,7 +116,7 @@ type Props = {
    * Display options shown at the foot of the menu — the game's Show
    * Inhabitants. Not world state: toggling one is never a change.
    */
-  display?: { label: string; checked: boolean; onChange: (v: boolean) => void }[]
+  display?: DisplayItem[]
   /** Open with My worlds showing (the game's "Continue a saved world"). */
   initialBrowse?: boolean
 }
@@ -322,17 +328,20 @@ export function WorldMenu({ game, changes, step, onReplaced, onSession, display,
                 My worlds…
               </button>
               {display?.map((d) => (
-                <button
-                  key={d.label}
-                  type="button"
-                  role="menuitemcheckbox"
-                  aria-checked={d.checked}
-                  className="world-menu-check"
-                  onClick={() => d.onChange(!d.checked)}
-                >
-                  <span aria-hidden="true">{d.checked ? '✓' : ''}</span>
-                  {d.label}
-                </button>
+                <Fragment key={d.label}>
+                  {d.heading && <span className="world-menu-heading">{d.heading}</span>}
+                  <button
+                    type="button"
+                    role={d.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+                    aria-checked={d.checked}
+                    className={`world-menu-check${d.heading ? ' is-first' : ''}`}
+                    onClick={d.onClick}
+                  >
+                    <span aria-hidden="true">{d.checked ? '✓' : ''}</span>
+                    {d.label}
+                    {d.value && <em>{d.value}</em>}
+                  </button>
+                </Fragment>
               ))}
             </div>
           )}

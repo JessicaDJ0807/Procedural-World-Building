@@ -25,6 +25,7 @@ are the player's; what the plants make of them is the simulation's.
 - [Growing in stages](#growing-in-stages)
 - [Build and grow are one loop](#build-and-grow-are-one-loop)
 - [Surfaces: roofs and living architecture](#surfaces-roofs-and-living-architecture)
+- [The landscape](#the-landscape)
 - [Ground spread](#ground-spread)
 - [Sky and light](#sky-and-light)
 - [The page](#the-page)
@@ -430,6 +431,549 @@ says so.
 green by one behavior's suitability (Climber, Spreader), or by how good a
 hanging anchor it is (Draper). The plants are hidden while it shows.
 
+## The landscape
+
+![The opening view: the two buildings in a meadow clearing in a shallow hollow, a blue stream winding across the meadow's far side at the foot of the wooded slope, a footpath coming in from the forest on the left, wildflower drifts, wooded slopes of broadleaves, firs and spires rising behind and to both sides, young trees, tall shrubs and saplings at its edge, a quiet margin round the buildings](../images/landscape.jpg)
+
+The ground round the town used to be one flat green field. It is now a
+procedural landscape (`landscape.ts`, drawn by `lawn.ts` and
+`landscapeDecor.ts`) — pure scenery: the simulation never reads it.
+
+**The town's ground is untouched.** Height is `lawnHeight` — the ground the
+game has always stood on — plus hills multiplied by a mask that is exactly 0
+within 3 units of the buildable grid and eases (smoothstep) to 1 by 14 units.
+So every block, every Draper root and every ground-cover leaf stands where it
+did, and there is no plateau edge to see. Measured: the same 1,200-step game
+(blocks, plantings, a Draper) gives the same goal step, structures, layer count
+and hash with the landscape as without; within 3 units of the grid, height
+equals `lawnHeight` exactly (tested on three seeds).
+
+**Terrain** — seeded 2D gradient (Perlin) noise, **domain-warped**: the
+coordinates are first pushed up to 9 units by a slow noise, so the rolls bend
+and run into each other instead of sitting on a lattice. Two octaves — broad
+rolls (one every ~35 units, ±1.5) and smaller undulations (~12 units, ±0.4) —
+grow from 0.7× at the meadow to 1.6× beyond 50 units from the grid (it was 0.6×
+to 1.6× over 70: the hills now come up soon enough to be a middle layer between
+the clearing and the ridge). (A third, fine ripple only made the ground look
+bumpy and is gone.) Over that, the hollow and the landforms below. Tops above 4
+units are eased toward 5.8 (`4 + 1.8·tanh((h − 4)/1.8)`): where the rim ran into
+the ridge the two stacked to 6.3. Tested on five seeds, over a grid: highest
+point under 6 (4.4–5.6 on four seeds), no slope steeper than 1 in 2 (0.43–0.50).
+The slope test used to sample one seed, which passed while three others ran
+to 0.59 once the rim existed — it checks five now.
+
+**The hollow.** The meadow was a flat lawn ringed by trees — a park, or an
+arena. Now the town sits in a shallow **hollow**: the ground lifts gently from
+11 units inside the clearing's edge, crests about 14 past it, and eases back a
+little beyond, so the land behind reads as a further layer rather than a wall
+(`shelter`). The trees at the edge stand on the rise, above the buildings' feet,
+and close the view round them. Not a ring: its height round the circle is
+noise sampled round a circle, from a low saddle to shoulders of 4 units or so,
+and it falls away along the open valley, which stays the clearing's way out.
+It gives way where the spur or the ridge's foot already climbs: stacked, the
+two rose together over the mask's few units to a slope of 0.59. Measured on
+four seeds: at the clearing's edge the ground is 0.46–0.68 units above the
+town's on average (it was 0.07–0.22), at the crest 2.0–2.4 (was 0.7–1.0), and
+the trees within 10 units of the edge stand on ground 1.1–1.5 up (was
+0.16–0.59). The grid itself is untouched — the hollow is inside the same mask
+as every hill. Seen from the opening view, wooded slopes rise behind and on
+both sides of the buildings, with the hazed far hills above them: foreground
+meadow, the town, the rising edge, the ridge.
+The lawn mesh is 320 units wide on a stretched grid (`x = 70u + 90u³`): vertices
+about 0.47 apart at the centre, where mown stripes need them, coarser toward
+the fogged edge — 90,601 vertices.
+
+**Three fields**, all 0–1 and reusable (by weather, seasons or anything
+placed later):
+- *elevation* — the land's height relative to the town's ground;
+- *relief* — the same, leaving out the hollow's rim: the hills and the ridge.
+  The rim is shaped land, not a crest, so moisture, ground colour and where
+  conifers lead a stand all read the relief. Read from the elevation, the rim
+  turned dry and olive and halved the grass (1,977 → 1,021 at the opening
+  view), left 111 of 685 ferns and 53 of 281 flowers, and made every stand at
+  the edge conifer-led;
+- *moisture* — slow noise, wetter in hollows and drier on crests (tested: mean
+  moisture in hollows above that on crests);
+- *fertility* — best at moderate moisture (waterlogged is poorer), on flat
+  ground, plus its own patchy noise.
+
+**Colour** blends from the lawn's green, by the fields, never by threshold:
+toward olive where it's dry, a cooler green where it's wet, a richer green
+where it's fertile, earth where it's poor and steep, moss in damp hollows.
+The palette is read as sRGB — read as linear it came out washed-out and pale.
+
+**Decorations** — grass, shrubs, ferns, saplings, rocks, small flowers,
+stones, reeds and fallen leaves — are placed by `scatter`: a jittered grid of
+candidates (for reeds, points along the stream), visited in a seeded order,
+each kept with probability *suitability × density*, with a minimum spacing for
+the larger kinds, up to a cap. Nothing is placed on a footpath, and nothing but
+reeds in the water.
+
+| Kind | Prefers | Clustered by | Nearest the grid | Medium cap | Medium, four seeds |
+| --- | --- | --- | --- | --- | --- |
+| Grass | fertile, not steep, out of the woods | its own noise field, or the meadow's patches (taller there, from 5 units off the grid) | 2.5 units, ramping up over 5 | 6,500 | 1,596–1,721 |
+| Shrubs | fertile; the meadow's edge | a band across the edge, loose clumps in the meadow; 1.1 apart | 7 units | 300 | 173–216 |
+| Ferns | moist, shaded: from 4 units inside the edge to ~20 past it, and the stream's banks | irregular drifts | 9 units | 900 | 460–739 |
+| Saplings | a wide band across the edge, from the meadow's margin into the young trees; never in the open valley | their own field; 1.0 apart | 10 units | 220 | 61–98 |
+| Rocks | poor, dry, steep | their own cluster field; 0.7 apart | 4 units | 200 | 200 |
+| Flowers | wildflower drifts in the meadow's patches, one colour each, and sparse accents on fertile, moderately moist ground | the drifts' own field; candidates every 0.5 | on the lawn only in the strongest drifts; never the protected ground | 700 | 241–355 |
+| Clover | irregular ground-cover patches, out of the woods | a warped field; only inside its patches | on the lawn only in the patches' hearts; never the protected ground | 1,600 | 1,534–1,600 |
+| Stones | beside the footpaths and at the water's edge, a few in the meadow | their own cluster field; 0.35 apart | 4 units | 140 | 140 |
+| Reeds | the stream's edge, from just in it to a unit up the bank; lush reaches, the insides of bends | clumps, not a hedge | — | 380 | 71–150 |
+| Fallen leaves | the paths' edges, the stream's banks, the forest's edge — shown in autumn only | their own field | 4 units | 650 | 630–650 |
+
+Low and High scale the caps and probabilities by 0.45 and 1.7. So the
+buildings keep a quiet margin, the middle ground is sparse grass and flowers,
+and the edge is layered — saplings ahead of the trees, shrubs and ferns under
+them — foreground, middle and background come from distance in the world, not
+from the camera.
+
+**Undergrowth, varied.** Shrubs were 420 near-identical leafy mounds, and many
+alike made a pattern; they are capped at 300 now, in three shapes, each
+stretched differently: a rounded mound and a low spreading cushion in the
+meadow, and — only at and past the forest's edge — a **tall** upright shrub
+about 1.4 high, clumps scattered through a vase that spreads toward the top (a
+first version, nine clumps one above another, read as a column of balls). A
+**fern** is eight fronds arching out and down from a crown, normals pointing
+up so it lights like the ground; a **sapling** is a thin stem and two small
+leaf clumps about 0.9 high. With the young trees below, they make the **middle
+layer** between the meadow and the mature forest: saplings from the meadow's
+margin into the young trees (the band was ±4 units and placed 45–79; it is
+±6.5 now), tall shrubs and ferns under them. When the clearing shrank and its
+rim rose, grass and flowers fell (to 1,456–1,590 and 88–136, from 2,358–2,501
+and 320–411) because the meadow was smaller and part of it sloped; the
+meadow's patches and wildflower drifts below brought them back up.
+
+**Drawn** as instanced meshes — one per kind (two for flowers, stem and head;
+three for shrubs), trunks and six crowns for the trees, near and far, soft contact
+shadows, and plain meshes for the water and the footpaths — none of which can be clicked: each mesh's `raycast` does nothing, and
+the viewport's picking only ever tests the town, the lawn and the plants —
+clicking straight on a shrub with Build or a plant picked builds and plants
+nothing (checked). Low-poly to sit with the town's blocks; tufts and ferns have
+their normals pointing up so they're lit like the ground (with true normals,
+half the blades went dark).
+
+**A forest clearing.** The meadow is a clearing in a forest. Its edge is an
+irregular closed curve: the clearing's radius in each direction is two octaves
+of noise sampled round a circle (so it closes on itself), 13–21 units on four
+seeds, mean about 17.7 — groves reaching toward the town in some directions,
+longer sightlines in others; never nearer than 12 (the grid's corners are 10
+from the centre, and trees keep 6 from the grid anyway). It was 15–31, mean 22:
+the meadow read as a park and the forest as a far-off wall. A *forest* field
+(0–1) rises from 3 units inside that edge to 8 past it, is broken into groves
+and gaps by a slow noise, and fills in beyond 14–34 units, so the far forest is
+a mass, not a row. Trees are scattered as **groves** round a jittered grid of
+centres every 8 units, each kept with probability set by the field, trunks 1.3
+apart. 2,600 trees at Medium, reaching 140 units out — the same count as
+before.
+
+**Habit.** A grove is *tight* (60%: five to fourteen trees within 1.5–2.8
+units) or *loose* (three to seven, 3–4.5 units apart). Together with the forest
+field's gaps that makes dense clumps, open groups and clearings. A first pass
+with loose groves spread 3.5–6.5 units, and 70 young groups spread ±5 units
+either side of the edge, speckled the meadow evenly — a scatter, not clusters.
+
+**Scale.** Trees are smaller: from 0.6× of the old size at the edge to 1.0×
+deep in the forest (it was 0.55–1.15, with accents to 1.45), and they mature
+over 20 units past the edge (was 15), so the forest rises gradually. Measured
+on four seeds: 0.64–0.67× within 5 units past the edge, 0.75–0.77× at 5–10,
+1.00× at 20–40; 0.92× on average within 50 units of the centre (was 1.10). A
+mature broadleaf now stands about as tall as the three-storey building; only
+the spires top it (~4.5–5 units; the old evergreens reached 5.5). Not smaller
+still: from 0.5×, edge trees read as dots beside the buildings. The ridge
+moved in with it (below), from 48 units to 42.
+
+**The edge.** Placed before the groves, so the budget can't be spent first:
+34 loose **groups of three to five young trees** (0.5–0.75×) from 1 unit inside
+the edge to 5 past it — slender trees, firs, the odd spire or broadleaf — and up
+to seven **accents** standing out in the meadow's margin with room round them:
+crooked trees, a weeping tree, a big broadleaf (1.0–1.25×). Weeping trees are
+the least likely: alone and large in the open their curtain read as a barrel
+(see below). The order from the town is meadow → flowers thinning → saplings
+and the first young groups → shrubs, tall shrubs and ferns → young mixed trees
+→ mature mixed forest; grass and flowers thin as the woods thicken, and the
+ground under them darkens to a forest floor. Tested: no tree within 6 units of
+the grid, the radius varies by over 6 units round the town and never comes
+nearer than 12, edge trees are smaller than deep ones.
+
+*Nearest first.* The grove centres used to be visited in a shuffled order, and
+the cap is reached long before every centre is visited — so the far forest,
+which has far more area, took most of the 2,600 and only 6 trees stood within
+10 units of the edge. They are visited nearest-first now (with a little
+jitter, so the cut-off isn't a circle): at the time, 81–109 trees within 10
+units of the edge on four seeds, the same 2,600 in all, reaching 110 units. More trees where
+they are seen, not more trees. (Earlier still, the forest ramped up over 14
+units, which left a ring of shrubs and 2 trees in 1,500 near the edge; it ramps
+over 11.)
+
+![From low in the meadow: the forest in layers — young trees and tall shrubs at the edge, broadleaves, firs and spires mixed behind, fading into the haze](../images/landscape-forest.jpg)
+
+**Landforms.** Over the rolling noise, placed for composition (the opening
+view looks north-west). The first version made them anisotropic Gaussians,
+and they read as smooth isolated domes; they are built from **ridged noise**
+now — `(1 − |n|)²`, sharp where the noise crosses zero, broad between:
+- a **ridgeline** behind the scene, ~42 units out (was 48), its crest a
+  wandering line and its height along the crest ridged noise — peaks up to
+  ~4.8 (was 5.5) with saddles
+  between, never a straight bar — with a long gentle fall toward the clearing
+  (20 units) and a shorter, steeper back (10);
+- a lower **spur** off its western end toward the south-west, so the skyline
+  steps and the ridge reads as part of a range;
+- shallow **troughs** out in the far land, inverted ridged noise carving long
+  valleys (to −1.2) between the rolls;
+- the open **valley** to the north-north-east, where the ground dips and the
+  forest stays sparse — a long sightline out of the clearing (tested: three
+  times fewer trees along it than to the east and west together).
+
+All smooth and beyond the mask, so the town's ground never sees them. Tested:
+the highest point in the north-west sector is over 3 units on seed 4 (the crest
+wanders, so the test takes the sector's maximum, not one sample).
+
+**Six tree families**, each its own silhouette:
+
+| Family | Silhouette | Medium, four seeds |
+| --- | --- | --- |
+| Broad canopy | a rounded deciduous crown of 16 leafy clumps, lopsided, its underside a little flattened | 1,132–1,311 |
+| Slender | a light, open young deciduous tree: a trunk leader and four branches, each ending in a flattened leaf clump, on a pale trunk | 287–306 |
+| Fir | a shorter, broader conifer: six ragged tiers, cool dark green | 513–654 |
+| Spire | a tall, narrow conifer: nine tight tiers tapering to a long point, darker and bluer than the fir | 422–482 |
+| Crooked | an accent: a trunk that bends away as it rises, a side limb, flat layered pads of foliage — a windswept pine; leans hard | 34–40 |
+| Weeping | an accent: a dome with a curtain of foliage hanging nearly to the ground, in damp hollows | 7–12 |
+
+Fir, spire and crooked keep their green through the year (the seasons give
+them only a touch of their colour, 10%); the broadleaves turn fully, and the
+undergrowth with them — see [Play](play.md#seasons).
+
+**Mixed stands.** A grove has a *leading* family and companions. The leader is
+drawn, not decided: a conifer-led stand is likelier on high or steep ground
+(spires highest), but possible anywhere, and a slow `standMix` noise field,
+independent of the terrain, moves the odds about. "High" is the relief, not the
+elevation — the hollow's rim is high all round. 50–85% of a grove follow its
+leader; the rest are companions — firs and broadleaves among spires, conifers
+and young slender trees among broadleaves, now and then a crooked or (if damp)
+a weeping tree. The previous pass gave each grove its family from the terrain,
+with 88% following it: conifers stood in stands, but the ridge side of the
+clearing was 76–86% conifers and the east 0–1% — one side firs, the other
+round trees. Now, within 60 units, conifers are **27–65% of the trees in every
+eighth of the compass** on four seeds (tested: between 15% and 75%).
+
+Silhouettes that didn't work: a broad crown flattened hard on a long trunk read
+as an umbrella on a stick; a slender tree of spheres stacked up a pole read as
+a column of balls. And one bug sat under three of them: every flattened clump
+was built `blob(…).scale(…)` — placed, then scaled about the origin — which
+scaled its height off the ground too. The slender tree's leaf clumps sank down
+its branches, leaving bare twig tips poking out of the crown; the weeping
+tree's dome sank inside its curtain, so the curtain's tops stood above it — the
+barrel; and the crooked tree's first pads lay as dark slabs far below its
+branches. Clumps are now shaped about their own centre, then placed
+(`shaped`).
+
+**Light and haze** — soft, warm morning light: a warm sun (`#ffedd2`, 2.75 —
+it was 3.0) and a stronger, cooler sky fill
+(`#c9d6e8`, 1.4, was 1.15) with a green bounce from the ground (`#93a072`), so
+shaded sides read as cool green, not grey. Shadows are soft-edged (PCF with a
+blur radius of 4 — a penumbra of a few pixels, checked close up). The sun's
+shadow map covers the meadow and its edge (±19 units, 3,072²), so the nearest
+trees cast real shadows; every tree and shrub also stands on a soft contact
+shadow, and so does every ground-floor block of the town, so the buildings sit
+on the grass rather than hover over it. Haze starts at 55 units (it was 45, and
+34 before that) and thickens to 190: the meadow, the buildings and the
+clearing's edge stay crisp, and only the far forest and the ridge recede. Each
+season's palette moves from these (spring 2.75, summer 2.95, autumn 2.45,
+winter 2.0).
+
+**Foliage shading.** Crowns are smooth-shaded, slightly lumpy clumps, each
+shaded from its own shape, lighter on top and at the rim, so it reads as
+foliage, not a faceted solid. The first shrubs were two big flat-shaded lumps
+and read as dark rocks. In Play the broadleaf canopy and the undergrowth
+take the season's tint, each by its own amount; evergreens keep nearly theirs.
+
+**The camera.** The opening view is 16° down and 31 units out from the
+south-east (36° round from south), aimed at (−1.2, 3.2, −2.6) — a little behind
+the buildings and above the ground: the buildings sit in the lower middle,
+larger than before, with the gap between them side to side, less empty lawn in
+the foreground, and the ridge's conifers rising behind them against the sky.
+A grown world — a tower between the two, bridges, Drapers — fits the same frame
+without running into the toolbar. (26° down at 25 units filled the frame with
+the buildings and showed no forest; 31° at 32 showed the forest but the ridge
+stood above the frame; 15° at 36, the last version, left the buildings small over a wide
+foreground of lawn.)
+
+![The opening view through the year: spring, summer, autumn with the broad canopies orange among green evergreens and the stream still blue, winter with snow, a greyer stream and a paler path](../images/landscape-seasons.jpg) Orbit, pan and zoom are
+as before, with three additions:
+- panning keeps the target over the town and a margin round it (26 × 22
+  units), moving the camera with it, so a long drag can't lose the town in the
+  forest;
+- the camera never goes below the ground, which on the hills it could;
+- trees within 5 units of the camera dissolve (a dithered fade in their
+  shader — no transparency sorting), so a low orbit or a zoom near the edge
+  never puts a trunk across the view.
+
+**The stream.** A small stream springs on the ridge's wooded slope to the
+north-west, runs down to the clearing's north margin, follows the ridge's foot
+10–12.5 units off the grid — behind both buildings in the opening view, the
+middle ground between the meadow and the hills, never between them — and
+leaves by the open valley, where the hollow drains, into the haze 155 units
+out (156–162 units long on four seeds, its nearest 9.6–11.5 units off the grid). `planStream` lays it out by bearing in
+three runs — down from the spring, along the margin, out along the valley —
+then gives it a meander from noise across the line and, on the hillside and in
+the valley, draws it toward the lowest ground within three units. Those
+offsets are smoothed along the line before they're applied: chosen point by
+point, neighbours jumped by units and the line zigzagged into loops near the
+spring. The line is then evened out over about ±4 units and its corners
+rounded (Chaikin) — rounding alone works only within a point or two, and where
+the margin turns into the valley the stream made a V seen from above —
+and resampled every 0.6.
+
+*Its shape along the line* (`streamShape`). The first stream hardly varied: a
+half-width of 0.5–0.94 from one slow noise. Now the width comes from two noises
+over a narrower base (0.55–0.8), widens by up to half again round a bend, and
+swells into **pools** — about 1.8× as wide and deeper — at the three sharpest
+bends 10–110 units down, at least 16 apart. The inside of a bend is wider than
+its outside (up to ±0.3 of the half-width), so the two shores differ: a shallow
+**gravel bar** on the inside, a **cut bank** on the outside. Two slow fields along
+the stream give each reach a character — stony, lush, or neither, and open. And
+each point has a **pace** (0.75 ÷ half-width, held to 0.6–1.6: quicker where it
+narrows) and a **phase**, ∫ ds ÷ pace, which the shader and the floating leaves
+move along.
+
+*Downhill only, and below both banks.* Each point's water level is the lowest
+of: the last one's, less 1.2 mm, so the surface never rises downstream; its own
+ground less 24 cm (it was 12); and the ground a unit or two out on either side,
+by at most 0.35 more. Where the ground humps above that, the channel is cut
+through. That last bound is the important one. Running along the hollow's
+slope, the water's level came from its centre line only, and on its lower side
+the meadow 3 units out stood up to 0.8 *below* the water, its bank built up to
+meet it: water on a levee, which is what read as a ribbon laid on the grass.
+Measured now, over 96 sampled sides per seed, the ground beside the water dips
+more than 0.1 below it on 0 sides of seeds 1 and 42, 3 of seed 9 and 7 of seed
+4; uncapped, the bound made a 2.4-deep cut on a side slope at the ridge's foot,
+where there's no room for a bank that wide. Eight spring bearings are tried
+and the one kept needs the least cutting, never comes back within reach of its
+own banks (two water levels would meet in one bank), and doesn't run across a
+hillside too near the town for the bank it would need. It was first routed
+along the east margin — outside the opening view, but for a sliver at its edge.
+
+*Cut into the land, with a bank you can see.* `height` is the land plus the
+stream's channel (`channelAt`): a bowl under the water a fifth of its
+half-width deep, deeper in pools (a fixed depth under the spring's narrow
+trickle made its sides 1 in 1); at the water's edge, exactly the water level;
+then a small **lip**, up to 0.2 high over 0.65 units — taller on a bend's outside
+than its inside — and the rest of the rise blended into the land over a bank
+whose width grows with the cut and the ground either side (2.8 units plus 4 per
+unit of cut). The first banks were a smoothstep from the water, which starts
+flat: no edge to see. Now the ground stands 0.17–0.18 above the water 0.6 units
+past its edge, on average; a lip taking a share of the whole cut, the version
+before, stood at 1 in 1 where the cut was deep. The carve fades out 3–6 units
+off the grid, so the town's ground is exactly unchanged (tested at 0.25-unit
+spacing on five seeds).
+
+The lawn's triangles near the stream are 0.5–0.9 apart — too coarse to draw a
+lip under a unit wide. So the bed and banks are a **finer mesh of their own**
+(`bankStrip`): rows every 0.3 units, from the middle of the bed out 2–6 units
+past the edge, at the land's exact height and in its exact colours, fading out
+over its last stretch onto the lawn. The lawn is lowered 10 cm beneath it
+(`lawnSink`), so its coarser triangles can't poke through, and the mesh takes
+the lawn's seasonal colour, so the two never part. Terrain, bank mesh, water and
+everything standing on the banks read the same `height`. The bed is sand in the
+shallows and a darker olive-brown where it's deep; the lip is exposed earth,
+strongest on a bend's outside — the dark line that reads as a bank from the
+opening view; a bend's inside and the stony reaches show pale gravel; then damp,
+darker grass up the bank. The water is a flat ribbon at its level, each side as
+wide as the water is there, reaching just 0.12 past the edge, under the lip.
+(It reached 1.3× the half-width at first, under banks too gentle to show.)
+
+Hills are held under 1 in 2. The banks have their own bound: carving a level
+channel into a hillside already near 1 in 2 makes the uphill bank steeper than
+the hill, and holding the water below its lower side too makes it more so.
+Measured: 0.48–0.52 on four of five seeds; on seed 4, where it crosses a side
+slope at the ridge's foot near the town, 0.87 at most, with 10 of its 1,140 bank
+samples over 0.6 (tested: none over 0.9, under 2% over 0.6).
+
+*The water* is a shallow woodland stream, stylised: soft, muted blue that keeps
+its colour against autumn's orange. A deeper `#4d84a6` down the middle eases to
+a paler, greener `#86b4bf` in the shallows, by the ribbon's own depth; and it is
+translucent there — opacity 0.5 at the edge to 0.93 mid-stream — so the sandy
+bed shows at the rim and the water reads as having depth. The first water was
+one opaque sheet. Its patterns are laid out on the stream's phase, not across
+the world, so moving them at one rate moves them with the water, along its
+curves, quicker through narrows and slower in pools: long, faint flecks of
+light (two slow waves multiplied, so they come and go) and ripples in the
+normal only, so the sun leaves soft moving highlights — roughness 0.3, no
+environment map, no mirror. Up to six stones set in the stream get a thin,
+faint, broken line of water at their edge. Each is sized from the water where
+it stands — its foot 3 cm into the bed, its top 6–12 cm above the surface
+(tested). Placed at a fixed size, all of them ended 5–25 cm under once the
+stream was deepened, and only their rings showed: a bright band 0.3 wide that
+read as a white circle in the river, with nothing in it. The time is real time, not the game's, so at 4× the water is
+as calm; it stops while play is paused, like the weather.
+
+*The banks* follow the water and each reach's character, so they aren't
+decorated evenly. Reeds (nine curving blades and two cattails, 0.4–0.8 high)
+stand in clumps in the lush reaches and on a bend's inside, few on its outside
+— 71–150 on four seeds, in uneven runs (on seed 1, by 10-unit reach: 25, 5, 0,
+1, 4, 18, 5, 0, 1, 7). River stones gather in groups of two to five in the stony
+reaches and on gravel bars (`bankStones`, 35–61 per world): the shared scatter,
+capped with the meadow's stones, had put 0–11 at the water. Ferns and damp
+grass thicken on the lush banks; trees keep 1.3 units off; the stretches with
+neither stay open.
+
+![The creek from low on its bank, in summer and in autumn: the water sunk in its channel below a visible lip, paler and translucent at its edges, curving away into the trees between fern-covered banks, river stones in the foreground; in autumn the forest and the bank's plants gold and orange and the water still blue](../images/landscape-creek.jpg)
+
+![From above the opening view: the two buildings, the stream behind them at the foot of the wooded slope, widening round its bends, with a pale edge where its bed shows, reeds and river stones along it and a wildflower drift on its near bank, the footpath coming in from the forest on the left](../images/landscape-stream.jpg)
+
+**The footpaths.** One main path comes in from the forest on the west, across
+the meadow, and on to the west building's outer wall; a fainter trail branches
+off it to the south-west; and a fainter one still comes out of the
+south-eastern woods to the east building's far corner — three on each of four
+seeds. Routed, not drawn: A* over a 1-unit grid where a cell costs
+1 + 40 × slope² (+3 in the open valley, kept as a sightline), so a path takes
+the gentle way over the clearing's rim. Out in the meadow a path keeps 3.5 units
+off the buildable grid; it comes onto the town's lawn only to reach *one*
+building's outer side, never into the gap between the buildings or 4.5 units
+either side of it (`inGap`), never onto a wall, never within 1.6 of the stream.
+The east trail is routed on its own and never meets the main path. So no path
+runs from one building to the other — tested on four seeds: no path point in
+the gap, and no path within 4 units of both buildings — and nothing on the
+ground suggests that anything but the plants will join them. (At first the
+main path stopped in the meadow 3.5 units short of the grid, and the meadow
+round the buildings read as unfinished.) The inhabitants never walk the open
+lawn (`nav.ts`), so a path is scenery, not a route. The walk is rounded
+(Chaikin) and given a slow meander from noise across it, so the grid's
+straight runs and 45° turns don't show. It is drawn as a ribbon seven vertices
+across: a worn middle in muted earth that drifts in tone along it, two faint
+ruts, edges fading to nothing over the grass (vertex alpha) and pushed in and
+out by noise, so the outline is ragged; it is narrower under the trees, fades
+over 14 units into the forest and over 2.5 into trodden grass at its building,
+narrows on the town's lawn, has a few stretches worn thin where the grass has
+come back across it, and the grass either side of it is a little worn. It lies on the lawn's *drawn*
+surface (`surfaceHeight` interpolates the mesh's own triangles): the true
+terrain between vertices can sit centimetres above or below them, enough to
+bury a ribbon or float it. The first render showed no path at all — its
+triangles were wound facing down and culled. Trees keep a unit off a path's
+edge, so it runs through the woods in a gap; small stones gather beside it.
+
+**The meadow.** The open ground varies in drifts rather than evenly, in
+layers that each have a reason.
+- A *patch field* (two octaves, about 9 and 4 units across) makes grass denser
+  and, from 5 units off the grid, up to 1.7× taller — still under half a
+  storey, so nothing near the buildings hides a planting or an inhabitant — and
+  moves the ground's green lighter and yellower, or deeper.
+- A *broad tone*, about 30 units across, shifts the whole meadow's green from
+  one side to the other, and faintly the lawn's: the open ground between the
+  buildings isn't one flat green.
+- *Ground cover* — clover and creeping weeds, rosettes 0.3 across and a few
+  centimetres high, lit like the ground — grows only inside irregular patches:
+  a field read through coordinates warped by a slower noise, so a patch runs
+  out in lobes and fingers rather than a disc. The ground under a patch is a
+  little deeper green, so it reads from afar. (Spread thinner, with soft patch
+  edges, the first version read as dots everywhere.) 1,534–1,600 per world.
+- *Wildflowers* gather in drifts, each drift mostly one of five soft colours —
+  creamy white, lavender, pale pink, muted yellow, now and then blue — one
+  flower in five another, the ground under a drift washed in its colour. One
+  flower is a few pixels at play distance; a drift reads. 241–355 per world,
+  richer toward the woods.
+- A few small *bare-soil* patches out in the meadow, and gentle *swells* up to
+  12 cm about 7 units across between the town's ground and the clearing's edge
+  (16 cm took one seed's steepest slope to 1 in 2).
+
+**The protected ground.** The town's lawn stays open: only colour and things that
+lie flat reach it, and nothing at all reaches the *protected ground* — the gap
+between the buildings, 4.5 units either side of it, and 2.5 units round each
+building, where its plants climb, drape and spread (`inProtected`). On the rest
+of the lawn, clover comes only in the hearts of its patches (2–64 per world)
+and flowers only in the hearts of the strongest drifts, as clumps (0–25):
+singly, they read as dots sprinkled between the buildings. Within KEEP of the
+grid the height is exactly the town's ground, as before.
+
+**Landmarks.** Two groups of boulders, 0.7–1.3 across, three or four
+together: beside the main path where it comes out of the trees, and on the
+clearing's bank where the stream turns away into the valley. A boulder that
+would land on the path, in the water or within 6 units of the grid is left
+out: 4–6 stand on four seeds.
+
+**Accents** (`clearingAccents`): one of each, so each part of the clearing has
+something to know it by — a fallen log with moss along its top and a broken
+stub of a branch; three mossy stones; a ring of seven mushrooms; and a
+flowering shrub, its blossom pale pink and white. Each takes its own quarter
+of the compass, in a seeded order, so different worlds put them differently,
+at a spot where its kind belongs: the log and the mushrooms in the shade at the
+forest's edge, the mossy stones on damper ground, the blossom out in the open
+meadow. Never on the town's lawn, a path or a bank, at least 6 apart; trees
+keep 2.2 off them. Their first colours were given as raw vertex values — which
+are linear, so the bark came out a pale plank — and the blossom's flowers sat
+inside the shrub's mound.
+
+**Through the year**, from the same blended look as everything else — no
+calendar of its own: spring is the petals' weight, autumn the falling leaves',
+winter the snow's, summer what's left.
+- *Water:* clear blue in spring, a touch greener in summer, still blue in
+  autumn — the contrast to the orange — and cooler and greyer in winter, its
+  edges frosting over and its ripples damped. A little fuller in spring (the
+  surface 3.5 cm up its banks) and lower in winter (3 cm down).
+- *On the water:* in autumn, twenty-two leaves float down it, each following
+  the stream's own line at the water's pace there (`FloatingLeaves`), turning
+  slowly; one that passes the reach you can see comes back in upstream.
+- *Reeds* go a muted gold in autumn — their own material, at half the
+  undergrowth's tint (at the shrubs' strength they went orange) — and die back
+  to two thirds of their height in winter.
+- *Wildflowers:* their heads scale in the vertex shader — 1.1 in spring, 1 in
+  summer, a third in autumn, gone in winter (they used to bloom in the snow).
+- *Fallen leaves* (650 drifts on the paths' edges, the banks and the forest's
+  edge) are placed always and scaled in only in autumn; the paths' earth is
+  speckled with leaves too, and in winter shows paler and more exposed.
+- The meadow follows the lawn's golden autumn and frosty winter; reeds and
+  grass turn with the undergrowth, and the grass stands 10% taller in summer,
+  shorter in autumn and low in winter (its height in the vertex shader).
+- *Accents:* the flowering shrub's blossom opens and closes with the
+  wildflowers; the mushrooms are small in spring and summer, fuller in autumn,
+  gone in winter.
+Each is one uniform set when the look changes; nothing rebuilds.
+
+**Cost.** Measured in the browser at the opening view, Medium: 65 draw calls
+since the clearing's refinement (the ground cover and the four accents' meshes);
+it added about 150 ms to a new world's land, measured against the commit before
+it in the same session — the lawn's extra colour fields 115, the ground cover
+30. (The swells first slowed every height in the land by half: they are worked
+out inside the clearing only.) Before it: 56 draw calls
+and 3.5 million triangles a frame (shadow pass included); the river's
+refinement added three (the bank mesh, the stones in the stream and on its
+banks, the floating leaves) and about 90 ms to the decorations' build (233 →
+325 ms, the same session), mostly the bank mesh's heights and colours. On a new world or a
+density change, never per frame, the land takes about 875 ms: planning the
+stream and paths 30–60 ms, the lawn's heights and colours 470 ms, the
+decorations and forest 360 ms. Earlier versions of this section gave "about
+230 ms" — that was the decorations alone; the lawn's colours, never counted,
+took 600 ms. Adding the stream and paths took them to 870 ms (each lawn vertex
+built the terrain about 14 times over, through fields built from other
+fields); `colour` now builds each field once and hands it on — 400 ms, with
+identical results. The water (about 2,200 triangles) and paths (under 2,000)
+cost almost nothing; most of the rise is reeds and flowers. Most of the triangles are the broad crowns (1,280 each); mixing put
+fewer broad trees in the forest, so the frame is lighter than before it (37
+calls, 4.0 million), with eight more draw calls for the two new families and
+the tall shrub. The triangles were once 5.9
+million: an instanced mesh is culled as a whole, so every one of the 2,600
+trees was drawn into a shadow map that only covers ±19 units. Trees are now in
+two sets of meshes, and only those within 60 units cast shadows — beyond it,
+with the sun 38° up, no tree can reach the map (the derivation is beside `SHADOW_REACH` in `landscapeDecor.ts`).
+That split left the frame pixel-identical apart from the falling rain. The tree
+count is the same 2,600 throughout: better composition, not more objects.
+
+**Controls.** In Play, the Worlds menu's *Landscape* group; in the Lab, under
+Environment:
+- *Show decorations* — a display preference, kept in the browser, like Show
+  Inhabitants; never a change to the world.
+- *Density* (Low / Medium / High) and *New landscape* (a new seed) — saved
+  with the world, so they are changes (a world becomes unsaved). Growth, the
+  town and the inhabitants carry on untouched.
+
+**Saved** as the seed and density only (`landscape` in the save), never the
+objects: the same seed and density give the same land, so a reopened world's
+land is the same tuft for tuft (checked in the browser: 4,860 / 340 / 200 /
+700 after a reload). A new world's land takes the world's seed; a world saved
+before landscapes existed gets its own seed and Medium, so it is the same land
+every time it loads.
+
 ## Ground spread
 
 The plants on the walls creep out onto the lawn round their feet
@@ -474,7 +1018,10 @@ A clear day, for a playable sandbox (`sky.ts`):
 
 Sunlight is barely warm, the sky fill cool, and the haze pale blue-grey. The
 lawn is a fresh, slightly muted green (`#87a35c`), mown in stripes over the
-grid.
+grid. The stripes are half the contrast they were (+0.009 / −0.006 lightness,
+from +0.018 / −0.012): the grid is 14 × 14, most of the meadow in the opening
+view, and at full strength its broad bands made the clearing a sports lawn.
+Faint, they still show where the grid is.
 
 The page first borrowed the Site's golden hour. Its orange wash turned the
 lawn dusty and the plants olive, and a playable sandbox wants the clear
@@ -625,6 +1172,9 @@ these cases (`tests/seeds.test.ts`).
 | `draper.ts` | The Draper: edges and anchoring, gravity-led strands, contact and rooting, vigour, the veil, spreading onto living architecture |
 | `draperLiving.ts` | The Draper's meetings, read from its curtain, and the three forms they grow: root column, suspended walkway, hanging pod |
 | `draperMesh.ts` | Drapers drawn: tapering stems, hanging leaves and clusters, the lip, rooted bases |
+| `landscape.ts` | The land round the town: masked Perlin hills, elevation / moisture / fertility, colour, and where decorations stand |
+| `landscapeDecor.ts` | The decorations, drawn: instanced grass, shrubs, rocks and flowers, never raycast |
+| `landscapePrefs.ts` | Show decorations (a stored preference); density and new-landscape helpers |
 | `groundCover.ts` | Ground spread round wall feet and living roots, by species, patchy |
 | `sky.ts` | The clear-day sky dome and the scene's light colours |
 | `living.ts` | Mutation nodes, what grows from each combination, connections, shade and support |

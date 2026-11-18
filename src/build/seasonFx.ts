@@ -152,6 +152,7 @@ export class SeasonFx {
   private readonly turn: Float32Array
   private readonly pointMaterial: THREE.ShaderMaterial
   private nextWithered = 0
+  private scratch = new THREE.Color()
   private time = 0
   private look: SeasonLook | null = null
 
@@ -226,13 +227,17 @@ export class SeasonFx {
    * first. The cache key changes too: three shares compiled programs by
    * key, and two leaf materials whose wrapped shaders differ must not share.
    */
-  tint(materials: Iterable<THREE.Material | THREE.Material[]>) {
+  tint(materials: Iterable<THREE.Material | THREE.Material[]>, strength = 1) {
+    // How far this material follows the season, 0–1: shrubs nearly as far as the canopy,
+    // grass part of the way, conifers only a touch. Baked into the shader as a constant,
+    // so it's in the cache key too.
+    const k = strength.toFixed(3)
     for (const entry of materials) {
       for (const m of Array.isArray(entry) ? entry : [entry]) {
         if (this.patched.has(m)) continue
         this.patched.add(m)
         const inner = m.onBeforeCompile
-        const key = m.customProgramCacheKey() + '|season'
+        const key = m.customProgramCacheKey() + '|season' + k
         m.onBeforeCompile = (shader, renderer) => {
           inner.call(m, shader, renderer)
           Object.assign(shader.uniforms, this.uniforms)
@@ -241,7 +246,7 @@ export class SeasonFx {
             /* glsl */ `
             // The season's colour at the leaf's own brightness, so veins, young tips and shading survive.
             float seasonLum = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
-            diffuseColor.rgb = mix(diffuseColor.rgb, uSeasonColor * (0.55 + 1.1 * seasonLum), uSeasonMix);
+            diffuseColor.rgb = mix(diffuseColor.rgb, uSeasonColor * (0.55 + 1.1 * seasonLum), uSeasonMix * ${k});
             #include <alphamap_fragment>
             `,
           )
@@ -268,13 +273,24 @@ export class SeasonFx {
     this.lights.sky.intensity = look.skyIntensity
   }
 
-  /** Brown leaves dropping from these points (town units) — where plants just withered. */
+  /**
+   * Leaves dropping from these points (town units) — where plants just withered. Brown
+   * through the year, but in autumn the season's own orange and red, mixed with a few
+   * browns: brown leaves dropping from the town among orange ones falling from the air,
+   * under orange trees, read as two different things happening.
+   */
   wither(points: [number, number, number][]) {
     // A cold snap can wither hundreds of cells in one stretch: a sample reads the same, without emptying the pool at once.
     const keep = Math.min(1, 30 / Math.max(1, points.length))
+    const autumn = this.look?.leaves ?? 0
+    const colour = this.points.geometry.attributes.aColor as THREE.BufferAttribute
     for (const [x, y, z] of points) {
       if (Math.random() > keep) continue
       const i = WITHERED.start + this.nextWithered
+      const tones = Math.random() < autumn * 0.8 ? LEAVES.colours : WITHERED.colours
+      this.scratch.set(tones[Math.floor(Math.random() * tones.length)])
+      colour.setXYZ(i, this.scratch.r, this.scratch.g, this.scratch.b)
+      colour.needsUpdate = true
       this.nextWithered = (this.nextWithered + 1) % WITHERED.count
       this.pos[i * 3] = x + (Math.random() - 0.5) * 0.3
       this.pos[i * 3 + 1] = y

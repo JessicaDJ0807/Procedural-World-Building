@@ -143,7 +143,7 @@ const STAGES: Stage[] = [
     how: [
       'Four 500-step seasons; the season comes from the step alone, so a saved world returns in its season with nothing extra saved. Changes blend over 150 steps.',
       'Warmth is the one new growth rule: below 1, a tip idles a step with probability 1 − warmth.',
-      'The look follows: leaf shaders pull toward the season’s colour; the lawn, sky and light tint; rain (scaled by the real rain), snow, autumn leaves and petals fall; brown leaves drop where growth withers.',
+      'The look follows: leaf shaders pull toward the season’s colour — the town’s plants and the forest’s broadleaves fully, the shrubs, saplings, ferns and grass by their own amounts, conifers only a touch; the lawn, sky and light tint; rain (scaled by the real rain), snow, autumn leaves and petals fall; leaves drop where growth withers, in autumn’s colours in autumn.',
     ],
     numbers: ['winter warmth 0.15', 'tuned over 10 seeds: goal rate unchanged (4 of 10)', 'winter costs about a third of the plants'],
     code: ['src/game/seasons.ts', 'src/game/seasonLook.ts', 'src/build/seasonFx.ts'],
@@ -160,6 +160,25 @@ const STAGES: Stage[] = [
     ],
     numbers: ['graph rebuild 1–2 ms', 'one per 120 walkable cells, up to 6', 'walk 0.75 units/s'],
     code: ['src/inhabitants/nav.ts', 'src/inhabitants/agent.ts', 'src/inhabitants/population.ts'],
+  },
+  {
+    id: 'landscape',
+    title: 'Landscape',
+    technique: 'Masked, domain-warped Perlin terrain · ridged noise · a carved stream · A*-routed paths · seeded scatter',
+    summary: 'The land round the town: a clearing in a shallow hollow with a stream at the ridge’s foot and a footpath in from the forest, rolling hills and a ridge beyond, varied ground, a forest round it, and grass, shrubs, ferns, saplings, rocks and flowers — scenery the simulation never reads.',
+    how: [
+      'Height is the town’s ground plus two octaves of domain-warped Perlin noise (the coordinates pushed about by a slower noise first, so the rolls bend instead of sitting on a lattice), under a smoothstep mask that is exactly zero within 3 units of the grid — so every block, root and leaf stands where it always did.',
+      'Three 0–1 fields: elevation; moisture, wetter in hollows; fertility, best at moderate moisture on flat ground. They blend the ground’s colour — olive where dry, cooler where wet, earth where poor — and decide where things grow.',
+      'Decorations are scattered on a seeded jittered grid, each kept with probability suitability × density, clustered by noise, with minimum spacing for the larger kinds and a quiet margin round the buildings. A middle layer at the forest’s edge: saplings, groups of young trees, tall shrubs and ferns, so the meadow turns into forest gradually. Instanced meshes, never clickable.',
+      'The town sits in a shallow hollow: the ground lifts gently from inside the clearing’s edge to a rim about 2 units up, its height noise round the circle and open along the valley — so the trees at the edge stand above the buildings and close the view, without making an arena. Moisture, colour and the conifers’ odds read the relief without the rim, so it stays green meadow slope.',
+      'Landforms from ridged noise, (1 − |n|)², sharp where the noise crosses zero: a ridgeline behind the scene whose crest wanders, with peaks and saddles and a gentle front and steep back; a lower spur; shallow troughs far out; and an open valley kept clear of trees. (As smooth Gaussians they read as isolated domes.)',
+      'Beyond the meadow, a forest: the clearing’s edge is noise sampled round a circle (13–21 units out), a forest field breaks into groves and gaps, and trees are scattered as tight or loose Gaussian groves, visited nearest-first so the cap is spent where the trees are seen. Six families — broad and slender deciduous trees, short firs, tall spires, and crooked and weeping accents. Each grove has a leading family, drawn with odds that favour conifers on high ground but move with a slow noise field, and 50–85% of its trees follow it; the rest are companions — so stands are mixed and no side of the clearing is all one kind.',
+      'A stream springs on the ridge’s slope and leaves by the valley: laid out by bearing, meandered by noise, drawn toward low ground, wider round bends and into pools, its water never rising downstream and held below the ground on both sides. It is cut into the terrain — a bowl under the water, a small lip at its edge, banks wider where the cut is deeper — drawn by a bank mesh finer than the lawn, and its translucent water’s flecks and ripples move along the stream’s own phase, quicker through narrows.',
+      'Footpaths are routed by A* over a grid priced by slope², each to one building’s outer side, never into the gap between them or near the water — so nothing on the ground joins the buildings — then rounded, meandered and laid as ragged ribbons on the lawn’s drawn surface. A meadow patch field gathers taller grass, lobed patches of ground cover and one-colour wildflower drifts; four accents — a fallen log, mossy stones, mushrooms, a flowering shrub — each mark a quarter of the clearing; nothing stands on the protected ground round the buildings.',
+      'Saved as a seed and a density; the land regenerates exactly. Decorations can be hidden (a display preference) without changing the world.',
+    ],
+    numbers: ['mask 0 within 3 units, 1 by 14', 'clearing 13–21 units', 'ridge up to 4.8 high, 42 out', '2,600 trees, six families (medium)', 'rim ~2 units up at its crest', 'stream 156–162 units, ≥ 9.6 off the grid', 'no path in the gap between the buildings', 'land built in ~875 ms; 3.5 M triangles a frame'],
+    code: ['src/build/landscape.ts', 'src/build/features.ts', 'src/build/landscapeDecor.ts', 'src/build/lawn.ts'],
   },
   {
     id: 'rendering',
@@ -201,12 +220,13 @@ const TECHNIQUES: [string, string][] = [
   ['Bézier, helix and catenary curves; swept surfaces', 'Its geometry'],
   ['Flood-fill regions, A*, a state machine', 'Inhabitants'],
   ['Seeded random generator', 'Every run reproducible'],
+  ['Masked, warped Perlin terrain; ridged landforms; a carved stream; A*-routed paths; seeded scatter', 'The landscape round the town'],
   ['GPU instancing and age shaders; fBm and value noise', 'Rendering growth, sky and ground'],
   ['State-not-scene serialisation', 'Saving and loading'],
 ]
 
 const LOOP = ['blocks', 'rules', 'cells', 'fields', 'growth', 'grammar', 'living']
-const ALONGSIDE = ['draper', 'seasons', 'inhabitants', 'rendering', 'saving']
+const ALONGSIDE = ['draper', 'seasons', 'inhabitants', 'landscape', 'rendering', 'saving']
 
 export function ProjectHowItWorks({ navigate }: { navigate: (route: Route) => void }) {
   const go = (id: string) => document.getElementById(`how-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })

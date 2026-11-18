@@ -8,6 +8,8 @@ import { DRAPER_SWATCH } from './draperMesh'
 import { BuildGame } from './game'
 import { WorldMenu, type WorldSession } from './WorldMenu'
 import { useShowInhabitants } from '../inhabitants/visibility'
+import { newLandscape, useShowDecorations } from './landscapePrefs'
+import { DENSITIES, DENSITY_NAMES } from './landscape'
 import { COMBO_NAMES, type Combo, type Kind } from './living'
 import { BUDGET } from './town'
 import '../study/study.css'
@@ -134,6 +136,8 @@ function sunNote(azimuth: number): string {
  */
 export function BuildPage() {
   const [showInhabitants, setShowInhabitants] = useShowInhabitants()
+  const [showDecorations, setShowDecorations] = useShowDecorations()
+  const [, landBump] = useState(0)
   const game = useMemo(() => new BuildGame(), [])
   const [tool, setTool] = useState<Tool>('build')
   const [species, setSpecies] = useState(0)
@@ -197,7 +201,7 @@ export function BuildPage() {
   return (
     <div className="workspace green-workspace build-workspace">
       <div className="workspace-canvas">
-        <BuildViewport game={game} tool={tool} species={species} running={running} speed={speed} stepToken={stepToken} revision={revision} surfaceView={surfaceView} hint={hint} inhabitants={showInhabitants} onReport={setReport} />
+        <BuildViewport game={game} tool={tool} species={species} running={running} speed={speed} stepToken={stepToken} revision={revision} surfaceView={surfaceView} hint={hint} inhabitants={showInhabitants} decorations={showDecorations} onReport={setReport} />
         {intro && !report?.goal && (
           <div className="build-intro" role="note">
             <p>
@@ -425,6 +429,30 @@ export function BuildPage() {
             <Slider label="Sun direction" value={env.sunAzimuth} display={`${Math.round(env.sunAzimuth)}°`} min={-180} max={180} step={1} onChange={(v) => setEnvironment({ sunAzimuth: v })} />
             <p className="build-env-note">{sunNote(env.sunAzimuth)}</p>
             <p className="build-tip">Changing either shows, for a moment, how well every surface now suits the selected plant{species === 1 ? ' (Spreader)' : ' (Climber)'}: green good, yellow fair, orange poor, grey won’t grow.</p>
+            {/* The land round the town (landscape.ts): scenery only — the simulation never reads it. */}
+            <h4 className="build-subhead">Landscape</h4>
+            <label className="build-check">
+              <input type="checkbox" checked={showDecorations} onChange={(e) => setShowDecorations(e.target.checked)} />
+              Show decorations
+            </label>
+            <div className="build-speed">
+              <span>Density</span>
+              <div className="segmented" role="radiogroup" aria-label="Decoration density">
+                {DENSITIES.map((d) => (
+                  <button key={d} type="button" role="radio" aria-checked={game.landscape.density === d} className={`segmented-option${game.landscape.density === d ? ' is-active' : ''}`} onClick={() => (game.setLandscape({ density: d }), landBump((n) => n + 1))}>
+                    {DENSITY_NAMES[d]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="build-land-seed">
+              <span>
+                Seed <strong>{game.landscape.seed}</strong>
+              </span>
+              <button type="button" onClick={() => (newLandscape(game), landBump((n) => n + 1))}>
+                New landscape
+              </button>
+            </div>
           </section>
 
           {/* ---- Growth ---- */}

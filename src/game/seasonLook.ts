@@ -32,13 +32,13 @@ type Palette = {
 
 const PALETTES: Palette[] = [
   // Spring: fresh light green, the clear-day sky.
-  { leaf: '#a9d86a', leafMix: 0.28, lawn: [1, 1.04, 0.95], zenith: '#5f93cf', horizon: '#d8e6f1', sun: '#fff3e2', sunIntensity: 2.6, sky: 1.5, snow: 0, leaves: 0, petals: 0.5 },
+  { leaf: '#a9d86a', leafMix: 0.28, lawn: [1, 1.04, 0.95], zenith: '#5f93cf', horizon: '#d8e6f1', sun: '#ffedd2', sunIntensity: 2.75, sky: 1.4, snow: 0, leaves: 0, petals: 0.5 },
   // Summer: deep green, a deeper sky, warm strong light, a drier lawn.
-  { leaf: '#4e8a3a', leafMix: 0.22, lawn: [1.1, 1.0, 0.78], zenith: '#4a86cf', horizon: '#d6e6f4', sun: '#fff0d4', sunIntensity: 2.9, sky: 1.5, snow: 0, leaves: 0, petals: 0 },
+  { leaf: '#4e8a3a', leafMix: 0.22, lawn: [1.1, 1.0, 0.78], zenith: '#4a86cf', horizon: '#d6e6f4', sun: '#ffe8c8', sunIntensity: 2.95, sky: 1.4, snow: 0, leaves: 0, petals: 0 },
   // Autumn: orange and red leaves, a golden lawn, a warmer horizon and lower light.
-  { leaf: '#d9772b', leafMix: 0.62, lawn: [1.25, 0.98, 0.62], zenith: '#6f93bf', horizon: '#ecdcc4', sun: '#ffd8a6', sunIntensity: 2.3, sky: 1.4, snow: 0, leaves: 1, petals: 0 },
+  { leaf: '#d9772b', leafMix: 0.62, lawn: [1.25, 0.98, 0.62], zenith: '#6f93bf', horizon: '#ecdcc4', sun: '#ffd6a2', sunIntensity: 2.45, sky: 1.35, snow: 0, leaves: 1, petals: 0 },
   // Winter: dull brown-green, a pale frosty lawn, a pale sky, soft cool light.
-  { leaf: '#857a58', leafMix: 0.55, lawn: [1.4, 1.12, 1.6], zenith: '#94aac2', horizon: '#e7edf1', sun: '#e6eef8', sunIntensity: 1.8, sky: 1.65, snow: 1, leaves: 0, petals: 0 },
+  { leaf: '#857a58', leafMix: 0.55, lawn: [1.4, 1.12, 1.6], zenith: '#94aac2', horizon: '#e7edf1', sun: '#e8eef6', sunIntensity: 2.0, sky: 1.55, snow: 1, leaves: 0, petals: 0 },
 ]
 
 const C = PALETTES.map((p) => ({ leaf: new THREE.Color(p.leaf), zenith: new THREE.Color(p.zenith), horizon: new THREE.Color(p.horizon), sun: new THREE.Color(p.sun) }))

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { applyViewControls } from '../cameraControls'
+import { applyViewControls, clampTarget } from '../cameraControls'
 import { createCameraGate, startRenderLoop, wakeOnInput } from '../renderLoop'
 import { sunDirection } from '../green/fields'
 import { DAY, daySky } from './sky'
@@ -15,7 +15,9 @@ import { memoryDocs } from '../firebase/memoryDocs'
 import { SURFACE, SURFACE_NAMES, type SurfaceKind } from './surfaces'
 import { GLASS } from '../green/building'
 import { SPECIES_NAMES } from '../wildform/names'
-import { lawnMesh } from './lawn'
+import { lawnMesh, shapeLawn } from './lawn'
+import { Landscape } from './landscape'
+import { LandscapeDecor } from './landscapeDecor'
 import { SeasonFx, type SeasonLook } from './seasonFx'
 import { Population } from '../inhabitants/population'
 import { InhabitantsView } from '../inhabitants/inhabitantMesh'
@@ -96,6 +98,8 @@ type Props = {
    * are hidden. Undefined, there are none. Read once for whether they exist.
    */
   inhabitants?: boolean
+  /** Whether the landscape's decorations (grass, shrubs, rocks, flowers) are shown. A display preference: the land itself always is. */
+  decorations?: boolean
   /** After a successful planting of Climber or Spreader, with the cell. */
   onPlanted?: (species: number, cell: number) => void
   onReport: (report: GameReport) => void
@@ -149,40 +153,63 @@ export function BuildViewport(props: Props) {
     const sunDir = new THREE.Vector3()
     const dome = daySky(sunDir)
     scene.add(dome)
-    scene.fog = new THREE.Fog(DAY.haze, 34, 95)
-    const camera = new THREE.PerspectiveCamera(32, container.clientWidth / Math.max(container.clientHeight, 1), 0.3, 200)
-    camera.position.set(13, 12, 18)
+    // Haze starts past the meadow (45 units), so the buildings and the near trees stay crisp, and
+    // thickens out to 175: the forest and hills soften with distance. The land reaches 160 and the
+    // forest 140, so the haze softens them rather than hiding where they end.
+    scene.fog = new THREE.Fog(DAY.haze, 55, 190)
+    const camera = new THREE.PerspectiveCamera(32, container.clientWidth / Math.max(container.clientHeight, 1), 0.3, 420)
+    // The opening view: 16° down, 30 units out from the south-east, aimed just behind and above the
+    // two buildings. Aiming above the ground keeps the forested ridge to the
+    // north-west in the frame, its tree line against the sky, while the closer distance makes the
+    // buildings larger and trims the empty lawn in front of them. Earlier views: 26° at 25 units
+    // showed no forest; 31° at 32 lost the ridge above the frame; 15° at 36 showed the ridge but
+    // left the buildings small, low in the frame, behind a lot of empty grass.
+    // Centred a little east of midway (x −1.2): aimed further west, a grown world's structures on
+    // the east building ran into the toolbar at the foot of the frame.
+    const OPENING_TARGET = new THREE.Vector3(-1.2, 3.2, -2.6)
+    camera.position.set(-1.2 + Math.sin(0.63) * Math.cos(0.28) * 31, 3.2 + Math.sin(0.28) * 31, -2.6 + Math.cos(0.63) * Math.cos(0.28) * 31)
     const controls = new OrbitControls(camera, renderer.domElement)
     applyViewControls(controls, { ground: true })
     controls.enableDamping = true
-    controls.target.set(0, 1.2, 0)
+    controls.target.copy(OPENING_TARGET)
     controls.maxPolarAngle = Math.PI * 0.47
     controls.minDistance = 4
     controls.maxDistance = 45
     controls.update()
     const gate = createCameraGate()
 
-    const skyLight = new THREE.HemisphereLight(DAY.sky, DAY.bounce, 1.5)
+    const skyLight = new THREE.HemisphereLight(DAY.sky, DAY.bounce, 1.4)
     scene.add(skyLight)
-    const sun = new THREE.DirectionalLight(DAY.sun, 2.6)
+    const sun = new THREE.DirectionalLight(DAY.sun, 2.75)
     sun.castShadow = true
-    sun.shadow.mapSize.set(2048, 2048)
-    Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, near: 1, far: 70 })
+    // Wide enough to take the meadow's edge, so the nearest trees cast real shadows; finer map to keep the buildings' sharp.
+    sun.shadow.mapSize.set(3072, 3072)
+    Object.assign(sun.shadow.camera, { left: -19, right: 19, top: 19, bottom: -19, near: 1, far: 90 })
     sun.shadow.bias = -0.0005
     sun.shadow.normalBias = 0.02
+    // Soft-edged shadows (PCF with a blur radius): crisp enough to read, without hard black edges.
+    sun.shadow.radius = 4
+    sun.shadow.blurSamples = 12
     scene.add(sun)
     // The light comes from the growth model's sun, so the shadows you see are the light the plants answer to.
     let placedAzimuth = NaN
     const placeSun = () => {
       placedAzimuth = game.env.sunAzimuth
       const [lx, ly, lz] = sunDirection(game.env.sunAzimuth)
-      sun.position.set(lx * 30, ly * 30, lz * 30)
+      sun.position.set(lx * 40, ly * 40, lz * 40)
       sunDir.set(lx, ly, lz).normalize()
     }
     placeSun()
 
-    const lawn = lawnMesh()
+    // The land round the town (landscape.ts): hills and colour on the lawn, and decorations on it.
+    // Rebuilt only when the game's landscape seed or density changes — a new land, not a new game.
+    let landscape = new Landscape(game.landscape.seed)
+    const lawn = lawnMesh(landscape)
     scene.add(lawn)
+    const decor = new LandscapeDecor()
+    decor.build(landscape, game.landscape.density)
+    scene.add(decor.group)
+    let landKey = `${game.landscape.seed}:${game.landscape.density}`
 
     // The rigid town.
     const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 })
@@ -194,6 +221,10 @@ export function BuildViewport(props: Props) {
       const { geometry } = buildTown(game.town)
       townMesh.geometry.dispose()
       townMesh.geometry = geometry
+      // Contact shadows under the ground floor, following the town as it's built.
+      const feet: [number, number][] = []
+      for (let x = 0; x < W; x++) for (let z = 0; z < D; z++) if (game.town.filled(x, 0, z)) feet.push([x - W / 2 + 0.5, z - D / 2 + 0.5])
+      decor.groundTown(feet)
     }
 
     // The plants and the living architecture, in the growth model's units.
@@ -210,6 +241,22 @@ export function BuildViewport(props: Props) {
     const ground = new GroundCover(lawn)
     grown.add(...ground.meshes)
     let groundAt = -Infinity
+    const syncLand = () => {
+      const key = `${game.landscape.seed}:${game.landscape.density}`
+      if (key === landKey) return
+      const reseeded = landscape.seed !== game.landscape.seed
+      landKey = key
+      if (reseeded) {
+        landscape = new Landscape(game.landscape.seed)
+        shapeLawn(lawn, landscape)
+        // Ground cover tints the lawn from a copy of its colours: take the new ones.
+        ground.rebaseLawn()
+        groundAt = -Infinity
+      }
+      decor.build(landscape, game.landscape.density)
+      renderer.shadowMap.needsUpdate = true
+      loop.wake()
+    }
     // Drapers: redrawn as their strands grow, and on every edit or planting.
     const drapes = new DraperView()
     grown.add(drapes.group)
@@ -240,12 +287,18 @@ export function BuildViewport(props: Props) {
     if (fx) {
       scene.add(fx.group)
       fx.tint([...ground.meshes.map((m) => m.material), drapes.leaves.material])
+      // The land's plants turn with the year too, each layer by its own amount (decor.seasonal).
+      for (const [m, strength] of decor.seasonal) fx.tint([m], strength)
     }
     let lookStep = NaN
     const applyLook = () => {
       if (!fx || game.sim.step === lookStep) return
       lookStep = game.sim.step
-      fx.apply(latest.current.look!(lookStep))
+      const look = latest.current.look!(lookStep)
+      fx.apply(look)
+      decor.applySeason(look)
+      // The stream's banks are drawn over the lawn: they take its seasonal colour exactly.
+      decor.matchLawn((lawn.material as THREE.MeshStandardMaterial).color)
     }
 
     const syncPlants = () => {
@@ -731,9 +784,27 @@ export function BuildViewport(props: Props) {
     let frameCarry = 0
     let reportAt = 0
     let shadowStep = -1
+    /**
+     * The camera stays in the world: the orbit target can pan over the town and
+     * a margin round it, not off into the forest (clampTarget moves the camera
+     * with it, so a clamp never turns into a rotation); and the camera never
+     * sinks into the ground — on the hills outside the meadow, orbiting low
+     * could put it under the terrain.
+     */
+    // Dev only: lifted by `__buildFreeCamera(true)`, so a check can look at the stream up close.
+    let freeCamera = false
+    const keepCameraInWorld = () => {
+      if (freeCamera) return
+      clampTarget(controls, camera, { x0: -13, x1: 13, z0: -11, z1: 11 })
+      const floor = landscape.height(camera.position.x, camera.position.z) + 0.8
+      if (camera.position.y < floor) camera.position.y = floor
+    }
+
     const loop = startRenderLoop((delta) => {
       // The sun follows the weather as it changes — the game's seasons ease it — not only on a refresh.
       if (game.env.sunAzimuth !== placedAzimuth) placeSun()
+      syncLand()
+      decor.group.visible = latest.current.decorations !== false
       applyLook()
       const { running, speed } = latest.current
       // Inhabitants keep the loop awake: at 30 fps shown, and slowly while hidden, since they carry on.
@@ -753,6 +824,7 @@ export function BuildViewport(props: Props) {
         if (vegetation) vegetation.uStep.value = game.sim.step + pending
         // The weather moves while time does; paused, it holds still like the plants.
         fx?.update(delta, renderer.domElement.height)
+        decor.tick(delta)
       } else if (vegetation) {
         vegetation.uStep.value = game.sim.step
       }
@@ -766,6 +838,8 @@ export function BuildViewport(props: Props) {
         renderer.shadowMap.needsUpdate = true
       }
       controls.update()
+      keepCameraInWorld()
+      decor.setCamera(camera.position)
       renderer.render(scene, camera)
       const noting = placeNote(now)
       if (running && now - reportAt > 300) {
@@ -792,6 +866,7 @@ export function BuildViewport(props: Props) {
       w.__buildGame = game
       w.__buildRefresh = refresh
       w.__inhabitants = population
+      w.__landscape = () => ({ landscape, decor })
       w.__buildGround = ground
       w.__buildDrapes = drapes
       // A store in memory for the world menu, since nobody can sign in headless (WorldMenu's devWorlds).
@@ -825,6 +900,7 @@ export function BuildViewport(props: Props) {
         if (vegetation) vegetation.uStep.value = game.sim.step + frameCarry
         applyLook()
         fx?.update(seconds, renderer.domElement.height)
+        decor.tick(seconds)
         if (population && inhabitantsView) {
           population.update(game, seconds)
           inhabitantsView.sync(population.agents, seconds)
@@ -838,6 +914,11 @@ export function BuildViewport(props: Props) {
         const v = new THREE.Vector3(p[0], p[1], p[2]).project(camera)
         const rect = container.getBoundingClientRect()
         return [((v.x + 1) / 2) * rect.width, ((1 - v.y) / 2) * rect.height]
+      }
+      // Dev only: what the last frame cost, for the landscape's performance notes.
+      w.__buildRenderInfo = () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, decorMs: Math.round(decor.ms), meshes: decor.group.children.flatMap((o) => (o instanceof THREE.InstancedMesh ? [{ name: o.name, count: o.count, triangles: (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3, shadow: o.castShadow }] : [])) })
+      w.__buildFreeCamera = (on: boolean) => {
+        freeCamera = on
       }
       w.__buildCamera = (p: number[], t: number[]) => {
         camera.position.set(p[0], p[1], p[2])
@@ -890,13 +971,20 @@ export function BuildViewport(props: Props) {
       dome.geometry.dispose()
       fx?.dispose()
       inhabitantsView?.dispose()
+      decor.dispose()
       ghost.geometry.dispose()
       renderer.dispose()
       canvas.remove()
     }
   }, [])
 
-  const { revision, stepToken, running, surfaceView, hint } = props
+  const { revision, stepToken, running, surfaceView, hint, decorations } = props
+  // The render loop sleeps when nothing moves: showing or hiding the decorations,
+  // or a new land or density (pages re-render this on changing them), must wake it.
+  const landKeyNow = `${props.game.landscape.seed}:${props.game.landscape.density}`
+  useEffect(() => {
+    api.current?.wake()
+  }, [decorations, landKeyNow])
   useEffect(() => {
     api.current?.view()
   }, [surfaceView])

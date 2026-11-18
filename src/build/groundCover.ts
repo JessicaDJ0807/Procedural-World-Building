@@ -311,6 +311,11 @@ export class GroundCover {
     this.tintLawn(total)
   }
 
+  /** The lawn was reshaped (a new landscape): forget its old colours; the next update tints the new ones. */
+  rebaseLawn() {
+    this.lawnBase = null
+  }
+
   /** Darken and green the lawn under the beds: the soil and moss between the leaves. */
   private tintLawn(total: Float32Array) {
     const geo = this.lawn.geometry

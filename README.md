@@ -106,6 +106,7 @@ the player places to the living architecture the plants grow, and back:
 | **Living architecture** | Bézier, helix and catenary curves · swept surfaces | Planned as curves, swept into decks and tubes, grown in five stages; at maturity it shades, supports climbers, and becomes growth cells itself. |
 | **Seasons** | Step-derived weather · shader tint · particles | Four 500-step seasons set the real rain, sun and warmth, blended over 150 steps; leaves, sky and weather follow. |
 | **Inhabitants** | Walkable graph · flood-fill regions · A* · state machine | They walk only on growth and mature structures; regions split by flood fill, routes by A*. |
+| **Landscape** | Masked, warped Perlin terrain · ridged landforms · a carved stream · A*-routed paths · seeded scatter | A clearing in a shallow hollow, rolling hills and a ridge beyond — none of it touching the town's ground (a smooth mask, zero within 3 units of the grid); elevation, moisture and fertility colour the land and decide where grass, shrubs, ferns, saplings, rocks and flowers grow; a stream cut into the land at the ridge's foot and footpaths routed in from the forest to each building (never between them); a meadow of ground-cover patches, wildflower drifts and a few accents — a fallen log, mossy stones, mushrooms, a flowering shrub; a forest round a small irregular clearing, in mixed groves of six tree families — each grove led by one family with companions, conifers likelier up the ridge but found all round — and a middle layer of saplings, young trees and tall shrubs at its edge; saved as a seed and density, regenerated exactly. |
 | **Rendering** | GPU instancing · age shaders · fBm · render on demand | Instanced leaves and stems that a shader opens with age; fBm clouds; nothing drawn while nothing moves. |
 | **Saving** | State, not scene | The town, structures, Drapers and every plant layer (22 bytes each); loading rebuilds the rest, and the world carries on identically. |
 
@@ -360,7 +361,10 @@ src/
 │   ├── town.ts               The grid, existing blocks, the budget, masses, the lawn scenario
 │   ├── townMesh.ts           The rigid rules: walls, windows, roofs, arches, stilts, ledges
 │   ├── townBuilding.ts       The town as growth cells for the plants
-│   ├── lawn.ts               The lawn
+│   ├── lawn.ts               The lawn, and its drawn surface for anything laid on it
+│   ├── landscape.ts          The land round the town: terrain, fields, forest, stream, paths, scatter
+│   ├── features.ts           Lines through the land: nearest-segment index, rounding, A* routing
+│   ├── landscapeDecor.ts     The land drawn: trees, decorations, water, paths, their seasons
 │   ├── living.ts             Mutation nodes and what grows from each combination
 │   ├── draperLiving.ts       The Draper's meetings, read from its curtain: root column, hanging pod, suspended walkway
 │   ├── livingMesh.ts         Living architecture drawn, grown in stages

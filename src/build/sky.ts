@@ -16,12 +16,18 @@ export const DAY = {
   zenith: '#5f93cf',
   horizon: '#d8e6f1',
   ground: '#cfdccf',
-  haze: '#d3e0e8',
-  /** Sky light and the bounce off the lawn, for the hemisphere light. */
-  sky: '#d9e6f3',
-  bounce: '#8a9a66',
-  /** Sunlight: barely warm. */
-  sun: '#fff3e2',
+  /** A cool blue-grey haze: distance desaturates toward it, it doesn't wash things white. */
+  haze: '#cbd7e1',
+  /**
+   * Soft morning light: a cooler blue-grey sky fill and a slightly warm sun,
+   * with less fill than before (1.15, was 1.5) and more sun (3.0, was 2.6),
+   * so geometry has light and shade without black shadows. The sky stays blue.
+   */
+  sky: '#c9d6e8',
+  // A lighter, warmer bounce off the lawn: shaded sides keep their colour and detail.
+  bounce: '#93a072',
+  /** Sunlight: slightly warm. */
+  sun: '#ffedd2',
 }
 
 export function daySky(sunDir: THREE.Vector3): THREE.Mesh {

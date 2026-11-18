@@ -33,6 +33,7 @@ The same account, shorter, is the app's **Project → How it works** page.
 8. [Living architecture: geometry and stages](#8-living-architecture-geometry-and-stages)
 9. [Seasons](#9-seasons)
 10. [Inhabitants](#10-inhabitants)
+    - [The landscape](#10b-the-landscape)
 11. [Rendering](#11-rendering)
 12. [Saving](#12-saving)
 13. [The Architecture page's specimens](#13-the-architecture-pages-specimens)
@@ -316,7 +317,10 @@ the plants and spring regrowing them.
 shader to pull toward the season's colour at their own brightness; the lawn,
 sky, haze and light are tinted; and particles fall — rain scaled by the real
 rain value (none at 0.4, 900 drops at 0.8), snow in winter, leaves in autumn,
-petals in spring — and brown leaves drop wherever growth withers.
+petals in spring — and leaves drop wherever growth withers, brown except in
+autumn, when they take the season's colours. The land's plants take the tint
+too, each layer by its own strength: broadleaves fully, shrubs and saplings
+85%, ferns 80%, grass 45%, conifers 10%.
 
 ## 10. Inhabitants
 
@@ -337,6 +341,58 @@ mature living architecture**, so what they can reach is the plants' doing.
   agent records.
 - **Population (Play and the Lab):** one per 120 walkable cells, up to six.
   They only read the game; nothing about them is saved.
+
+## 10b. The landscape
+
+`src/build/landscape.ts`, `landscapeDecor.ts`. Scenery round the town, never
+read by the simulation. Height is the town's ground plus seeded **Perlin**
+hills — two octaves, **domain-warped** so the rolls bend and run together —
+under a smoothstep **mask** that is exactly zero within 3 units of the grid, so
+gameplay ground is untouched. The clearing sits in a shallow **hollow**: the
+ground lifts from inside its edge to a rim about 2 units up, its height noise
+round the circle and open along the valley, so the trees at the edge stand
+above the buildings and close the view without making an arena; moisture,
+colour and the conifers' odds read the *relief* (the land without the rim), so
+the rim stays green meadow slope. Landforms come from **ridged noise**, (1 − |n|)²:
+a ridgeline whose crest wanders, with peaks and saddles, a gentle front and a
+steep back; a lower spur; shallow troughs far out; and an open valley kept
+clear of trees (as anisotropic Gaussians they read as isolated domes). Three
+0–1 fields — elevation, moisture (wetter in hollows), fertility — colour the
+ground by smooth blends and decide where decorations grow: a seeded
+jittered-grid **scatter**, kept by suitability × density, clustered by noise
+fields, with minimum spacing and a quiet margin round the buildings — grass and
+flowers in the meadow, saplings just ahead of the forest's edge, shrubs and
+ferns under it. Beyond the meadow, a **forest** round a small, irregular clearing (its radius
+noise sampled round a circle, 13–21 units): trees scattered as tight or loose
+Gaussian groves round jittered centres, visited nearest-first so the cap is
+spent where trees are seen, small at the edge and maturing over 20 units. Six
+**families** — broad and slender deciduous trees, short firs, tall spires,
+crooked and weeping accents. Each grove has a **leading family**, drawn with
+odds that favour conifers on high ground but move with a slow noise field, and
+50–85% of its trees follow it; the rest are companions — so stands are mixed
+and no side of the clearing is all one kind. A **middle layer** at the edge —
+saplings, groups of young trees, tall shrubs, ferns — turns the meadow into
+forest gradually. A **stream** springs on the ridge's slope and leaves by the valley: laid out by
+bearing, meandered by noise and drawn toward low ground, widening round bends
+and into pools; its water level never rises downstream and stays below the
+ground on both sides (it had stood on a levee above the meadow); it is cut
+into `height` — a bowl under the water, a small lip at its edge, banks widening
+with the cut — drawn by a finer bank mesh than the lawn allows, and its
+translucent water's patterns move along the stream's own phase, at its pace. **Footpaths** are routed by **A\***
+over a grid priced by slope², each coming to one building's outer side but
+never into the gap between them or near the water — so nothing on the ground
+joins the buildings — then rounded (Chaikin), meandered, and laid as ragged,
+alpha-faded ribbons on the lawn's drawn surface. A meadow **patch field**
+clusters taller grass, ground cover in warped, lobed patches, and wildflower
+drifts of one colour each; a broad tone shifts the green; a few accents — a
+fallen log, mossy stones, mushrooms, a flowering shrub — each take a quarter of
+the clearing. Nothing stands on the protected ground round the buildings and
+between them. Reeds, stones and fallen leaves follow the water and the paths. Through the
+year, uniforms set from the same seasonal look tint the water, open and close
+the flowers, and scatter leaves in autumn. All drawn as **instanced meshes** that can't be clicked; trees near the
+camera dissolve by a dithered fade; only trees within 60 units cast shadows,
+since no farther one can reach the sun's shadow map. Saved as a seed and a
+density; the objects regenerate. Details in [build.md](build.md#the-landscape).
 
 ## 11. Rendering
 

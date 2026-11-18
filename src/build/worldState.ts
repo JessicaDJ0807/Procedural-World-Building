@@ -2,6 +2,7 @@ import type { GrowthState } from '../wildform/growth'
 import type { Draper } from './draper'
 import type { BuildGame, Counters, Environment, GameEvent, LoadableWorld } from './game'
 import type { Living } from './living'
+import type { LandscapeSettings } from './landscape'
 import { D, H, W } from './town'
 
 /**
@@ -77,6 +78,8 @@ type BodyV1 = {
   counters: Counters
   events: GameEvent[]
   simEvents: GameEvent[]
+  /** The land's seed and density. Optional: added after v1 worlds were first saved, so they load without it. */
+  landscape?: LandscapeSettings
 }
 
 /** A saved world that can't be read: too new, malformed, or missing pieces. */
@@ -152,6 +155,7 @@ export function serializeWorld(game: BuildGame): { head: WorldHead; body: string
     counters: game.counters,
     events: game.events,
     simEvents: game.sim.events,
+    landscape: { ...game.landscape },
   }
   const head: WorldHead = { version: WORLD_VERSION, scenario: 'lawn', seed: game.seed, step: game.sim.step, env: { ...game.env }, summary: summarize(game) }
   return { head, body: JSON.stringify(body) }
@@ -187,6 +191,15 @@ export function readHead(raw: unknown): WorldHead {
       coverage: Number(summary.coverage) || 0,
     },
   }
+}
+
+/** A saved landscape, or undefined (an older world, or one that doesn't make sense): the game then derives one from the world's seed. */
+function landscapeOf(v: unknown): LandscapeSettings | undefined {
+  if (!isObject(v)) return undefined
+  const seed = Number(v.seed)
+  const density = v.density
+  if (!Number.isInteger(seed) || (density !== 'low' && density !== 'medium' && density !== 'high')) return undefined
+  return { seed, density }
 }
 
 /** Three non-negative whole counts, or undefined if the save has none (or none that make sense). */
@@ -281,5 +294,6 @@ export function deserializeWorld(rawHead: unknown, bodyText: string): LoadableWo
     },
     events: events(body.events),
     simEvents: events(body.simEvents),
+    landscape: landscapeOf(body.landscape),
   }
 }

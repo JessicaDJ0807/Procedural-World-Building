@@ -8,6 +8,7 @@ import { appendSurfaces, livingPatches, roofPatches, surfaceOverlay, type Surfac
 import { townToBuilding } from './townBuilding'
 import { COMBOS, COMBO_NAMES, KIND_TITLES, MATURE_AT, connects, findNode, livingSupport, livingVolumes, planLiving, type Combo, type Living, type NodeSurfaces } from './living'
 import { findDraperLiving } from './draperLiving'
+import type { Density, LandscapeSettings } from './landscape'
 
 /**
  * The Build page's game: the town the player builds, the plants growing on
@@ -71,6 +72,8 @@ export type LoadableWorld = {
   counters: Counters
   events: GameEvent[]
   simEvents: GameEvent[]
+  /** The land round the town (landscape.ts). Absent in worlds saved before it existed. */
+  landscape?: LandscapeSettings
 }
 
 const TITLE = KIND_TITLES
@@ -100,6 +103,12 @@ export class BuildGame {
    * runs in docs/project/build.md — and a new one for each New World.
    */
   seed = 1
+  /**
+   * The land round the town: its seed and how densely it is decorated. Pure
+   * scenery — nothing in the simulation reads it — but saved with the world
+   * so it comes back as it was. A new world's land takes the world's seed.
+   */
+  landscape: LandscapeSettings = { seed: 1, density: 'medium' }
   /** 0–1, kept on the growth across rebuilds: the game's seasons set it; 1 elsewhere. */
   warmth = 1
   /** Incremented when the whole world is replaced (restart, New World, load): a renderer drops everything it drew. */
@@ -223,6 +232,7 @@ export class BuildGame {
   newWorld(seed: number) {
     this.seed = seed
     this.env = { ...DEFAULT_ENV }
+    this.landscape = { seed, density: this.landscape.density }
     this.restart()
   }
 
@@ -236,6 +246,8 @@ export class BuildGame {
   load(w: LoadableWorld) {
     this.town.restore(w.cells, w.locked)
     this.seed = w.seed
+    // Older worlds have no landscape: the world's own seed gives them one, the same every time they load.
+    this.landscape = w.landscape ? { ...w.landscape } : { seed: w.seed, density: 'medium' }
     this.env = { ...w.env }
     this.living = w.living
     this.drapers.restoreState(w.drapers)
@@ -263,6 +275,12 @@ export class BuildGame {
   /** What a saved world needs from the game, beyond what it can rebuild (worldState.ts). */
   get counters(): Counters {
     return { goalMet: this.goalMet, connected: this.connected, wasJoined: this.wasJoined, lastNodeCheck: this.lastNodeCheck, declined: [...this.declined], seeds: [...this.seeds], ...(this.seedsComplete ? {} : { seedsPartial: true }) }
+  }
+
+  /** A new land (a new seed) or a new density. Saved with the world, so it is a change; growth and the town are untouched. */
+  setLandscape(next: { seed?: number; density?: Density }) {
+    this.landscape = { ...this.landscape, ...next }
+    this.changes++
   }
 
   /** Seasons (game/seasons.ts): how warm it is, carried onto the growth. */
