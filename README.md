@@ -171,7 +171,7 @@ chapter in [`docs/topics/`](docs/topics/).
 </tr>
 <tr>
 <td valign="top"><a href="docs/topics/topic-9-agent-systems.md"><img src="docs/images/readme-topic-9-agent-systems.jpg" alt="Topic 9: an amber trail network worn by agents across a walled field, one agent selected with its senses drawn"></a><br><b><a href="docs/topics/topic-9-agent-systems.md">9 · Agent Systems</a></b> — a state machine and a shared trail: agents nobody routes wear paths 8–17% longer than shortest, against 33–38% walking alone.</td>
-<td valign="top"><a href="docs/topics/topic-10-city.md"><img src="docs/images/readme-topic-10-city.jpg" alt="Topic 10: a generated town beside a lake, towers in the centre, houses at the edges, a planted countryside around it"></a><br><b><a href="docs/topics/topic-10-city.md">10 · City</a></b> — roads grown three ways, blocks read off the graph, plots cut and zoned by continuous maps, parametric buildings: districts nearly twice as coherent as categories dealt at random.</td>
+<td valign="top"><a href="docs/topics/topic-10-city.md"><img src="docs/images/readme-topic-10-city.jpg" alt="Topic 10: a generated town beside a lake, towers in the centre, houses at the edges, a planted countryside around it"></a><br><b><a href="docs/topics/topic-10-city.md">10 · City</a></b> — roads grown three ways, blocks read off the graph, plots zoned by continuous maps, parametric buildings; then set running — inhabitants on A* routes, water and energy through networks, and shortages that close buildings.</td>
 </tr>
 </table>
 
@@ -328,8 +328,16 @@ src/
 │   ├── site.ts               Footprints fitted to plots, the type ladder, vegetation
 │   ├── explanations.ts       Concept, algorithm, parameters and Wildform use, per experiment
 │   ├── cityMeshes.ts         Draped roads and plots, instanced buildings and trees
-│   ├── CityViewport.tsx      One scene, two stages (site, studio); one effect per layer; plot picking
-│   └── city.css              Tabs, decision list, probe, the phone layout
+│   ├── CityViewport.tsx      One scene, two stages (site, studio); one effect per layer; plot and agent picking
+│   ├── city.css              Tabs, decision list, probe, simulation panel, the phone layout
+│   └── sim/                  Experiments F–H — the simulation, kept apart from its drawing
+│       ├── graph.ts          The road network as a graph: A* for trips, Dijkstra trees for distribution
+│       ├── places.ts         Buildings and parks as places with a door, a junction, homes and jobs
+│       ├── inhabitants.ts    Schedules (home → work → park → home), routes, walking
+│       ├── resources.ts      Plants, networks, allocation by policy (nearest first or shared)
+│       ├── urban.ts          CitySim: three modes, five coupling rules, fixed one-minute step, statistics
+│       ├── simMeshes.ts      Instanced travellers, pipes, flow beads, plants and status pins
+│       └── SimPanel.tsx      Transport controls, statistics panel, rules, inspector, legend
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── Workspace.tsx             Three resizable columns: library, canvas, inspector
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
@@ -490,7 +498,8 @@ public/
 tests/
 ├── seeds.test.ts             Seed counting: planting, refusals, growth, undo, save and load (npm test)
 ├── agents.test.ts            Topic 9: determinism, no agent in a wall, states, evaporation, emergence, blocks, saved shape
-└── city.test.ts              Topic 10: polygon split, planar roads on land, plots off roads, threshold, coherence, buildings, saved shape
+├── city.test.ts              Topic 10: polygon split, planar roads on land, plots off roads, threshold, coherence, buildings, saved shape
+└── citySim.test.ts           Topic 10 F–H: A* vs Dijkstra, replay, schedules, travellers on roads, allocation, policies, closures
 
 scripts/
 ├── run-tests.mjs             Bundles tests/*.test.ts with rolldown and runs them on node:test

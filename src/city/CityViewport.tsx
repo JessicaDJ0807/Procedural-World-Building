@@ -20,8 +20,12 @@ import type { Site } from './ground'
 import type { RoadNetwork } from './roads'
 import type { SiteLayout } from './site'
 import type { Zone } from './zoning'
+import { isTravelling } from './sim/inhabitants'
+import type { ResourceId } from './sim/resources'
+import { SimLayer } from './sim/simMeshes'
+import type { CitySim, SimStats } from './sim/urban'
 
-export type Layers = { roads: boolean; plots: boolean; zoning: boolean; buildings: boolean; vegetation: boolean }
+export type Layers = { roads: boolean; plots: boolean; zoning: boolean; buildings: boolean; vegetation: boolean; agents: boolean; network: boolean }
 
 type Props = {
   stage: 'site' | 'studio'
@@ -37,6 +41,17 @@ type Props = {
   show: Layers
   hovered: number
   onHover: (index: number) => void
+  /** The simulation for F, G and H; null in A–E. The viewport steps it. */
+  sim: CitySim | null
+  running: boolean
+  /** Simulated minutes per real second. */
+  simSpeed: number
+  /** Bumped to advance exactly one step while paused. */
+  stepToken: number
+  resource: ResourceId
+  selectedAgent: number
+  onSelectAgent: (id: number) => void
+  onSimReport: (stats: SimStats) => void
 }
 
 type SceneState = {
@@ -62,7 +77,8 @@ type SceneState = {
 const SITE_VIEW = { position: new THREE.Vector3(190, 380, 440), target: new THREE.Vector3(0, 0, 15) }
 
 export function CityViewport(props: Props) {
-  const { stage, site, net, zones, fillShrink, heat, layout, studio, show, hovered, onHover } = props
+  const { stage, site, net, zones, fillShrink, heat, layout, studio, show, hovered, onHover, sim, stepToken } = props
+  const layerRef = useRef<SimLayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const stateRef = useRef<SceneState | null>(null)
   const latest = useRef(props)
@@ -156,13 +172,40 @@ export function CityViewport(props: Props) {
     grid.position.y = 0.02
     studioGroup.add(pad, grid, studioBuilding.group)
 
-    const loop = startRenderLoop(() => {
+    // The simulation advances in whole fixed steps of one simulated minute:
+    // real time × speed is accumulated, and as many steps run as it covers.
+    // A slow frame runs more steps, never a longer one, so the run is the
+    // same at any frame rate.
+    let owed = 0
+    let lastReport = 0
+    const loop = startRenderLoop((delta) => {
       controls.update()
       const s = stateRef.current
-      if (s) clampTarget(controls, camera, latest.current.stage === 'site' ? { x0: -200, x1: 200, z0: -200, z1: 200 } : { x0: -30, x1: 30, z0: -30, z1: 30 })
+      const p = latest.current
+      if (s) clampTarget(controls, camera, p.stage === 'site' ? { x0: -200, x1: 200, z0: -200, z1: 200 } : { x0: -30, x1: 30, z0: -30, z1: 30 })
       const moved = gate(camera.position, controls.target)
+      const layer = layerRef.current
+      let simulating = false
+      if (layer && p.sim) {
+        if (p.running) {
+          owed += delta * p.simSpeed
+          let n = 0
+          while (owed >= 1 && n < 600) {
+            p.sim.step()
+            owed -= 1
+            n++
+          }
+          simulating = true
+          const now = performance.now()
+          if (now - lastReport > 250) {
+            lastReport = now
+            p.onSimReport(p.sim.stats())
+          }
+        }
+        layer.update(p.resource, p.selectedAgent, p.show.agents, p.show.network, p.running ? delta : 0, 0.5)
+      }
       renderer.render(scene, camera)
-      return moved
+      return moved || simulating
     })
     const resize = () => {
       const { clientWidth: w, clientHeight: h } = container
@@ -182,20 +225,14 @@ export function CityViewport(props: Props) {
     const raycaster = new THREE.Raycaster()
     const ndc = new THREE.Vector2()
     let dragging = false
-    const onDown = () => {
-      dragging = true
-    }
-    const onUp = () => {
-      dragging = false
-    }
-    const onMove = (e: PointerEvent) => {
-      const p = latest.current
-      if (dragging || p.stage !== 'site' || !p.zones) return
+    let downX = 0
+    let downY = 0
+    const groundPoint = (e: PointerEvent): [number, number] | null => {
       const rect = renderer.domElement.getBoundingClientRect()
       ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1)
       raycaster.setFromCamera(ndc, camera)
       const { origin, direction } = raycaster.ray
-      if (direction.y >= -1e-4) return p.onHover(-1)
+      if (direction.y >= -1e-4) return null
       let h = 0
       let x = 0
       let z = 0
@@ -203,8 +240,44 @@ export function CityViewport(props: Props) {
         const t = (h - origin.y) / direction.y
         x = origin.x + direction.x * t
         z = origin.z + direction.z * t
-        h = p.site.ground.height(x, z)
+        h = latest.current.site.ground.height(x, z)
       }
+      return [x, z]
+    }
+    const onDown = (e: PointerEvent) => {
+      dragging = true
+      downX = e.clientX
+      downY = e.clientY
+    }
+    const onUp = (e: PointerEvent) => {
+      dragging = false
+      // A click, not a drag: pick the nearest inhabitant on the road.
+      const p = latest.current
+      if (!p.sim || p.sim.mode === 'resources' || e.target !== renderer.domElement) return
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) > 5) return
+      const hit = groundPoint(e)
+      if (!hit) return
+      let best = -1
+      let bestD = 10
+      for (const a of p.sim.population.agents) {
+        if (!isTravelling(a.task)) continue
+        const d = Math.hypot(a.x - hit[0], a.z - hit[1])
+        if (d < bestD) {
+          bestD = d
+          best = a.id
+        }
+      }
+      if (best >= 0) {
+        p.onSelectAgent(best)
+        loop.wake()
+      }
+    }
+    const onMove = (e: PointerEvent) => {
+      const p = latest.current
+      if (dragging || p.stage !== 'site' || !p.zones) return
+      const hit = groundPoint(e)
+      if (!hit) return p.onHover(-1)
+      const [x, z] = hit
       const index = p.zones.findIndex((zone) => pointInPolygon(zone.plot.polygon, x, z))
       p.onHover(index)
     }
@@ -236,6 +309,8 @@ export function CityViewport(props: Props) {
       grid.geometry.dispose()
       ;(grid.material as THREE.Material).dispose()
       buildings.dispose()
+      layerRef.current?.dispose()
+      layerRef.current = null
       trees.dispose()
       studioBuilding.dispose()
       stateRef.current = null
@@ -298,6 +373,59 @@ export function CityViewport(props: Props) {
     s.studioBuilding.set([{ x: 0, y: 0, z: 0, rot: 0, parts: studio.parts }])
     s.loop.wake()
   }, [studio])
+
+  // One drawing layer per simulation; a new simulation replaces it.
+  useEffect(() => {
+    const s = stateRef.current
+    if (!s) return
+    if (layerRef.current) {
+      s.siteGroup.remove(layerRef.current.group)
+      layerRef.current.dispose()
+      layerRef.current = null
+    }
+    if (sim) {
+      const layer = new SimLayer(sim, site.ground)
+      layerRef.current = layer
+      s.siteGroup.add(layer.group)
+      latest.current.onSimReport(sim.stats())
+    }
+    s.loop.wake()
+  }, [sim, site])
+
+  // Step: one fixed step, then report, whatever the play state.
+  const firstStep = useRef(stepToken)
+  useEffect(() => {
+    const s = stateRef.current
+    if (!s || !sim || stepToken === firstStep.current) return
+    sim.step()
+    latest.current.onSimReport(sim.stats())
+    s.loop.wake()
+  }, [stepToken, sim])
+
+  // F–H frame the town rather than the whole site: the subject is people and
+  // pipes, and from the overview a commuter is a few pixels.
+  const simView = sim !== null
+  useEffect(() => {
+    const s = stateRef.current
+    if (!s || stage !== 'site') return
+    const c = net.centre
+    if (simView) {
+      s.controls.target.set(c.x, 0, c.z)
+      s.camera.position.set(c.x + 120, 215, c.z + 245)
+    } else {
+      s.camera.position.copy(SITE_VIEW.position)
+      s.controls.target.copy(SITE_VIEW.target)
+    }
+    s.controls.update()
+    s.loop.wake()
+    // Only on entering or leaving the simulation, not on every new run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simView, stage])
+
+  // Anything that changes the drawing while paused needs one more frame.
+  useEffect(() => {
+    stateRef.current?.loop.wake()
+  }, [props.running, props.resource, props.selectedAgent, show.agents, show.network])
 
   // Visibility only: nothing is rebuilt for a toggle.
   useEffect(() => {

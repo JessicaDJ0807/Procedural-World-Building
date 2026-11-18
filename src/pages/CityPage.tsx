@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ConfigPanel } from '../ConfigPanel'
 import { InfoTip } from '../InfoTip'
 import { Slider } from '../Slider'
@@ -35,6 +35,8 @@ import {
   type RuleId,
   type Zone,
 } from '../city/zoning'
+import { CitySim, type SimMode, type SimStats } from '../city/sim/urban'
+import { SimControls, SimInspector, SimLegend, SimPanel } from '../city/sim/SimPanel'
 import '../study/study.css'
 import '../city/city.css'
 
@@ -46,7 +48,12 @@ const EXPERIMENT_TABS: { id: ExperimentId; letter: string; title: string }[] = [
   { id: 'zoning', letter: 'C', title: 'Zoning' },
   { id: 'building', letter: 'D', title: 'Building' },
   { id: 'site', letter: 'E', title: 'Site' },
+  { id: 'agents', letter: 'F', title: 'Agents' },
+  { id: 'resources', letter: 'G', title: 'Resources' },
+  { id: 'dynamics', letter: 'H', title: 'Dynamics' },
 ]
+
+const SIM_MODE: Partial<Record<ExperimentId, SimMode>> = { agents: 'agents', resources: 'resources', dynamics: 'dynamics' }
 
 /** Which toggles mean anything in each experiment. */
 const AVAILABLE: Record<ExperimentId, (keyof Layers)[]> = {
@@ -55,6 +62,9 @@ const AVAILABLE: Record<ExperimentId, (keyof Layers)[]> = {
   zoning: ['roads', 'plots', 'zoning'],
   building: [],
   site: ['roads', 'plots', 'zoning', 'buildings', 'vegetation'],
+  agents: ['roads', 'buildings', 'vegetation', 'agents'],
+  resources: ['roads', 'buildings', 'vegetation', 'network'],
+  dynamics: ['roads', 'buildings', 'vegetation', 'agents', 'network'],
 }
 
 const LAYER_LABELS: Record<keyof Layers, { label: string; info: string }> = {
@@ -63,6 +73,8 @@ const LAYER_LABELS: Record<keyof Layers, { label: string; info: string }> = {
   zoning: { label: 'Zoning map', info: 'The selected map painted on the ground as a heatmap, slate (0) to pale (1). Water is darkened: the maps mean nothing there.' },
   buildings: { label: 'Buildings', info: 'One instanced mesh per part kind — walls, windows, balconies, roofs — for every building on the site.' },
   vegetation: { label: 'Vegetation', info: 'Trees in parks and gardens, shrubs in gardens, and the countryside outside the blocks, all thinned by the vegetation map.' },
+  agents: { label: 'Inhabitants', info: 'A capsule for everyone on the road, coloured by where they are going. People at home, at work or in a park are indoors and not drawn — they are counted in the statistics.' },
+  network: { label: 'Resource network', info: 'The selected resource\'s pipes along the roads, from its plant, coloured from the resource colour toward red as they fill; beads run in the direction of flow, more on fuller pipes. Only pipes carrying something are drawn.' },
 }
 
 const CATEGORY_LABELS: Record<Category, string> = { building: 'Building', park: 'Park', garden: 'Garden', open: 'Open space' }
@@ -80,11 +92,19 @@ const STRATEGY_LABELS: Record<RoadStrategy, string> = { grid: 'Grid', organic: '
 export function CityPage() {
   const [settings, setSettings] = useState<CitySettings>(defaultCitySettings)
   const [hovered, setHovered] = useState(-1)
+  // Simulation controls. Running on arrival, as Topic 9 is: a paused city is
+  // everyone asleep at home.
+  const [running, setRunning] = useState(true)
+  const [stepToken, setStepToken] = useState(0)
+  const [simReset, setSimReset] = useState(0)
+  const [selectedAgent, setSelectedAgent] = useState(-1)
+  const [simStats, setSimStats] = useState<SimStats | null>(null)
   const s = settings
   const set = <K extends keyof CitySettings>(key: K, value: CitySettings[K]) => setSettings((c) => ({ ...c, [key]: value }))
 
   const chooseExperiment = (experiment: ExperimentId) => {
     setHovered(-1)
+    setSelectedAgent(-1)
     setSettings((c) => ({ ...c, experiment, show: { ...DEFAULT_LAYERS[experiment] } }))
   }
   const reset = () => {
@@ -118,23 +138,45 @@ export function CityPage() {
     () => ({ buildThreshold: s.buildThreshold, greenThreshold: s.greenThreshold, blend: s.blend, maxFloors: s.maxFloors, seed: s.seed }),
     [s.buildThreshold, s.greenThreshold, s.blend, s.maxFloors, s.seed],
   )
-  const needsZones = s.experiment === 'plots' || s.experiment === 'zoning' || s.experiment === 'site'
+  const simMode = SIM_MODE[s.experiment] ?? null
+  const needsLayout = s.experiment === 'site' || simMode !== null
+  const needsZones = s.experiment === 'plots' || s.experiment === 'zoning' || needsLayout
+  const measuresCoherence = s.experiment === 'plots' || s.experiment === 'zoning' || s.experiment === 'site'
   const zoningMode = s.experiment === 'plots' ? 'random' : 'maps'
   const zones = useMemo(
     () => (needsZones ? zoneAll(plots.plots, fields, zoningParams, zoningMode) : null),
     [needsZones, plots, fields, zoningParams, zoningMode],
   )
   // The comparison number for B and C: what dealing at random would have scored on these plots.
-  const coherenceNow = useMemo(() => (zones ? coherence(zones) : 0), [zones])
+  const coherenceNow = useMemo(() => (zones && measuresCoherence ? coherence(zones) : 0), [zones, measuresCoherence])
   const coherenceOther = useMemo(
-    () => (needsZones ? coherence(zoneAll(plots.plots, fields, zoningParams, zoningMode === 'maps' ? 'random' : 'maps')) : 0),
-    [needsZones, plots, fields, zoningParams, zoningMode],
+    () => (measuresCoherence ? coherence(zoneAll(plots.plots, fields, zoningParams, zoningMode === 'maps' ? 'random' : 'maps')) : 0),
+    [measuresCoherence, plots, fields, zoningParams, zoningMode],
   )
   const style = useMemo(() => ({ roofSlope: s.roofSlope, balconyChance: s.balconyChance, facadeVariation: s.facadeVariation }), [s.roofSlope, s.balconyChance, s.facadeVariation])
   const layout = useMemo(
-    () => (s.experiment === 'site' && zones ? layoutSite(zones, blocks.blocks.map((b) => b.face), site.ground, fields, net, style, s.seed) : null),
-    [s.experiment, zones, blocks, site, fields, net, style, s.seed],
+    () => (needsLayout && zones ? layoutSite(zones, blocks.blocks.map((b) => b.face), site.ground, fields, net, style, s.seed) : null),
+    [needsLayout, zones, blocks, site, fields, net, style, s.seed],
   )
+
+  // The simulation runs on E's city. A new one is built when the city, the
+  // mode or the seed changes, or on Reset; the live parameters are pushed in
+  // without rebuilding, so a slider never restarts the day.
+  const simParams = useMemo(
+    () => ({ population: s.population, walkSpeed: s.walkSpeed, supply: s.supply, demand: s.demand, capacity: s.capacity, policy: s.policy }),
+    [s.population, s.walkSpeed, s.supply, s.demand, s.capacity, s.policy],
+  )
+  const sim = useMemo(
+    () => (simMode && layout && zones ? new CitySim(simMode, net, layout, zones, site.ground, simParams, s.seed) : null),
+    // simReset is a dependency on purpose: Reset is "build it again". The
+    // live parameters are deliberately not: they reach a running simulation
+    // through setParams below, and rebuilding on a slider would restart the day.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [simMode, layout, zones, net, site, s.seed, simReset],
+  )
+  useEffect(() => {
+    sim?.setParams(simParams)
+  }, [sim, simParams])
   const studio = useMemo(
     () => buildBuilding({ width: s.width, depth: s.depth, floors: s.floors, roof: s.roof, roofSlope: s.roofSlope, balconyChance: s.balconyChance, facadeVariation: s.facadeVariation, seed: s.seed }),
     [s.width, s.depth, s.floors, s.roof, s.roofSlope, s.balconyChance, s.facadeVariation, s.seed],
@@ -148,6 +190,7 @@ export function CityPage() {
   }, [showHeat, fields, s.map])
 
   const onHover = useCallback((i: number) => setHovered((h) => (h === i ? h : i)), [])
+  const onSimReport = useCallback((stats: SimStats) => setSimStats(stats), [])
 
   const layers: Layers = {
     roads: s.show.roads && AVAILABLE[s.experiment].includes('roads'),
@@ -155,6 +198,8 @@ export function CityPage() {
     zoning: showHeat,
     buildings: s.show.buildings,
     vegetation: s.show.vegetation,
+    agents: s.show.agents && AVAILABLE[s.experiment].includes('agents'),
+    network: s.show.network && AVAILABLE[s.experiment].includes('network'),
   }
 
   const slider = (key: CitySpec['key']) => {
@@ -322,6 +367,28 @@ export function CityPage() {
             </Group>
           )}
 
+          {simMode && (
+            <SimControls
+              mode={simMode}
+              running={running}
+              onToggle={() => setRunning((r) => !r)}
+              onStep={() => {
+                setRunning(false)
+                setStepToken((t) => t + 1)
+              }}
+              onReset={() => {
+                setSelectedAgent(-1)
+                setSimReset((t) => t + 1)
+              }}
+              stats={simStats}
+              slider={slider}
+              resource={s.resource}
+              onResource={(r) => set('resource', r)}
+              policy={s.policy}
+              onPolicy={(p) => set('policy', p)}
+            />
+          )}
+
           {AVAILABLE[s.experiment].length > 0 && (
             <>
               <h3 className="control-group">Show</h3>
@@ -350,6 +417,7 @@ export function CityPage() {
               <ZoningStats zones={zones} fieldsMs={fields.ms} coherenceNow={coherenceNow} coherenceOther={coherenceOther} />
             )}
             {s.experiment === 'building' && <BuildingStats studio={studio} />}
+            {simMode && sim && <SimPanel mode={simMode} sim={sim} stats={simStats} resource={s.resource} />}
             {s.experiment === 'site' && layout && zones && <SiteStats layout={layout} zones={zones} timings={{ terrain: site.terrain.buildMs, roads: net.ms, blocks: blocks.ms, plots: plots.ms, fields: fields.ms, site: layout.ms }} />}
           </div>
 
@@ -361,7 +429,7 @@ export function CityPage() {
         stage={s.experiment === 'building' ? 'studio' : 'site'}
         site={site}
         net={net}
-        zones={zones}
+        zones={simMode ? null : zones}
         fillShrink={s.experiment === 'zoning' && showHeat ? 0.5 : 1}
         heat={heat}
         layout={layout}
@@ -369,8 +437,19 @@ export function CityPage() {
         show={layers}
         hovered={hovered}
         onHover={onHover}
+        sim={sim}
+        running={running}
+        simSpeed={s.simSpeed}
+        stepToken={stepToken}
+        resource={s.resource}
+        selectedAgent={selectedAgent}
+        onSelectAgent={setSelectedAgent}
+        onSimReport={onSimReport}
       />
-      <Legend experiment={s.experiment} heat={showHeat ? s.map : null} strategy={s.strategy} />
+      {sim && selectedAgent >= 0 && selectedAgent < sim.population.agents.length && (
+        <SimInspector sim={sim} id={selectedAgent} stats={simStats} onClose={() => setSelectedAgent(-1)} />
+      )}
+      {simMode ? <SimLegend mode={simMode} resource={s.resource} /> : <Legend experiment={s.experiment} heat={showHeat ? s.map : null} strategy={s.strategy} />}
       {hoveredZone && <Probe zone={hoveredZone} experiment={s.experiment} buildThreshold={s.buildThreshold} greenThreshold={s.greenThreshold} />}
     </Workspace>
   )

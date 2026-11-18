@@ -280,3 +280,147 @@
     display: none;
   }
 }
+
+/* Experiments F–H: the simulation. */
+.city-tabs {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.sim-clock {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-transport {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.sim-transport .reset-button {
+  width: auto;
+  margin: 0;
+}
+
+/* Long rules: the live value goes under its rule, not beside it. */
+.sim-rules li {
+  grid-template-columns: 16px 1fr;
+  align-items: start;
+  row-gap: 1px;
+}
+
+.sim-rules .city-rule-count {
+  grid-column: 2;
+  color: var(--accent-strong);
+  text-align: left;
+}
+
+.sim-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.sim-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-1);
+}
+
+.sim-stat-value {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: var(--weight-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-stat.is-bad .sim-stat-value {
+  color: var(--danger);
+}
+
+.sim-stat-label {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.sim-detail {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.sim-history {
+  display: block;
+  width: 100%;
+  height: 54px;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+}
+
+.sim-line {
+  fill: none;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.sim-line.is-demand {
+  stroke: #d8c27a;
+}
+
+.sim-line.is-supply {
+  stroke: #8a9096;
+  stroke-dasharray: 3 3;
+}
+
+.sim-line.is-open {
+  stroke: #8fbf7f;
+}
+
+.sim-history-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.sim-history-key i {
+  display: inline-block;
+  width: 10px;
+  height: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.sim-history-key i.is-demand {
+  background: #d8c27a;
+}
+
+.sim-history-key i.is-supply {
+  background: #8a9096;
+}
+
+.sim-history-key i.is-open {
+  background: #8fbf7f;
+}
+
+.sim-inspector {
+  pointer-events: auto;
+}
+
+.sim-policy-label {
+  display: block;
+  margin: 2px 0 6px;
+}

@@ -63,4 +63,37 @@ export const EXPLANATIONS: Record<ExperimentId, Explanation> = {
     application:
       'This is the pipeline Wildform\'s Site page could run on ground it has never seen: grow access, divide the land, read the fields, and place hosts and planting by rule.',
   },
+  agents: {
+    lede: 'F. Inhabitants — schedules and routes on the generated city.',
+    concept:
+      'An agent is a schedule and a position. Each inhabitant has a home, a job and a park, and moves between them through the day; the roads from Experiment A are the only way to get anywhere.',
+    algorithm:
+      'The road network becomes a weighted graph — junctions are nodes, roads are edges weighted by length. A trip is a route found by A* (straight-line distance as the heuristic) between the junctions nearest two doors. Each inhabitant runs one loop: at home until a personal leave time, to work, a 7–9 hour shift, to the park for 20–110 minutes, home. Time is a fixed step of one simulated minute; every random draw comes from one seeded stream, so a run replays exactly.',
+    parameters:
+      'Population sets how many — homes are drawn by residential capacity, jobs by job capacity. Movement speed is world units per simulated minute. Simulation speed is minutes per real second; it changes how many steps run per frame, never how long a step is.',
+    application:
+      'Wildform\'s inhabitants could keep schedules the same way — a nest, a feeding ground, a place to rest — and route over the living platforms as a graph, so the creatures\' paths depend on what has grown.',
+  },
+  resources: {
+    lede: 'G. Resource flow — supply, demand and the network between.',
+    concept:
+      'Buildings consume; plants produce; a network in between limits what reaches whom. A shortage can come from too little supply or from pipes too narrow to carry it — and the two look different on the map.',
+    algorithm:
+      'One plant per resource: water works at the junction nearest open water, the power station farthest from the centre, the waste depot far from both. The network is Dijkstra\'s shortest-path tree from the plant over the roads; pipe capacity follows road width. Each minute, buildings are served nearest-first: each gets the least of its demand, what the plant has left, and the spare capacity of the tightest pipe on its way. Under the shared policy every demand is first rationed to supply ÷ demand, so a shortfall is spread thin instead of landing on the far end. Demand follows a daily curve — homes in the morning and evening, workplaces in the day.',
+    parameters:
+      'Supply sets each plant\'s output, demand scales every building, capacity sizes the pipes, and the policy decides who goes short. Pins over buildings show the selected resource: green served, amber to red short. Pipes redden as they fill; beads run in the direction of flow.',
+    application:
+      'Water and nutrients reaching plants through Wildform\'s structure could be a tree like this from a source — a root, a gutter, a cistern — with the far tips going short first.',
+  },
+  dynamics: {
+    lede: 'H. Urban dynamics — people and resources, coupled.',
+    concept:
+      'Put F and G together and they feed back: people make demand, demand meets a limited supply, shortages close buildings, and closures change where people go.',
+    algorithm:
+      'Five rules, applied every minute. 1: a building asks for one unit of water and energy and half a unit of waste per person inside, plus a standing 10% of its full-occupancy load. 2: supply is allocated along each network by the chosen policy, and pipes cap each branch. 3: a building\'s activity drifts toward its worst-supplied share of water and energy (waste counts half), over about an hour. 4: a building below 0.4 activity closes and reopens above 0.6; workers arriving at a closed workplace are turned away to the park. 5: the statistics are counted from these.',
+    parameters:
+      'Supply at 100% is sized for 300 inhabitants. Raise the population to 330 and, served nearest-first, half the town closes; switch to shared and nothing closes even at 800, though everything runs at half activity. Lower it again and buildings reopen as activity recovers.',
+    application:
+      'This is the shape of resource-driven growth in Wildform: plants as consumers, light and water as supply, growth as activity that follows supply, and inhabitants whose movement changes where the demand is.',
+  },
 }

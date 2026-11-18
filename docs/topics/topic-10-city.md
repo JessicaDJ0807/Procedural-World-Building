@@ -9,10 +9,13 @@ architecture.*
 A city and site generator, taken apart into the five steps of the Week 9
 lecture: grow roads over a terrain, read the blocks off them, cut the blocks
 into plots, decide each plot from continuous maps, and put a parametric
-building or planting on it. Each step is an experiment with its own controls,
-and each later step runs on the output of the earlier ones. It is a
-learning environment, not a city builder: every number the page shows is
-measured from the site on screen.
+building or planting on it. Then, for Assignment 2, the city is set running:
+inhabitants with schedules travel its roads, water, energy and waste flow
+through networks under its streets, and the two are coupled so that people
+make demand and shortages close buildings. Each step is an experiment with
+its own controls, and each later step runs on the output of the earlier
+ones. It is a learning environment, not a city builder: every number the
+page shows is measured from the site on screen.
 
 [← back to the README](../../README.md) · [study notebook index](../README.md)
 
@@ -27,6 +30,10 @@ measured from the site on screen.
 - [C. Zoning maps](#c-zoning-maps) — continuous fields, discrete decisions
 - [D. A parametric building](#d-a-parametric-building)
 - [E. The site](#e-the-site) — the maps deciding everything
+- [F. Inhabitants](#f-inhabitants) — schedules and A* routes on the generated roads
+- [G. Resource flow](#g-resource-flow) — supply, demand, and the network between
+- [H. Urban dynamics](#h-urban-dynamics) — five rules coupling people and resources
+- [The simulation loop](#the-simulation-loop) — fixed step, play, pause, step, reset
 - [Cost](#cost)
 - [Saving a world](#saving-a-world)
 - [Connection to Wildform](#connection-to-wildform) — what can be lifted out
@@ -35,7 +42,8 @@ measured from the site on screen.
 
 ## What is on the page
 
-Five tabs, **A Roads · B Plots · C Zoning · D Building · E Site**. Each shows
+Eight tabs, **A Roads · B Plots · C Zoning · D Building · E Site** and
+**F Agents · G Resources · H Dynamics**. Each shows
 its own controls, its own measurements and a four-part explanation —
 concept, algorithm, parameters, and what it could do for Wildform. Choosing a
 tab also sets which layers are shown; the **Show** toggles change them after.
@@ -48,6 +56,10 @@ tab also sets which layers are shown; the **Show** toggles change them after.
 | **C Zoning** | Map (Density, Vegetation, Moisture, Elevation, Distance), Noise scale, Noise intensity, Centre reach; Build threshold, Green threshold, Soft band — with the seven decision rules listed and a live count against each |
 | **D Building** | Width, Depth, Floors, Roof (flat / pitched), Roof slope, Balcony probability, Facade variation |
 | **E Site** | The decision thresholds, Max floors, and D's roof slope, balconies and facade variation |
+| **F–H, all** | Play / Pause, **Step** (one simulated minute), Reset (back to 06:30, day 1), Simulation speed (1–120 simulated minutes per second) |
+| **F Agents** | Population (10–800), Movement speed; click an inhabitant on the road to inspect it |
+| **G Resources** | Resource shown (Water / Energy / Waste), Resource supply, Resource demand, Network capacity, and the shortage policy (Nearest first / Shared equally) |
+| **H Dynamics** | Population and movement speed, and all of G's — with the five rules listed and a live value under each |
 | **Show** | Roads · Plot boundaries · Zoning map · Buildings · Vegetation, as each tab allows |
 
 In B, C and E, **hovering a plot** opens a probe: its area, its road frontage,
@@ -79,7 +91,12 @@ them:
 | `zoning.ts` | The decision list, the random control, coherence |
 | `building.ts` | One building as a list of parts |
 | `site.ts` | Footprints fitted to plots, the type ladder, vegetation |
-| `cityMeshes.ts`, `CityViewport.tsx` | The only three.js — draping, instancing |
+| `sim/graph.ts` | The road network as a weighted graph; A* for trips, Dijkstra's tree for distribution |
+| `sim/places.ts` | E's buildings and parks as places with a door, a junction, residents and jobs |
+| `sim/inhabitants.ts` | Schedules, routes and walking, one simulated minute at a time |
+| `sim/resources.ts` | Plants, networks, and the allocation rule with its two policies |
+| `sim/urban.ts` | `CitySim`: the three modes, the five coupling rules, statistics and history |
+| `cityMeshes.ts`, `CityViewport.tsx`, `sim/simMeshes.ts` | The only three.js — draping, instancing, the simulation layer |
 
 The page memoises each stage on its own inputs, so a slider re-runs its stage
 and everything after it and nothing before: a zoning threshold re-zones the
@@ -352,6 +369,179 @@ high ground. A test checks no tree stands on a road.
 Organic towns are the smallest: their blocks are fewest and most irregular,
 so they lose the most to the inset, the dead ends and the fit.
 
+## F. Inhabitants
+
+![Experiment F at 06:50: the town with commuters on the roads as small capsules, one selected with a white ring; the inspector reads Inhabitant #14, going to work, destination apartment block #89, 84 units with about 7 minutes to go, leaves 06:50, 8-hour shift, 107 minutes in the park](../images/topic-10-inhabitants.png)
+
+*An inhabitant on the way to work, selected.*
+
+**Concept.** An agent is a schedule and a position. The city it lives in is
+not built for it: the homes, workplaces and parks are E's buildings and park
+plots, and the only way between them is A's roads.
+
+**Places.** Each building becomes a place with a door — a point in front of
+its street face — joined to the nearest junction. Houses hold about one
+resident per 45 u² of floor; apartment blocks have homes above and jobs on
+the ground floor; towers are offices, about one job per 30 u². Parks have
+neither. On seed 1's layered city that is 112 buildings with 445 homes and
+729 jobs, and 13 parks.
+
+**Routes.** The road network becomes a graph — junctions are nodes, roads
+are edges weighted by length — and a trip is the route A* finds between the
+junctions nearest two doors, with the doors added at each end. The
+straight-line distance to the goal never overestimates a road distance, so
+A* returns the shortest route; a test checks it against Dijkstra's for every
+third junction, and checks every consecutive pair of route nodes is joined by
+a road. Routes are cached by junction pair: 300 people need 210–356 distinct
+searches (seeds 1–3), each expanding about ten junctions.
+
+**Schedules.** Everyone runs the same loop — at home until a personal leave
+time between 06:45 and 09:15, to work, a 7–9 hour shift, to the nearest park
+to the workplace for 20–110 minutes, home. A test runs two days and checks
+that no inhabitant ever skips a step of it and that everyone comes home.
+
+**Walking** is the inhabitant's speed — the shared movement speed × a
+personal 0.85–1.15 — along the route polyline, nothing else. Nobody sees
+anybody: congestion is not modelled. The default speed is slow on purpose.
+At 80 units a minute, a real walking pace on this site, the average trip
+takes 2.5–2.6 simulated minutes and no more than 15–21 of 300 people are ever
+on the road at once; at the default 15 it is 11.3–11.9 minutes, with a peak
+of 46–57 in the late afternoon.
+
+**Inspecting.** Click near anyone on the road: a ring marks them, and the
+inspector shows their task, destination, distance and time to go, schedule,
+home and workplace, trips and how often they were turned away. It reads the
+simulation live, and follows them indoors.
+
+## G. Resource flow
+
+![Experiment G with network capacity at 30%: energy pipes along the roads from the power station at the bottom; pins over buildings green near the trunk main and red across the far side of town](../images/topic-10-resources.jpg)
+
+*Energy at 30% pipe capacity: the buildings along the trunk are served, the
+rest of the town is short — for the network, not for supply.*
+
+**Concept.** Buildings consume, plants produce, and a network in between
+limits what reaches whom. A shortage can come from too little supply or from
+pipes too narrow to carry it, and they look different on the map.
+
+**Plants** are placed from the ground and the plan: water works at the
+junction nearest open water, the power station at the junction farthest from
+the centre, the waste depot as far as it can be from both.
+
+**The network** is Dijkstra's shortest-path tree from the plant over the road
+graph — each junction fed by its parent toward the plant, pipes under the
+streets. Pipe capacity follows road width, so a primary carries 1.6× a lane:
+the arterials the layered strategy grows first are also the city's mains.
+Waste runs the same algorithm with the arrows reversed — buildings ask for
+collection, the depot's capacity is the supply.
+
+**Demand** in G follows two daily curves, written as steps: the share of
+residents at home (0.35 at night, 0.9 in the morning, 0.45 by day, 1 in the
+evening) and of jobs in use (1 from 09:00 to 17:00, less either side). Each
+person asks for 1 water, 1 energy and ½ waste a minute. Supply 100% is the
+peak of that curve summed over the city.
+
+**Allocation**, every minute, by one rule: buildings are served in order of
+distance along the network, and each gets the least of what it asks for,
+what the plant has left, and the spare capacity of the tightest pipe on its
+way. What it does not get is a shortage, put down to whichever limit bound —
+*supply* or *network*. Tests check that nobody gets more than asked, the
+plant never gives more than it makes, no pipe carries more than its capacity,
+and every unit of demand is delivered or accounted short.
+
+**Who goes short** is a policy, and the page offers two:
+
+- **Nearest first** — the end of the line gets whatever is left, possibly
+  nothing. It makes a legible map: green near the plant, red at the far end.
+- **Shared equally** — every building is rationed to supply ÷ demand before
+  the pipes are applied, so a shortfall is spread thin.
+
+Pipes limit both the same way, nearest-first, since a full pipe is full
+whoever is downstream.
+
+The page shows supply, demand, the shortage and its cause, **unused supply**
+(made and delivered to nobody), how many buildings are short, and the pipes —
+how many carry anything, how full on average, how many are at capacity.
+
+## H. Urban dynamics
+
+![Experiment H at 400 inhabitants, 15:38: the near side of town served (green pins), the far side closed (dark pins), energy flowing along the mains, commuters on the roads](../images/topic-10-dynamics.jpg)
+
+*400 inhabitants against supply sized for 300, nearest first: the far side of
+town has closed.*
+
+Five rules, every simulated minute. They are listed on the page with a live
+value under each:
+
+1. **Demand comes from people.** A building asks for 1 water, 1 energy and
+   ½ waste a minute per person inside it, plus a standing 10% of what it
+   would ask if full.
+2. **Supply is allocated** along each network by the chosen policy, and the
+   pipes cap each branch.
+3. **Activity follows supply.** A building's activity moves 1/60 of the way
+   each minute — about an hour's time constant — toward its worst-supplied
+   share of water and energy, with uncollected waste counting half.
+4. **Closures.** A building under 0.4 activity closes and reopens over 0.6;
+   the gap keeps it from flickering. Workers who arrive at a closed workplace
+   are turned away, to the park.
+5. **Statistics** are counted from 1–4.
+
+Supply at 100% is sized for 300 inhabitants indoors plus every building's
+standing load, so the population slider is the obvious lever.
+
+![The H statistics panel: population 400, 39 travelling, 228 at work, 85 in parks; energy supply 417, demand 393, shortage 0; 78 of 112 buildings closed, mean activity 0.51, 39 turned away; a sparkline of demand against supply and the share of buildings open](../images/topic-10-dynamics-panel.png)
+
+**Measured: the two policies fail in opposite ways.** Seed 1, layered, at
+noon on day 2 (buildings closed of 112, and mean activity):
+
+| | Nearest first | Shared equally |
+| --- | --- | --- |
+| 300 inhabitants | 0 closed, 1.00 | 0 closed, 1.00 |
+| 330 | **53 closed**, 0.54 | 0 closed, 0.93 |
+| 400 | 82 closed, 0.25 | 0 closed, 0.81 |
+| 600 | 97 closed, 0.11 | 0 closed, 0.58 |
+| 800 | 105 closed, 0.06 | 0 closed, 0.46 |
+| Supply 80% (300 people) | 82 closed, 0.26 | 0 closed, 0.80 |
+| Supply 40% | 108 closed, 0.03 | 0 closed, 0.40 |
+| Supply 30% | 112 closed, 0.01 | **112 closed**, 0.32 |
+
+Nearest first is a cliff: ten percent more people than the plants are sized
+for closes nearly half the town — 53 of 112 on seed 1, 41 of 65 on seed 2,
+41 of 72 on seed 3. The last buildings in line get nothing, and since a
+building runs on its *worst* resource and the three plants stand in different
+corners, each network starves a different end of town. Shared equally never
+closes anything until supply falls below the 0.4 threshold, and then closes
+everything at once. Neither is a good city; the contrast is the point. Network
+capacity is the same under both policies — at 50% pipes, 93 buildings closed
+either way — because pipes always limit nearest-first.
+
+**Closures lag the shortage.** Activity takes time to climb back over 0.6,
+so a building can stay closed after its supply returns: at 16:30 on day 2
+with 400 inhabitants, 33 buildings were closed and fully served. And the town
+breathes: closures rise through the working day and the night, when everyone
+is indoors, and fall to none in the late afternoon, when workers leave the
+towers and many are on the road, asking for nothing. A test checks that
+buildings closed at 450 inhabitants reopen when the population falls to 150.
+
+## The simulation loop
+
+One fixed step of one simulated minute, for all three experiments. **Play**
+accumulates real time × the speed and runs as many whole steps as it covers —
+a slow frame runs more steps, never a longer one — so a run is the same at
+any speed and any frame rate. **Step** runs exactly one and pauses. **Reset**
+rebuilds the simulation from the seed. Every random draw — homes, jobs, leave
+times, shifts, paces — comes from one seeded stream, and a test runs two
+copies for 900 minutes and checks every position and every activity value
+agree.
+
+The simulation lives apart from the drawing. `CitySim` knows nothing of
+three.js; `SimLayer` reads it each frame and writes instance buffers — a
+capsule per traveller, a bar per pipe, beads running along each pipe in the
+direction of flow (more on fuller pipes), a column per plant, a pin per
+building. Sliders that change parameters are pushed into the running
+simulation with `setParams`; only the city, the seed, the experiment and
+Reset build a new one, so moving a slider never restarts the day.
+
 ## Cost
 
 Everything after the terrain is cheap. Over seeds 1–5 in Node, roads, blocks,
@@ -364,12 +554,20 @@ change.
 
 Drawing: one mesh each for terrain, water, roads, plot fills and outlines; ten
 instanced meshes for building parts and three for trees, however many there
-are. The render loop is the shared one, and idles when nothing moves.
+are. The render loop is the shared one, and idles when nothing moves — and
+while a simulation plays, it keeps drawing.
+
+The simulation is cheaper still. A step takes 0.003–0.010 ms with only
+inhabitants (seeds 1–3, 300 people), 0.013–0.043 ms allocating three
+resources, and 0.021–0.046 ms coupled — 0.025–0.046 ms at 800 people. At the
+top speed of 120 minutes a second, that is about 5.5 ms of work per real
+second.
 
 ## Saving a world
 
-The worlds library saves the seed and every parameter of all five
-experiments, and the tab that was open — not the geometry. Every stage is a
+The worlds library saves the seed and every parameter of all eight
+experiments, and the tab that was open — not the geometry, and not a
+running simulation, which a loaded world restarts at 06:30 on day 1. Every stage is a
 deterministic function of what is saved, and regenerating takes about the
 time of one terrain build, so storing thousands of polygons would save under
 a fifth of a second. A loaded world opens on the tab it was saved from.
@@ -387,6 +585,10 @@ What each could do for Wildform, and what it needs:
 | `fields.ts`, `zoning.ts` | The same pattern Wildform's growth already uses — fields of sun, moisture and shelter — turned into a decision per cell: where a species may root, where a structure may stand | Any set of fields |
 | `building.ts` | Generate the host buildings plants climb, so each site has its own; bays, balconies and setbacks are the ledges and shelter the growth model looks for | Nothing — numbers in, parts out |
 | `geometry.ts` | Polygon splitting, oriented boxes and insets for any planar layout | Nothing |
+| `sim/graph.ts` | Routes for inhabitants over any graph of walkable places — living platforms, branches, bridges between buildings; and distribution trees from a source | Points and lengths |
+| `sim/inhabitants.ts` | Inhabitant movement and schedules: a creature with a nest, a feeding ground and a resting place, routed over whatever has grown | Places with a junction |
+| `sim/resources.ts` | Water and nutrient distribution through a structure from a root, a gutter or a cistern, with the far tips going short first — or sharing, by policy | A graph, a source, demands |
+| `sim/urban.ts` | Resource-driven growth: activity that drifts toward supply is growth that follows light and water; closures are dieback; inhabitants change where demand is | All of the above |
 
 `Ground` is the seam: five questions about a point. Wildform's world can
 answer them about its own terrain and run the rest unchanged.
@@ -408,6 +610,14 @@ answer them about its own terrain and run the rest unchanged.
   their lowest corner, so the uphill side is buried slightly.
 - **No water crossings.** A road that meets water turns or stops; there are
   no bridges.
+- **Inhabitants do not meet.** No congestion, no queues, no shared trips;
+  they are counted, not crowded.
+- **Places join the road at one junction**, the nearest to the door, which
+  can be across a block from it.
+- **One plant per resource**, and the network is a tree: no loops, so no
+  second way round a full pipe.
+- **Activity is a single number.** A building is open or closed; there is no
+  partial service, no storage, no prices.
 
 ## Notes
 
@@ -446,3 +656,32 @@ outcome is now counted where it happens, and a test checks they sum.
 
 **Balconies scattered.** See D: rolled per window they read as noise, and
 real buildings stack them.
+
+**Every building closed by half past eight.** The first coupled run closed all
+112 buildings in the first two hours with no shortage on the panel. Dijkstra
+relaxed each junction's distance but never pushed it onto the queue, so the
+tree stopped at the plant and every building was *unreachable* — a cause the
+summary line did not yet show. A test now checks the tree reaches every
+junction.
+
+**Pipes sized at a third of demand starved everything.** With each lane's
+pipe carrying 35% of the reference load, and the water works on a junction
+with two pipes, 271 of 417 units of water were short at default settings.
+A lane's pipe now carries the whole reference load; capacity becomes the
+limit only when the slider says so.
+
+**The shortage cause was misattributed.** At 30% capacity the panel said 0.7
+units were short for supply — impossible with the plant half idle. The cause
+was being decided from values already updated by the allocation. The three
+limits are now compared before anything is given, and a test checks that
+thin pipes produce only network shortages and a weak plant only supply ones.
+
+**The nearest-first cliff** is a finding, not a bug, but it was not the
+design: the experiment was meant to respond gradually to population. Rather
+than tune it away, the other extreme was added as a policy, and the table in
+H is the comparison.
+
+**The streets were empty.** At a realistic walking pace a trip lasts under
+three simulated minutes and at most 21 of 300 people are on the road; the
+default speed is now 15, a stylised pace, and the slider goes to 150.
+

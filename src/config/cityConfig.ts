@@ -1,5 +1,6 @@
 import type { RoofType } from '../city/building'
 import { FIELD_NAMES, type FieldName } from '../city/fields'
+import { RESOURCES, type Policy, type ResourceId } from '../city/sim/resources'
 import type { PlotMode } from '../city/plots'
 import type { RoadStrategy } from '../city/roads'
 import { bool, int, isRecord, num, pick, type ConfigSpec } from './spec'
@@ -13,8 +14,8 @@ import { bool, int, isRecord, num, pick, type ConfigSpec } from './spec'
  * hundred milliseconds, most of it the terrain's erosion. Storing the result
  * would be storing thousands of polygons to save less than a second.
  */
-export type ExperimentId = 'roads' | 'plots' | 'zoning' | 'building' | 'site'
-export const EXPERIMENTS: ExperimentId[] = ['roads', 'plots', 'zoning', 'building', 'site']
+export type ExperimentId = 'roads' | 'plots' | 'zoning' | 'building' | 'site' | 'agents' | 'resources' | 'dynamics'
+export const EXPERIMENTS: ExperimentId[] = ['roads', 'plots', 'zoning', 'building', 'site', 'agents', 'resources', 'dynamics']
 
 export type CitySettings = {
   experiment: ExperimentId
@@ -41,7 +42,15 @@ export type CitySettings = {
   roofSlope: number
   balconyChance: number
   facadeVariation: number
-  show: { roads: boolean; plots: boolean; zoning: boolean; buildings: boolean; vegetation: boolean }
+  population: number
+  walkSpeed: number
+  simSpeed: number
+  resource: ResourceId
+  supply: number
+  demand: number
+  capacity: number
+  policy: Policy
+  show: { roads: boolean; plots: boolean; zoning: boolean; buildings: boolean; vegetation: boolean; agents: boolean; network: boolean }
 }
 
 export type NumericKey = {
@@ -82,15 +91,24 @@ export const CITY_SPECS: CitySpec[] = [
   { key: 'roofSlope', label: 'Roof slope', info: 'Pitch of a gable roof in degrees. Also used for every house in Experiment E.', min: 10, max: 55, step: 1, value: 32, format: (v) => `${v.toFixed(0)}°` },
   { key: 'balconyChance', label: 'Balcony probability', info: 'Chance that a bay — a column of windows — on the front or back gets balconies, one on every floor above the ground, stacked as real buildings stack them. Facade variation knocks some out of their stacks. Used in Experiment E too, halved for towers.', min: 0, max: 1, step: 0.05, value: 0.35, format: pct },
   { key: 'facadeVariation', label: 'Facade variation', info: 'At 0 a building is perfectly regular. Raising it widens the bays, varies the window size, leaves some bays blank, may add floor bands and set the top floor back, widens the colour range and knocks some balconies out of their stacks — each by a seeded roll.', min: 0, max: 1, step: 0.05, value: 0.5, format: pct },
+  { key: 'population', label: 'Population', info: 'Inhabitants, each with a home drawn by residential capacity and a job drawn by job capacity. Changed while running, newcomers start at home and the newest leave first. In H, supply at 100% is sized for 300 — more than that asks for more than the plants make.', min: 10, max: 800, step: 10, value: 300, format: (v) => v.toFixed(0) },
+  { key: 'walkSpeed', label: 'Movement speed', info: 'World units per simulated minute; each inhabitant walks at 0.85–1.15× this. Slow on purpose: at a true walking pace of about 80 the average trip takes under three simulated minutes and the streets are nearly empty to watch.', min: 5, max: 150, step: 5, value: 15, format: (v) => `${v.toFixed(0)} u/min` },
+  { key: 'simSpeed', label: 'Simulation speed', info: 'Simulated minutes per real second. The step is always one minute; a faster speed runs more steps per frame, never longer ones, so a run is the same at any speed.', min: 1, max: 120, step: 1, value: 8, format: (v) => `${v.toFixed(0)} min/s` },
+  { key: 'supply', label: 'Resource supply', info: 'Each plant\'s output per minute, as a share of the reference demand: in G the peak of the daily demand curve, in H 300 people indoors plus every building\'s standing load.', min: 0.2, max: 2, step: 0.05, value: 1, format: pct },
+  { key: 'demand', label: 'Resource demand', info: 'A multiplier on what every building asks for.', min: 0.2, max: 2, step: 0.05, value: 1, format: pct },
+  { key: 'capacity', label: 'Network capacity', info: 'Pipe size. At 100% a lane\'s pipe carries the whole reference demand and a primary\'s 1.6× that; pipes on wide roads are wider. Lower it and the pipes, not the plant, become the limit.', min: 0.05, max: 2, step: 0.05, value: 1, format: pct },
 ]
 
 /** The layers each experiment shows on arrival; the toggles can change them afterwards. */
 export const DEFAULT_LAYERS: Record<ExperimentId, CitySettings['show']> = {
-  roads: { roads: true, plots: false, zoning: false, buildings: false, vegetation: false },
-  plots: { roads: true, plots: true, zoning: false, buildings: false, vegetation: false },
-  zoning: { roads: true, plots: true, zoning: true, buildings: false, vegetation: false },
-  building: { roads: false, plots: false, zoning: false, buildings: true, vegetation: false },
-  site: { roads: true, plots: false, zoning: false, buildings: true, vegetation: true },
+  roads: { roads: true, plots: false, zoning: false, buildings: false, vegetation: false, agents: false, network: false },
+  plots: { roads: true, plots: true, zoning: false, buildings: false, vegetation: false, agents: false, network: false },
+  zoning: { roads: true, plots: true, zoning: true, buildings: false, vegetation: false, agents: false, network: false },
+  building: { roads: false, plots: false, zoning: false, buildings: true, vegetation: false, agents: false, network: false },
+  site: { roads: true, plots: false, zoning: false, buildings: true, vegetation: true, agents: false, network: false },
+  agents: { roads: true, plots: false, zoning: false, buildings: true, vegetation: true, agents: true, network: false },
+  resources: { roads: true, plots: false, zoning: false, buildings: true, vegetation: false, agents: false, network: true },
+  dynamics: { roads: true, plots: false, zoning: false, buildings: true, vegetation: false, agents: true, network: true },
 }
 
 export function defaultCitySettings(): CitySettings {
@@ -103,6 +121,8 @@ export function defaultCitySettings(): CitySettings {
     plotMode: 'irregular',
     map: 'density',
     roof: 'flat',
+    resource: 'energy',
+    policy: 'nearest',
     show: { ...DEFAULT_LAYERS.roads },
   }
 }
@@ -123,12 +143,16 @@ function parse(raw: unknown): { settings: CitySettings; repairs: string[] } {
       plotMode: pick(raw.plotMode, ['grid', 'irregular'] as const, d.plotMode),
       map: pick(raw.map, FIELD_NAMES, d.map),
       roof: pick(raw.roof, ['flat', 'pitched'] as const, d.roof),
+      resource: pick(raw.resource, RESOURCES, d.resource),
+      policy: pick(raw.policy, ['nearest', 'shared'] as const, d.policy),
       show: {
         roads: bool(show.roads, layers.roads),
         plots: bool(show.plots, layers.plots),
         zoning: bool(show.zoning, layers.zoning),
         buildings: bool(show.buildings, layers.buildings),
         vegetation: bool(show.vegetation, layers.vegetation),
+        agents: bool(show.agents, layers.agents),
+        network: bool(show.network, layers.network),
       },
     },
     repairs: [],
@@ -142,5 +166,5 @@ export const citySpec: ConfigSpec<CitySettings> = {
   schemaVersion: 1,
   defaults: defaultCitySettings,
   parse,
-  summary: (s) => `${STRATEGY_LABEL[s.strategy]} roads · ${s.plotMode} plots · ${s.maxFloors} floors max · seed ${s.seed}`,
+  summary: (s) => `${STRATEGY_LABEL[s.strategy]} roads · ${s.plotMode} plots · ${s.maxFloors} floors max · ${s.population} people · seed ${s.seed}`,
 }
