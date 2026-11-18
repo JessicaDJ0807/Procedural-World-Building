@@ -46,6 +46,11 @@ export class NavGraph {
   readonly regionStructures: Set<number>[] = []
   readonly regionMasses: Set<number>[] = []
   readonly walkableCount: number
+  /** The sunlight on each cell when the graph was built (fields.ts), if known: comfort reads it. */
+  sun: Float32Array | null = null
+  /** Each living structure's kind, by id. */
+  kinds = new Map<number, string>()
+  private regionCells: number[][] | null = null
   private readonly place: Place[]
   private readonly structureCells = new Map<number, number[]>()
   private readonly grid = new Map<string, number[]>()
@@ -119,6 +124,15 @@ export class NavGraph {
 
   reachable(a: number, b: number): boolean {
     return a >= 0 && b >= 0 && this.region[a] >= 0 && this.region[a] === this.region[b]
+  }
+
+  /** The cells of a region. */
+  cellsIn(region: number): number[] {
+    if (!this.regionCells) {
+      this.regionCells = this.regionSize.map(() => [])
+      for (let i = 0; i < this.region.length; i++) if (this.region[i] >= 0) this.regionCells[this.region[i]].push(i)
+    }
+    return this.regionCells[region] ?? []
   }
 
   /** The walkable cells of a structure, if it is walkable at all. */
@@ -259,7 +273,10 @@ export function navFromGame(game: BuildGame): NavGraph {
     if (structure >= 0) walkable[i] = info.kind[i] === SURFACE.underside ? 0 : 1
     else walkable[i] = g.depth[i] > 0 && info.slope[i] < FACING_DOWN ? 1 : 0
   }
-  return new NavGraph(b, walkable, place)
+  const nav = new NavGraph(b, walkable, place)
+  nav.sun = game.sim.world.sun
+  for (const l of game.living) nav.kinds.set(l.id, l.kind)
+  return nav
 }
 
 /** A structure's kind, by id, for labels. */

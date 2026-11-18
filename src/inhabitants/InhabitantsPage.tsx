@@ -3,7 +3,11 @@ import { ProjectLayout } from '../project/ProjectLayout'
 import type { Route } from '../routes'
 import { KIND_NAMES } from '../build/living'
 import { Town } from '../build/town'
-import { BEHAVIOR_NAMES, COATS, WALK_SPEED, sendTo, standingOn, type Behavior, type Inhabitant } from './agent'
+import { BEHAVIOR_NAMES, BEHAVIOR_TEXT, BEHAVIORS, COATS, WALK_SPEED, sendTo, stateStory, standingOn, type Behavior, type Inhabitant } from './agent'
+import { GOAL_NAMES, placeName } from './mind'
+import { SEASONS } from '../game/seasons'
+import { StateGraph } from './StateGraph'
+import { GoalCard, History, NeedsAndNature, Utilities } from './MindPanel'
 import { POSES, POSE_NAMES, HEIGHT, type Pose } from './inhabitantMesh'
 import { SCENARIOS, StudioSim } from './scenarios'
 import { StudioViewport, type Overlays } from './StudioViewport'
@@ -12,15 +16,13 @@ import './inhabitants.css'
 type Plate = { id: string; name: string; blurb: string }
 const PLATES: Plate[] = [{ id: 'portrait', name: 'Portrait', blurb: 'One inhabitant on a plinth: its proportions, colours and every animation.' }, ...SCENARIOS]
 
-/** What each behavior means, in a line: the page's legend and the inspector's gloss. */
-const BEHAVIOR_TEXT: Record<Behavior, string> = {
-  idle: 'Resting between walks, or waiting with exploring off.',
-  exploring: 'Walking to a random spot in its own region.',
-  discovering: 'A living structure joined its region: it walks over to see it.',
-  travelling: 'Walking to a place it was sent.',
-  'no-route': 'Sent somewhere it can’t reach — another region, or bare wall.',
-  stranded: 'The growth under it withered, and nothing walkable is near.',
-}
+/** Natures to try on the selected inhabitant: the studio's comparison. */
+const NATURES = [
+  { id: 'own', name: 'Its own' },
+  { id: 'curious', name: 'Curious', traits: { curiosity: 0.9, caution: 0.1 } },
+  { id: 'balanced', name: 'Balanced', traits: { curiosity: 0.5, caution: 0.5 } },
+  { id: 'cautious', name: 'Cautious', traits: { curiosity: 0.25, caution: 0.9 } },
+] as const
 
 /** Buildings named by where they stand: "the west building", or just "the building" when there is one. */
 function buildingNames(sim: StudioSim): Map<number, string> {
@@ -59,6 +61,9 @@ export function InhabitantsPage({ navigate }: { navigate: (route: Route) => void
   const [pose, setPose] = useState<Pose>('idle')
   const [resetToken, setResetToken] = useState(0)
   const [follow, setFollow] = useState(true)
+  const [state, setState] = useState<Behavior | null>(null)
+  // Each inhabitant's own nature, kept so "Its own" can put it back after trying another.
+  const [natures] = useState(() => new Map<string, { curiosity: number; caution: number }>())
   const [, tick] = useReducer((n: number) => n + 1, 0)
   const plate = PLATES.find((p) => p.id === plateId)!
   // A fresh game for each scenario and each reset: never saved, never shared with Play.
@@ -99,6 +104,18 @@ export function InhabitantsPage({ navigate }: { navigate: (route: Route) => void
   }
 
   const region = agent && sim && agent.cell >= 0 ? sim.nav.region[agent.cell] : -1
+  const story = state ? stateStory(state) : null
+  const natureKey = (a: Inhabitant) => `${plateId}:${epoch}:${a.id}`
+  const setNature = (id: (typeof NATURES)[number]['id']) => {
+    if (!agent) return
+    const k = natureKey(agent)
+    if (!natures.has(k)) natures.set(k, { curiosity: agent.traits.curiosity, caution: agent.traits.caution })
+    const n = NATURES.find((x) => x.id === id)!
+    const t = 'traits' in n ? n.traits : natures.get(k)!
+    agent.traits = { ...agent.traits, ...t }
+    tick()
+  }
+  const natureOf = (a: Inhabitant) => NATURES.find((n) => 'traits' in n && Math.abs(n.traits.curiosity - a.traits.curiosity) < 1e-6 && Math.abs(n.traits.caution - a.traits.caution) < 1e-6)?.id ?? 'own'
   const moving = !!agent && agent.next >= 0
 
   return (
@@ -199,7 +216,7 @@ export function InhabitantsPage({ navigate }: { navigate: (route: Route) => void
                           tick()
                         }}
                       />
-                      Explore on its own
+                      Decides for itself
                     </label>
                   )}
                   {sim.scenario.growth && (
@@ -241,8 +258,8 @@ export function InhabitantsPage({ navigate }: { navigate: (route: Route) => void
                   <i style={{ background: COATS[agent.coat].body }} />
                   Inhabitant #{agent.id} <span>· {COATS[agent.coat].name}</span>
                 </p>
-                <p className={`studio-behavior is-${agent.behavior}`}>{BEHAVIOR_NAMES[agent.behavior]}</p>
-                <p className="studio-why">{agent.why}.</p>
+                <GoalCard a={agent} place={agent.destination >= 0 && agent.behavior !== 'no-route' ? placeName(sim.nav, agent.destination) : ''} />
+                <NeedsAndNature a={agent} />
                 <dl className="studio-facts">
                   <dt>Where</dt>
                   <dd>{where(agent)}</dd>
@@ -265,7 +282,6 @@ export function InhabitantsPage({ navigate }: { navigate: (route: Route) => void
                       : '—'}
                   </dd>
                 </dl>
-                <p className="studio-gloss">{BEHAVIOR_TEXT[agent.behavior]}</p>
                 <details className="studio-details">
                   <summary>Technical details</summary>
                   <dl>
@@ -302,7 +318,7 @@ export function InhabitantsPage({ navigate }: { navigate: (route: Route) => void
                   where it’s going, and why.
                 </p>
                 <ul className="studio-legend-list">
-                  {(Object.keys(BEHAVIOR_NAMES) as Behavior[]).map((b) => (
+                  {BEHAVIORS.map((b) => (
                     <li key={b}>
                       <strong>{BEHAVIOR_NAMES[b]}</strong> {BEHAVIOR_TEXT[b]}
                     </li>
@@ -312,6 +328,97 @@ export function InhabitantsPage({ navigate }: { navigate: (route: Route) => void
             )}
           </aside>
         </div>
+
+        {sim && agent && (
+          <div className="studio-mind" aria-label="How it decides">
+            <section className="mind-card mind-graph">
+              <header>
+                <h3>How it goes about it <span>the state machine</span></h3>
+                <p>
+                  Every state it can be in, and every way between them — drawn from the same table each change is checked
+                  against. Its current state is filled; the way it last came flashes. Pick a state to read it.
+                </p>
+              </header>
+              <div className="fsm-scroll">
+                <StateGraph current={agent.behavior} last={agent.last} lastKey={agent.last?.at ?? 0} selected={state} onSelect={setState} />
+              </div>
+              {story && state ? (
+                <div className="mind-story">
+                  <p>
+                    <strong>{BEHAVIOR_NAMES[state]}</strong> — {BEHAVIOR_TEXT[state]}
+                  </p>
+                  <dl>
+                    <dt>Enters</dt>
+                    <dd>{story.into.map((t) => `${t.from === '*' ? 'From any state' : `From ${BEHAVIOR_NAMES[t.from]}`}: ${t.when}`).join(' · ') || '— (where every inhabitant starts)'}</dd>
+                    <dt>Leaves</dt>
+                    <dd>{story.out.map((t) => `To ${BEHAVIOR_NAMES[t.to]}: ${t.when}`).join(' · ') || '—'}</dd>
+                    <dt>Goals</dt>
+                    <dd>{story.goals.map((g) => GOAL_NAMES[g]).join(', ') || 'None — it isn’t carrying out a goal here'}</dd>
+                  </dl>
+                </div>
+              ) : (
+                <p className="mind-hint">
+                  <strong>{BEHAVIOR_NAMES[agent.behavior]}</strong> — {BEHAVIOR_TEXT[agent.behavior]} {agent.last && `Last: ${BEHAVIOR_NAMES[agent.last.from]} → ${BEHAVIOR_NAMES[agent.last.to]}.`}
+                </p>
+              )}
+              <h4 className="mind-subhead">Lately <span>goals and states, as they happened</span></h4>
+              <History a={agent} />
+            </section>
+            <section className="mind-card">
+              <header>
+                <h3>What it wants <span>its goals, scored</span></h3>
+                <p>Each goal’s worth to it now, from its needs, its nature, the weather and the places it can reach. It takes the best — and sticks with it a while.</p>
+              </header>
+              <Utilities a={agent} />
+            </section>
+            <section className="mind-card">
+              <header>
+                <h3>Try it <span>this scene only</span></h3>
+                <p>Change the weather, its nature or its needs, and watch what it decides. Nothing here reaches a saved world.</p>
+              </header>
+              <div className="mind-try">
+                <span className="mind-kicker">Season</span>
+                <span className="studio-chips" role="radiogroup" aria-label="Season">
+                  {SEASONS.map((x, k) => (
+                    <button key={x.id} type="button" role="radio" aria-checked={sim.season === k} className={sim.season === k ? 'is-active' : ''} onClick={() => (sim.setWeather(k, sim.downpour), tick())}>
+                      {x.emoji} {x.name}
+                    </button>
+                  ))}
+                </span>
+                <label className="studio-check">
+                  <input type="checkbox" checked={sim.downpour} onChange={(e) => (sim.setWeather(sim.season, e.target.checked), tick())} />
+                  Downpour
+                </label>
+                <span className="mind-kicker">#{agent.id}’s nature</span>
+                <span className="studio-chips" role="radiogroup" aria-label="Nature">
+                  {NATURES.map((n) => (
+                    <button key={n.id} type="button" role="radio" aria-checked={natureOf(agent) === n.id} className={natureOf(agent) === n.id ? 'is-active' : ''} onClick={() => setNature(n.id)}>
+                      {n.name}
+                    </button>
+                  ))}
+                </span>
+                <span className="mind-kicker">#{agent.id}’s needs</span>
+                {(['energy', 'curiosity'] as const).map((k) => (
+                  <label key={k} className="mind-slider">
+                    <span>{k === 'energy' ? 'Energy' : 'Curiosity'}</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={agent.needs[k]}
+                      onChange={(e) => {
+                        agent.needs[k] = Number(e.target.value)
+                        tick()
+                      }}
+                    />
+                  </label>
+                ))}
+                <p className="mind-note">Comfort isn’t set by hand: it follows the place it stands and the weather.</p>
+              </div>
+            </section>
+          </div>
+        )}
 
         <div className="studio-text">
           <div>
@@ -326,9 +433,10 @@ export function InhabitantsPage({ navigate }: { navigate: (route: Route) => void
           <div>
             <h3>Behavior</h3>
             <p>
-              One small state machine: idle, exploring, discovering, travelling, no route, stranded. Each state is entered
-              for a reason the inhabitant records, shown above as its “why”. They rest a few seconds, wander their region,
-              and when a living structure joins it, walk over to see. They don’t eat, talk or work.
+              Two layers. What it wants — explore, rest, seek shelter, observe — is chosen by scoring each goal from its
+              needs (energy, comfort, curiosity), its nature (curious, cautious) and the weather, over places it can reach.
+              How it goes about it is a small state machine. A curious one goes to see a new bridge first; a cautious one
+              keeps near what it knows; in rain they make for a canopy.
             </p>
           </div>
           <div>
@@ -351,9 +459,9 @@ export function InhabitantsPage({ navigate }: { navigate: (route: Route) => void
           <div>
             <h3>Not built yet</h3>
             <p>
-              Ideas, not features: inhabitants that favour certain plants or structures, that gather where it’s sheltered,
-              or that help seed new growth; a route the player can ask for. Today they only walk, rest, discover, and say
-              when they can’t get somewhere.
+              Ideas, not features: inhabitants that seek each other out (each already has a sociability, which nothing
+              uses yet), that favour certain plants, or that help seed new growth. They don’t eat, talk or work, and
+              they aren’t saved: a reloaded world has the same characters, with fresh needs.
             </p>
           </div>
         </div>

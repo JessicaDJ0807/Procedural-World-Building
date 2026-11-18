@@ -1,6 +1,8 @@
 import type { BuildGame } from '../build/game'
 import { navFromGame, type NavGraph } from './nav'
 import { rehome, spawn, step, type Inhabitant } from './agent'
+import type { Conditions } from './mind'
+import { seasonAt, seasonWeights } from '../game/seasons'
 
 /**
  * The inhabitants of a game: Play's and the Lab's. Reads the game; never
@@ -14,7 +16,14 @@ import { rehome, spawn, step, type Inhabitant } from './agent'
  *   cells, up to six, each on a random cell of a region of at least 30 cells,
  *   the emptiest such region first. None ever leave — a stranded one waits.
  * - **A new world, new inhabitants.** Restart, New world and loading a world
- *   replace the world (`game.epoch`), and the inhabitants with it.
+ *   replace the world (`game.epoch`), and the inhabitants with it — but each
+ *   one's nature is seeded by the world's seed and its number, not the epoch,
+ *   so a world reloaded has the same characters in it. Their needs start
+ *   fresh: inhabitants aren't saved (nor where they stood), so saving needs
+ *   alone would resume nothing coherent.
+ * - **What they feel** is the game's own weather: its rain, its warmth, and —
+ *   where the seasons run (Play, not the Lab) — how much of summer is in the
+ *   air (`conditions`).
  */
 
 const PER_CELLS = 120
@@ -34,7 +43,20 @@ export class Population {
   /** How many times the graph has been rebuilt, for the inspector. */
   rebuilds = 0
 
-  update(game: BuildGame, dt: number) {
+  /** The conditions the inhabitants last felt: for the inspector. */
+  conditions: Conditions = { rain: 0.55, warmth: 1, heat: 0, season: '' }
+
+  /** What the world is like for them now. `seasons`: the year turns (Play); otherwise its weather holds (the Lab). */
+  static conditionsOf(game: BuildGame, seasons: boolean): Conditions {
+    return {
+      rain: game.env.rain,
+      warmth: game.warmth,
+      heat: seasons ? seasonWeights(game.sim.step)[1] : 0,
+      season: seasons ? seasonAt(game.sim.step).season.name : '',
+    }
+  }
+
+  update(game: BuildGame, dt: number, seasons = false) {
     if (game.epoch !== this.epoch) {
       this.epoch = game.epoch
       this.agents = []
@@ -57,7 +79,8 @@ export class Population {
     }
     const nav = this.nav
     if (!nav) return
-    for (const a of this.agents) step(a, nav, dt)
+    this.conditions = Population.conditionsOf(game, seasons)
+    for (const a of this.agents) step(a, nav, dt, this.conditions)
   }
 
   private populate(game: BuildGame) {
@@ -84,7 +107,8 @@ export class Population {
         }
       }
       if (cell < 0) return
-      this.agents.push(spawn(this.nextId++, nav, cell, seed))
+      this.agents.push(spawn(this.nextId, nav, cell, seed, game.seed * 7919 + this.nextId * 104729))
+      this.nextId++
     }
   }
 }

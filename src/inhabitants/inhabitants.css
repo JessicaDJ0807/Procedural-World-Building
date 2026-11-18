@@ -3,7 +3,7 @@
 
 .studio-index {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
   margin-bottom: 14px;
 }
@@ -379,7 +379,7 @@
 
 @media (max-width: 720px) {
   .studio-index {
-    grid-template-columns: repeat(5, minmax(118px, 1fr));
+    grid-template-columns: repeat(7, minmax(118px, 1fr));
     overflow-x: auto;
   }
 
@@ -407,5 +407,492 @@
     top: 108px;
     right: auto;
     left: 12px;
+  }
+}
+
+/* --- the mind: goal and state, needs and nature, the state machine, the utilities --- */
+
+.mind-goal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mind-goal > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.03));
+}
+
+.mind-goal strong {
+  color: #f0c46a;
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.mind-goal div + div strong {
+  color: #9fd08a;
+}
+
+.mind-goal strong.is-no-route,
+.mind-goal strong.is-stranded {
+  color: #e48a7a;
+}
+
+.mind-kicker {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mind-sub {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.mind-needs {
+  display: grid;
+  gap: 5px;
+  margin-top: 14px;
+}
+
+.mind-head {
+  margin-top: 6px !important;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.mind-head span {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.mind-bar {
+  display: grid;
+  grid-template-columns: 74px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.mind-bar-track {
+  height: 7px;
+  border-radius: 4px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.mind-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: #9fd08a;
+  transition: width 0.3s ease;
+}
+
+.mind-bar.is-trait .mind-bar-fill {
+  background: #c7a6d9;
+}
+
+.mind-bar.is-muted {
+  opacity: 0.55;
+}
+
+.mind-bar.is-muted .mind-bar-fill {
+  background: var(--text-muted);
+}
+
+.mind-bar-value {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.studio-mind {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.mind-card {
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.mind-graph {
+  grid-row: span 2;
+}
+
+.mind-card header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.mind-card header h3 span {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.mind-card header p {
+  margin: 4px 0 10px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.fsm {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 380px;
+}
+
+.fsm-edge {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.4;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.fsm-edge.is-any,
+.fsm-edge.is-command {
+  stroke-dasharray: 4 4;
+}
+
+.fsm-edge.is-faded {
+  opacity: 0.12;
+}
+
+.fsm-edge.is-hot {
+  stroke: #f0c46a;
+  stroke-width: 2.6;
+  opacity: 1;
+  animation: fsm-flash 1.6s ease-out;
+}
+
+@keyframes fsm-flash {
+  0% {
+    stroke-width: 6;
+  }
+  100% {
+    stroke-width: 2.6;
+  }
+}
+
+.fsm-arrowhead {
+  fill: var(--text-muted);
+}
+
+.fsm-arrowhead.is-hot {
+  fill: #f0c46a;
+}
+
+.fsm-node {
+  cursor: pointer;
+}
+
+.fsm-node rect {
+  fill: var(--surface-2, #232724);
+  stroke: var(--border-strong);
+  stroke-width: 1.2;
+  transition: fill 0.25s, stroke 0.25s;
+}
+
+.fsm-node text {
+  fill: var(--text-primary);
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 14px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.fsm-node.is-current rect {
+  fill: #5c9a4e;
+  stroke: #9fd08a;
+}
+
+.fsm-node.is-current.is-trouble rect {
+  fill: #a3503f;
+  stroke: #e48a7a;
+}
+
+.fsm-node.is-current text {
+  fill: #fff;
+}
+
+.fsm-node.is-selected rect {
+  stroke: #f0c46a;
+  stroke-width: 2.4;
+}
+
+.fsm-node:focus-visible rect {
+  stroke: var(--accent);
+  stroke-width: 2.4;
+}
+
+.fsm-node.is-any {
+  cursor: default;
+}
+
+.fsm-node.is-any rect {
+  fill: none;
+  stroke-dasharray: 3 3;
+}
+
+.fsm-node.is-any text {
+  fill: var(--text-muted);
+  font-size: 12px;
+}
+
+.mind-story,
+.mind-hint {
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.mind-story p,
+.mind-hint {
+  margin: 0;
+}
+
+.mind-story strong,
+.mind-hint strong {
+  color: var(--text-primary);
+}
+
+.mind-story dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 8px 0 0;
+}
+
+.mind-story dt {
+  color: var(--text-muted);
+}
+
+.mind-story dd {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.mind-utils ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mind-util {
+  display: grid;
+  grid-template-columns: 96px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mind-util.is-open {
+  border-color: var(--border) !important;
+  background: var(--surface-hover);
+}
+
+.mind-util.is-chosen .mind-util-name {
+  color: #f0c46a;
+  font-weight: 600;
+}
+
+.mind-util-track {
+  height: 9px;
+  border-radius: 5px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.mind-util-track span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--text-muted);
+  transition: width 0.3s ease;
+}
+
+.mind-util.is-chosen .mind-util-track span {
+  background: #f0c46a;
+}
+
+.mind-util-score {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mind-util-none {
+  grid-column: 2 / 4;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.mind-factors {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.mind-factors p {
+  margin: 0 0 6px;
+}
+
+.mind-factors strong {
+  color: var(--text-primary);
+}
+
+.mind-factors ul li {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.mind-factors li.is-up span:last-child {
+  color: #9fd08a;
+}
+
+.mind-factors li.is-down span:last-child {
+  color: #e48a7a;
+}
+
+.mind-note,
+.mind-empty {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.mind-try {
+  display: grid;
+  gap: 8px;
+}
+
+.mind-slider {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.mind-log {
+  display: grid;
+  gap: 4px;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.mind-log li {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.mind-log li.is-goal span:last-child {
+  color: #f0c46a;
+}
+
+.mind-log-at {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1180px) {
+  .studio-mind {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mind-graph {
+    grid-row: auto;
+  }
+}
+
+/* Chips on the dark cards: the controls bar's are styled for its light ground. */
+.mind-try .studio-chips button {
+  border-color: var(--border) !important;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.mind-try .studio-chips button.is-active {
+  border-color: #5c9a4e !important;
+  background: rgba(92, 154, 78, 0.22);
+  color: var(--text-primary);
+}
+
+.mind-try .studio-check {
+  color: var(--text-secondary);
+}
+
+.mind-subhead {
+  margin: 16px 0 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: 'Fredoka', var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mind-subhead span {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* On a narrow screen the graph keeps a readable size (labels ~12 px) and scrolls sideways in its
+   card: scaled to 350 px wide, its labels were 6 px. */
+.fsm-scroll {
+  overflow-x: auto;
+}
+
+@media (max-width: 720px) {
+  .fsm {
+    min-width: 560px;
   }
 }

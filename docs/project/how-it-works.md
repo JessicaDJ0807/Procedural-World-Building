@@ -335,10 +335,18 @@ mature living architecture**, so what they can reach is the plants' doing.
   a structure joins them (on the bridge fixture: two regions until the bridge
   matures at step 360, then one). Rebuilt as the world changes, in 1–2 ms.
 - **Routes:** **A\*** by distance over walkable cells.
-- **Behaviour:** a small state machine — idle, exploring, discovering (a
-  structure joined its region), travelling (sent somewhere), no route,
-  stranded (the growth under it withered) — each entered for a reason the
-  agent records.
+- **Behaviour, in two layers.** *What it wants*: a **utility** system scores
+  four goals — explore, rest, seek shelter, observe — from its **needs**
+  (energy, comfort, curiosity), its **nature** (curious, cautious) and the
+  game's own weather (rain, warmth, summer), over places it can reach, judged
+  by what they offer: cover from the building's own surfaces, sunlight from
+  the growth model, height, and what each kind of living architecture is for
+  (a pod encloses, a balcony looks out, a bridge leads somewhere new). It
+  sticks to a goal (hysteresis, a 1.5 s recheck, a margin to interrupt).
+  *How it goes about it*: a **state machine** — idle, exploring, discovering,
+  travelling, resting, observing, no route, stranded — whose transitions are
+  one table that every change is checked against, and that the Inhabitants
+  page draws its graph from.
 - **Population (Play and the Lab):** one per 120 walkable cells, up to six.
   They only read the game; nothing about them is saved.
 

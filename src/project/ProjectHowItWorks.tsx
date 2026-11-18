@@ -151,15 +151,16 @@ const STAGES: Stage[] = [
   {
     id: 'inhabitants',
     title: 'Inhabitants',
-    technique: 'Walkable graph · flood-fill regions · A* · state machine',
-    summary: 'Creatures that walk only where plants grow or on mature structures — so what they can reach is the plants’ doing.',
+    technique: 'Walkable graph · flood-fill regions · A* · utility AI · state machine',
+    summary: 'Creatures that walk only where plants grow or on mature structures — so what they can reach is the plants’ doing — and choose where to go from their needs, their nature and the weather.',
     how: [
       'The walkable graph is the growth cells with something growing on them, plus mature structure surfaces.',
       'A flood fill splits it into regions; two buildings are separate until growth or a structure joins them. Routes are A* within a region.',
-      'A small state machine — idle, exploring, discovering, travelling, no route, stranded — each state entered for a recorded reason.',
+      'What it wants: a utility system scores four goals — explore, rest, seek shelter, observe — from its needs (energy, comfort, curiosity), its nature (curious, cautious) and the game’s weather, over places it can reach: cover from the building’s own surfaces, sunlight from the growth model, height, and what each structure is for.',
+      'How it goes about it: a state machine — idle, exploring, discovering, travelling, resting, observing, no route, stranded — whose transitions are one table every change is checked against, and the Inhabitants page draws its graph from.',
     ],
-    numbers: ['graph rebuild 1–2 ms', 'one per 120 walkable cells, up to 6', 'walk 0.75 units/s'],
-    code: ['src/inhabitants/nav.ts', 'src/inhabitants/agent.ts', 'src/inhabitants/population.ts'],
+    numbers: ['graph rebuild 1–2 ms', 'a decision ~0.03 ms', 'curious 47% exploring, cautious 0%', 'one per 120 walkable cells, up to 6'],
+    code: ['src/inhabitants/nav.ts', 'src/inhabitants/mind.ts', 'src/inhabitants/agent.ts', 'src/inhabitants/population.ts'],
   },
   {
     id: 'landscape',

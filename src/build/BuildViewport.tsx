@@ -812,7 +812,7 @@ export function BuildViewport(props: Props) {
       const shown = latest.current.inhabitants === true
       loop.setMaxFps(running ? 30 : living ? (shown ? 30 : 8) : 60)
       if (population && inhabitantsView) {
-        population.update(game, delta)
+        population.update(game, delta, !!latest.current.look)
         inhabitantsView.visible = shown
         inhabitantsView.sync(population.agents, delta)
       }
@@ -902,7 +902,7 @@ export function BuildViewport(props: Props) {
         fx?.update(seconds, renderer.domElement.height)
         decor.tick(seconds)
         if (population && inhabitantsView) {
-          population.update(game, seconds)
+          population.update(game, seconds, !!latest.current.look)
           inhabitantsView.sync(population.agents, seconds)
         }
         renderer.shadowMap.needsUpdate = true

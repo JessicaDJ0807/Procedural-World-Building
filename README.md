@@ -74,7 +74,11 @@ third of the plants and spring growing them back.
 **Inhabitants.** Small creatures live on the green: they walk only where
 plants grow or on mature living architecture, so two buildings are separate
 worlds to them until the plants join them, and a maturing bridge is a route
-they go and discover. They make the consequences of growth visible.
+they can discover. Where they go is their own choice: each has needs (energy,
+comfort, curiosity) and a nature (curious or cautious), and picks a goal —
+explore, rest, seek shelter, look out — from them and the weather. A curious
+one goes to see a new bridge first; in rain they make for a canopy or a pod.
+They make the consequences of growth visible.
 
 <p><img src="docs/images/readme-inhabitants-animations.gif" width="100%" alt="The four coats, each in one of the four animations: Moss idle, Lichen walking, Blossom discovering, Bark puzzled"></p>
 
@@ -105,7 +109,7 @@ the player places to the living architecture the plants grow, and back:
 | **Grammar** | Rule grammar over meetings and context | What met in a cell's stack (or under a Draper's curtain) decides the structure; the walls, the plants' headings and the space around decide its shape. |
 | **Living architecture** | Bézier, helix and catenary curves · swept surfaces | Planned as curves, swept into decks and tubes, grown in five stages; at maturity it shades, supports climbers, and becomes growth cells itself. |
 | **Seasons** | Step-derived weather · shader tint · particles | Four 500-step seasons set the real rain, sun and warmth, blended over 150 steps; leaves, sky and weather follow. |
-| **Inhabitants** | Walkable graph · flood-fill regions · A* · state machine | They walk only on growth and mature structures; regions split by flood fill, routes by A*. |
+| **Inhabitants** | Walkable graph · flood-fill regions · A* · utility AI · state machine | They walk only on growth and mature structures; regions split by flood fill, routes by A*. A utility system picks a goal from needs, nature and weather; a state machine — one table, also drawn on the page — carries it out. |
 | **Landscape** | Masked, warped Perlin terrain · ridged landforms · a carved stream · A*-routed paths · seeded scatter | A clearing in a shallow hollow, rolling hills and a ridge beyond — none of it touching the town's ground (a smooth mask, zero within 3 units of the grid); elevation, moisture and fertility colour the land and decide where grass, shrubs, ferns, saplings, rocks and flowers grow; a stream cut into the land at the ridge's foot and footpaths routed in from the forest to each building (never between them); a meadow of ground-cover patches, wildflower drifts and a few accents — a fallen log, mossy stones, mushrooms, a flowering shrub; a forest round a small irregular clearing, in mixed groves of six tree families — each grove led by one family with companions, conifers likelier up the ridge but found all round — and a middle layer of saplings, young trees and tall shrubs at its edge; saved as a seed and density, regenerated exactly. |
 | **Rendering** | GPU instancing · age shaders · fBm · render on demand | Instanced leaves and stems that a shader opens with age; fBm clouds; nothing drawn while nothing moves. |
 | **Saving** | State, not scene | The town, structures, Drapers and every plant layer (22 bytes each); loading rebuilds the rest, and the world carries on identically. |
@@ -132,8 +136,10 @@ The project is the app's **Project** section, nine pages:
 - **Architecture** — an atlas of the eight structures, each a real game grown
   until it formed, in two or three variations: watch it form, see its
   structure, trace the plants that made it. [`architecture.md`](docs/project/architecture.md)
-- **Inhabitants** — a studio for the creatures: a portrait, four test scenes
-  run by the same agents as Play, a live inspector and overlays.
+- **Inhabitants** — a studio for the creatures: a portrait, six test scenes
+  run by the same agents as Play, what each wants and why (its goals scored),
+  its state machine drawn from the code, and experiments with the weather,
+  its nature and its needs.
   [`inhabitants.md`](docs/project/inhabitants.md)
 - **Site** — Wildform's environment logic at campus scale: Cornell Tech on
   Roosevelt Island from NYC Open Data, lit by the real sun through a simulated

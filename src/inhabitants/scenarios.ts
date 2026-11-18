@@ -3,6 +3,8 @@ import { Town } from '../build/town'
 import { RECIPES, recipeGame, type Recipe } from '../architecture/specimens'
 import { navFromGame, type NavGraph } from './nav'
 import { rehome, seeded, spawn, step, type Inhabitant } from './agent'
+import type { Conditions } from './mind'
+import { SEASONS } from '../game/seasons'
 
 /**
  * The Inhabitants studio's test scenes: each a real Build game, set up from
@@ -27,6 +29,9 @@ export type Scenario = {
   growth?: { rate: number; until: number }
   /** Where the inhabitants start: the block (x, z) of the building each stands on; null for the biggest region. */
   starts: ([number, number] | null)[]
+  /** The season it opens in (index into SEASONS), and whether it pours. Spring, dry, if not given. */
+  season?: number
+  downpour?: boolean
 }
 
 export const SCENARIOS: Scenario[] = [
@@ -63,6 +68,25 @@ export const SCENARIOS: Scenario[] = [
     growth: { rate: 15, until: 520 },
     starts: [null, null],
   },
+  {
+    id: 'shelter',
+    name: 'Shelter from rain',
+    blurb: 'The Architecture page’s low canopy, and a downpour. Under the canopy is drier: watch who goes there. Stop the rain and they go about their day.',
+    recipe: RECIPES.canopy[0],
+    growTo: 800,
+    starts: [[6, 6], [7, 6], [6, 6]],
+    downpour: true,
+  },
+  {
+    id: 'dieback',
+    name: 'Winter dieback',
+    blurb: 'A grown tower, and winter: the growth runs on at winter’s warmth and withers. Routes vanish under them — watch them replan, give up, or strand.',
+    recipe: { kind: 'balcony', label: 'Dieback', columns: [[6, 6, 4]], plant: [[6, 6, 0, 1]], seed: 5, rain: 0.55 },
+    growTo: 900,
+    growth: { rate: 20, until: 1700 },
+    starts: [[6, 6], [6, 6], [6, 6]],
+    season: 3,
+  },
 ]
 
 /** How often the graph is rebuilt while growth runs, seconds. */
@@ -75,6 +99,9 @@ export class StudioSim {
   nav: NavGraph
   agents: Inhabitant[] = []
   rebuilds = 1
+  /** The season (index into SEASONS) and the rain the studio has set — on this scene's own game only. */
+  season = 0
+  downpour = false
   private pendingSteps = 0
   private sinceRebuild = 0
   private navStep: number
@@ -83,6 +110,7 @@ export class StudioSim {
     this.scenario = scenario
     this.game = recipeGame(scenario.recipe)
     this.game.advance(scenario.growTo)
+    this.setWeather(scenario.season ?? 0, !!scenario.downpour, false)
     this.nav = navFromGame(this.game)
     this.navStep = this.game.sim.step
     const masses = this.game.town.masses()
@@ -106,6 +134,29 @@ export class StudioSim {
     const cells: number[] = []
     for (let i = 0; i < nav.region.length; i++) if (nav.region[i] === best[0] && (mass < 0 || nav.placeOf(i).mass === mass)) cells.push(i)
     return cells[Math.floor(rng() * cells.length)]
+  }
+
+  /**
+   * Sets this scene's weather: the season's rain and warmth on its own game (so a winter
+   * scene's growth really withers as it runs), and a downpour if asked. Never a saved world.
+   */
+  setWeather(season: number, downpour: boolean, rebuild = true) {
+    this.season = season
+    this.downpour = downpour
+    const s = SEASONS[season]
+    this.game.setEnvironment({ rain: downpour ? 0.92 : s.env.rain, sunAzimuth: s.env.sunAzimuth }, false)
+    this.game.setWarmth(s.warmth)
+    if (rebuild) {
+      // The sunlight changed with the sun's direction: the graph reads it.
+      this.nav = navFromGame(this.game)
+      this.rebuilds++
+      for (const a of this.agents) rehome(a, this.nav)
+    }
+  }
+
+  /** What the scene's inhabitants feel. */
+  get conditions(): Conditions {
+    return { rain: this.game.env.rain, warmth: this.game.warmth, heat: this.season === 1 ? 1 : 0, season: SEASONS[this.season].name }
   }
 
   get growing(): boolean {
@@ -134,6 +185,7 @@ export class StudioSim {
       this.rebuilds++
       for (const a of this.agents) if (rebuilt || a.cell < 0 || !this.nav.walkable[a.cell] || (a.next >= 0 && !this.nav.walkable[a.next])) rehome(a, this.nav)
     }
-    for (const a of this.agents) step(a, this.nav, dt)
+    const c = this.conditions
+    for (const a of this.agents) step(a, this.nav, dt, c)
   }
 }
