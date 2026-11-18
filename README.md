@@ -169,6 +169,10 @@ chapter in [`docs/topics/`](docs/topics/).
 <td valign="top"><a href="docs/topics/topic-7-vector-fields.md"><img src="docs/images/readme-topic-7-vector-fields.jpg" alt="Topic 7: particle trails curling around six vortices"></a><br><b><a href="docs/topics/topic-7-vector-fields.md">7 · Vector Fields</a></b> — eighteen thousand particles following a divergence-free field of current, vortices and curl noise.</td>
 <td valign="top"><a href="docs/topics/topic-8-branching.md"><img src="docs/images/readme-topic-8-branching.png" alt="Topic 8: an oak grove from above with LOD rings"></a><br><b><a href="docs/topics/topic-8-branching.md">8 · Branching</a></b> — from an L-system to an instanced forest with levels of detail: 76–85% fewer triangles in each preset's opening view.</td>
 </tr>
+<tr>
+<td valign="top"><a href="docs/topics/topic-9-agent-systems.md"><img src="docs/images/readme-topic-9-agent-systems.jpg" alt="Topic 9: an amber trail network worn by agents across a walled field, one agent selected with its senses drawn"></a><br><b><a href="docs/topics/topic-9-agent-systems.md">9 · Agent Systems</a></b> — a state machine and a shared trail: agents nobody routes wear paths 8–17% longer than shortest, against 33–38% walking alone.</td>
+<td valign="top"></td>
+</tr>
 </table>
 
 ## Study notebook
@@ -246,7 +250,8 @@ src/
 │   ├── DistributionPage.tsx  Topic 5 — layer rules, debug view, probe
 │   ├── PathPage.tsx          Topic 6 — path editor and elevation profile
 │   ├── FlowPage.tsx          Topic 7 — field and particle controls
-│   └── BranchingPage.tsx     Topic 8 — grammar, geometry, distribution, LOD, display
+│   ├── BranchingPage.tsx     Topic 8 — grammar, geometry, distribution, LOD, display
+│   └── AgentsPage.tsx        Topic 9 — presets, parameters, inspector, state diagram, measurements
 ├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
@@ -302,6 +307,14 @@ src/
 │   ├── presets.ts            Settings shape, palettes, grammar library, presets
 │   ├── BranchingViewport.tsx Scene, camera, LOD rings; one effect per stage
 │   └── branching.css         Grammar editor, preset grid, derivation and LOD tables
+├── agents/                   Topic 9
+│   ├── environment.ts        The walled field, seeded gaps and rocks, blocks; Dijkstra for measuring only
+│   ├── trail.ts              The shared trail: deposit, evaporation, diffusion, concentration
+│   ├── simulation.ts         The four-state machine, active-walker steering, fixed-step loop
+│   ├── presets.ts            Independent, Collective, Rapid Adaptation
+│   ├── colours.ts            State and trail colours, shared by the map and the legend
+│   ├── AgentViewport.tsx     Canvas 2D: heatmap, agents, senses, picking and blocks
+│   └── agents.css            Inspector, state diagram, sparkline, the phone layout
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── Workspace.tsx             Three resizable columns: library, canvas, inspector
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
@@ -407,7 +420,8 @@ src/
 │   ├── distributionConfig.ts Topic 5's saved shape
 │   ├── pathConfig.ts         Topic 6's saved shape
 │   ├── flowConfig.ts         Topic 7's saved shape
-│   └── branchingConfig.ts    Topic 8's saved shape, and its slider definitions
+│   ├── branchingConfig.ts    Topic 8's saved shape, and its slider definitions
+│   └── agentConfig.ts        Topic 9's saved shape: seed, parameters, placed blocks
 ├── project/                  The Project section — separate from the topics, not a topic itself
 │   ├── ProjectLayout.tsx     Reading shell: measured column (or wide page), own scroller
 │   ├── ProjectOverview.tsx   The idea, the question, the system as a flow, scope
@@ -429,7 +443,8 @@ docs/
 │   ├── topic-5-distributions.md
 │   ├── topic-6-paths.md
 │   ├── topic-7-vector-fields.md
-│   └── topic-8-branching.md
+│   ├── topic-8-branching.md
+│   └── topic-9-agent-systems.md
 ├── analysis/                 Measurement and comparison reports
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
@@ -456,7 +471,8 @@ public/
 └── site/                     The Roosevelt Island snapshot, the far shores' buildings, the south's landscape
 
 tests/
-└── seeds.test.ts             Seed counting: planting, refusals, growth, undo, save and load (npm test)
+├── seeds.test.ts             Seed counting: planting, refusals, growth, undo, save and load (npm test)
+└── agents.test.ts            Topic 9: determinism, no agent in a wall, states, evaporation, emergence, blocks, saved shape
 
 scripts/
 ├── run-tests.mjs             Bundles tests/*.test.ts with rolldown and runs them on node:test

@@ -46,7 +46,7 @@ Two rows in the header:
 ```
 Procedural World Building    [ Playground | Project ]              [ auth ]
 ──────────────────────────────────────────────────────────────────────────
-Topic 1 Objects   Topic 2 Maps   Topic 3 Voxels   Topic 4 Shaders   …   Topic 8 Branching
+Topic 1 Objects   Topic 2 Maps   Topic 3 Voxels   Topic 4 Shaders   …   Topic 9 Agent Systems
 ```
 
 The section row is a pill group — weight and a filled background, because these
