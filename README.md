@@ -183,6 +183,10 @@ chapter in [`docs/topics/`](docs/topics/).
 <td valign="top"><a href="docs/topics/topic-9-agent-systems.md"><img src="docs/images/readme-topic-9-agent-systems.jpg" alt="Topic 9: an amber trail network worn by agents across a walled field, one agent selected with its senses drawn"></a><br><b><a href="docs/topics/topic-9-agent-systems.md">9 · Agent Systems</a></b> — a state machine and a shared trail: agents nobody routes wear paths 8–17% longer than shortest, against 33–38% walking alone.</td>
 <td valign="top"><a href="docs/topics/topic-10-city.md"><img src="docs/images/readme-topic-10-city.jpg" alt="Topic 10: a generated town beside a lake, towers in the centre, houses at the edges, a planted countryside around it"></a><br><b><a href="docs/topics/topic-10-city.md">10 · City</a></b> — roads grown three ways, blocks read off the graph, plots zoned by continuous maps, parametric buildings; then set running — inhabitants on A* routes, water and energy through networks, and shortages that close buildings.</td>
 </tr>
+<tr>
+<td valign="top"><a href="docs/topics/topic-11-creatures.md"><img src="docs/images/readme-topic-11-creatures.jpg" alt="Topic 11: six creatures rolled from seeds — branching quadrupeds with fronds and forked toes, a winged legless slug, a six-legged lizard, a horned eight-legged walker"></a><br><b><a href="docs/topics/topic-11-creatures.md">11 · Creatures</a></b> — a creature lab: a genome grows a skinned body on a spine, gaits are tables of phases with two-bone IK, senses come from the anatomy, mutation is repaired. On a straight path, planted feet stay exactly put for all 277 random legged creatures tested.</td>
+<td valign="top"></td>
+</tr>
 </table>
 
 ## Study notebook
@@ -262,7 +266,8 @@ src/
 │   ├── FlowPage.tsx          Topic 7 — field and particle controls
 │   ├── BranchingPage.tsx     Topic 8 — grammar, geometry, distribution, LOD, display
 │   ├── AgentsPage.tsx        Topic 9 — presets, parameters, inspector, state diagram, measurements
-│   └── CityPage.tsx          Topic 10 — five experiment tabs, decision list, probe, measurements
+│   ├── CityPage.tsx          Topic 10 — five experiment tabs, decision list, probe, measurements
+│   └── CreaturesPage.tsx     Topic 11 — five system tabs, gait diagram, rules, genotype, inspector, statistics
 ├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
@@ -348,6 +353,20 @@ src/
 │       ├── urban.ts          CitySim: three modes, five coupling rules, fixed one-minute step, statistics
 │       ├── simMeshes.ts      Instanced travellers, pipes, flow beads, plants and status pins
 │       └── SimPanel.tsx      Transport controls, statistics panel, rules, inspector, legend
+├── creatures/                Topic 11 — pure modules (genome to pose to behaviour), drawn last
+│   ├── genome.ts             The genes and their ranges, random roll, repair, mutation
+│   ├── skeleton.ts           Genome to phenotype: joint hierarchy, anchors, limbs, senses, skin rings, traits
+│   ├── ik.ts                 Two-bone inverse kinematics by the law of cosines
+│   ├── gait.ts               Gaits as duty factors and phase offsets, per leg count
+│   ├── animate.ts            Root motion, follow-the-leader spine, slither, planted feet, early steps, Verlet antennae
+│   ├── behavior.ts           Habitat, perception from the body, the six-rule decision list, energy and hunger
+│   ├── lab.ts                Studio or habitat, fixed 1/60 s steps, parent beside offspring, the stats report
+│   ├── vec.ts                Plain 3-vectors and frames, so the pure modules never import three.js
+│   ├── creatureMeshes.ts     Skinned body, instanced limbs and knuckles, eyes, wings, debug markers, picking
+│   ├── labMeshes.ts          Habitat meshes; sensor, target and path overlays
+│   ├── CreatureViewport.tsx  Renderer, fixed-step loop, walk-in-place offset, camera follow, joint picking
+│   ├── explanations.ts       Concept, algorithm, parameters and Wildform use, per system
+│   └── creatures.css         Tabs, stat tiles, footfall diagram, rules, genotype, the phone layout
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── Workspace.tsx             Three resizable columns: library, canvas, inspector
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
@@ -458,7 +477,8 @@ src/
 │   ├── flowConfig.ts         Topic 7's saved shape
 │   ├── branchingConfig.ts    Topic 8's saved shape, and its slider definitions
 │   ├── agentConfig.ts        Topic 9's saved shape: seed, parameters, placed blocks
-│   └── cityConfig.ts         Topic 10's saved shape: seed and every experiment's parameters; slider definitions
+│   ├── cityConfig.ts         Topic 10's saved shape: seed and every experiment's parameters; slider definitions
+│   └── creatureConfig.ts     Topic 11's saved shape: genome, origin, parent, overlays per tab
 ├── project/                  The Project section — separate from the topics, not a topic itself
 │   ├── ProjectLayout.tsx     Reading shell: measured column (or wide page), own scroller
 │   ├── ProjectOverview.tsx   The idea, the question, the system as a flow, scope
@@ -482,7 +502,8 @@ docs/
 │   ├── topic-7-vector-fields.md
 │   ├── topic-8-branching.md
 │   ├── topic-9-agent-systems.md
-│   └── topic-10-city.md
+│   ├── topic-10-city.md
+│   └── topic-11-creatures.md
 ├── analysis/                 Measurement and comparison reports
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
@@ -512,7 +533,8 @@ tests/
 ├── seeds.test.ts             Seed counting: planting, refusals, growth, undo, save and load (npm test)
 ├── agents.test.ts            Topic 9: determinism, no agent in a wall, states, evaporation, emergence, blocks, saved shape
 ├── city.test.ts              Topic 10: polygon split, planar roads on land, plots off roads, threshold, coherence, buildings, saved shape
-└── citySim.test.ts           Topic 10 F–H: A* vs Dijkstra, replay, schedules, travellers on roads, allocation, policies, closures
+├── citySim.test.ts           Topic 10 F–H: A* vs Dijkstra, replay, schedules, travellers on roads, allocation, policies, closures
+└── creatures.test.ts         Topic 11: repair, the skeleton tree, IK, gait tables, planted feet, slither, perception, rules, replay, mutation
 
 scripts/
 ├── run-tests.mjs             Bundles tests/*.test.ts with rolldown and runs them on node:test

@@ -8,6 +8,7 @@ import { FlowPage } from './pages/FlowPage'
 import { BranchingPage } from './pages/BranchingPage'
 import { AgentsPage } from './pages/AgentsPage'
 import { CityPage } from './pages/CityPage'
+import { CreaturesPage } from './pages/CreaturesPage'
 import { ShaderPage } from './pages/ShaderPage'
 import { VoxelPage } from './pages/VoxelPage'
 import { WildformPage } from './wildform/WildformPage'
@@ -46,6 +47,7 @@ const PLAYGROUND_PAGES: Record<PlaygroundId, () => ReactElement> = {
   branching: () => <BranchingPage />,
   agents: () => <AgentsPage />,
   city: () => <CityPage />,
+  creatures: () => <CreaturesPage />,
 }
 
 const PROJECT_PAGES: Record<ProjectId, (navigate: (route: Route) => void) => ReactElement> = {

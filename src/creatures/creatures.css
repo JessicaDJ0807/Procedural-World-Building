@@ -1,0 +1,428 @@
+/* Topic 11: Creatures. Built from the shared tokens and the study overlays;
+   the tab strip and panels follow Topic 10's, under their own names, so
+   neither page's stylesheet depends on the other's. */
+
+.creature-viewport {
+  cursor: default;
+}
+
+.creature-header h2 {
+  margin: 0 0 6px;
+}
+
+.creature-header p {
+  margin: 0 0 14px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.creature-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-1);
+}
+
+.creature-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.creature-tab:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.creature-tab.is-active {
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.creature-tab-letter {
+  font-size: 10.5px;
+  font-weight: var(--weight-strong);
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.creature-tab.is-active .creature-tab-letter {
+  color: var(--accent-strong);
+}
+
+.creature-tab-title {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.creature-lede {
+  margin: 10px 0 12px;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: var(--weight-strong);
+}
+
+.creature-row {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.creature-row .reset-button,
+.creature-transport .reset-button {
+  width: auto;
+  margin: 0;
+}
+
+.creature-seed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.creature-seed input {
+  width: 58px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.creature-transport {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.creature-segmented {
+  margin-bottom: 8px;
+}
+
+.creature-segmented .segmented-option {
+  font-size: 12.5px;
+}
+
+.creature-dim {
+  color: var(--text-muted);
+}
+
+/* Statistics: a grid of small tiles, as Topic 10's simulation panel. */
+.creature-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.creature-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-1);
+}
+
+.creature-stat-value {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: var(--weight-strong);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.creature-stat-label {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.creature-meter {
+  height: 4px;
+  margin-top: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.creature-meter > i {
+  display: block;
+  height: 100%;
+  background: var(--accent-strong);
+}
+
+.creature-readout {
+  line-height: 1.6;
+}
+
+/* The footfall diagram: one row per leg, stance filled, a playhead for now. */
+.creature-gait {
+  display: block;
+  width: 100%;
+  margin: 4px 0 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+}
+
+.creature-gait text {
+  fill: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 9px;
+}
+
+.creature-gait .stance {
+  fill: #8fa7bf;
+}
+
+.creature-gait .stance.is-right {
+  fill: #a9c09a;
+}
+
+.creature-gait .playhead {
+  stroke: var(--text-primary);
+  stroke-width: 1.2;
+}
+
+.creature-gait .grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+/* The decision list, numbered because the order is the logic. */
+.creature-rules {
+  margin: 4px 0 6px;
+  padding: 0;
+  list-style: none;
+  counter-reset: rule;
+  font-size: 12px;
+}
+
+.creature-rules li {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  counter-increment: rule;
+}
+
+.creature-rules li::before {
+  content: counter(rule);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.creature-rules li.is-active {
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+}
+
+.creature-rule-to {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.creature-rules li.is-active .creature-rule-to {
+  color: var(--accent-strong);
+}
+
+/* Genotype: every gene, changed ones marked. */
+.creature-genes {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 10px;
+  margin: 4px 0 8px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.creature-genes .gene-k {
+  color: var(--text-muted);
+}
+
+.creature-genes .gene-v {
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.creature-genes .is-changed {
+  color: var(--accent-strong) !important;
+  font-weight: var(--weight-strong);
+}
+
+.creature-genes h4 {
+  grid-column: 1 / -1;
+  margin: 6px 0 1px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: var(--weight-strong);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.creature-changes {
+  margin: 4px 0 8px;
+  padding-left: 16px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.creature-explain dl {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.creature-explain dt {
+  margin-top: 8px;
+  color: var(--text-primary);
+  font-weight: var(--weight-strong);
+}
+
+.creature-explain dd {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+}
+
+.creature-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 12px;
+}
+
+/* Overlays on the viewport. */
+.creature-inspector {
+  top: 12px;
+  left: 12px;
+  bottom: auto;
+  max-width: min(340px, calc(100% - 24px));
+  pointer-events: auto;
+}
+
+.creature-inspector h3 {
+  margin: 0 0 2px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.creature-inspector .creature-path {
+  margin-bottom: 5px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.creature-inspector button {
+  float: right;
+  margin: -2px -4px 0 8px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.creature-status {
+  top: 12px;
+  right: 12px;
+  left: auto;
+  bottom: auto;
+}
+
+.creature-status .state {
+  color: var(--text-primary);
+  font-weight: var(--weight-strong);
+}
+
+.creature-legend {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: calc(100% - 24px);
+}
+
+.creature-legend .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 50%;
+}
+
+/* Phone width: stack, as Topics 9 and 10 do, scoped to this page. */
+@media (max-width: 720px) {
+  .workspace:has(.creature-viewport) {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .workspace:has(.creature-viewport) > .workspace-divider {
+    display: none;
+  }
+
+  .workspace:has(.creature-viewport) > .workspace-canvas {
+    flex: none;
+    order: 0;
+    height: min(64vh, 100vw);
+  }
+
+  .workspace:has(.creature-viewport) > .workspace-inspector,
+  .workspace:has(.creature-viewport) > .workspace-library {
+    width: 100% !important;
+    overflow: visible;
+  }
+
+  .workspace:has(.creature-viewport) > .workspace-inspector {
+    order: 1;
+  }
+
+  .workspace:has(.creature-viewport) > .workspace-library {
+    order: 2;
+    border-top: 1px solid var(--border);
+  }
+
+  .workspace:has(.creature-viewport) .control-sidebar {
+    height: auto;
+    overflow: visible;
+  }
+
+  .creature-legend {
+    display: none;
+  }
+}

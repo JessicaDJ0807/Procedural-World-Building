@@ -33,6 +33,7 @@ export type PlaygroundId =
   | 'branching'
   | 'agents'
   | 'city'
+  | 'creatures'
 export type ProjectId = 'overview' | 'play' | 'explore' | 'build' | 'how' | 'architecture' | 'inhabitants' | 'site' | 'progress' | 'decisions'
 
 export type Route =
@@ -62,6 +63,7 @@ export const PLAYGROUND: { id: PlaygroundId; topic: string; title: string }[] = 
   { id: 'branching', topic: 'Topic 8', title: 'Branching' },
   { id: 'agents', topic: 'Topic 9', title: 'Agent Systems' },
   { id: 'city', topic: 'Topic 10', title: 'City' },
+  { id: 'creatures', topic: 'Topic 11', title: 'Creatures' },
 ]
 
 /**
