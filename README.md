@@ -36,14 +36,14 @@ two buildings that stand too far apart for plants alone *holding hands*.
 
 ## How it plays
 
-**Build, plant, grow.** Two buildings stand on a lawn eight columns apart; a
-living bridge reaches five. So the player has to choose what to build — a
+**Build, plant, grow.** Two buildings stand on a lawn eight columns apart, in
+a clearing in the forest; a living bridge reaches five. So the player has to choose what to build — a
 stepping-stone tower, a wing pushed out — and where to plant, then let the
 plants do the rest. Blocks place themselves Townscaper-style: walls, roofs,
 arches and ledges work themselves out. Building and growing are one loop:
 editing the town mid-growth carries every plant onto the new building.
 
-![The game in its second spring, goal complete: a suspended walkway slung from the west building to the stepping-stone tower, a living bridge on to the east building, a balcony on root columns, walls and a roof terrace grown over, petals in the air and inhabitants on three of the buildings — with the goal, the season, and the toolbar counting 27 blocks and 28 seeds](docs/images/readme-play.jpg)
+![The game in its first summer, goal complete: a three-block stepping-stone tower between the two buildings, a living walkway from the west building to it and a bridge on to the east, both grown over with Climber and Spreader, inhabitants on the walkway and the east wall — and behind, the clearing's meadow, a stream coming down out of mixed forest, and the ridge beyond; the goal, the season, the Debug toggle and the toolbar counting 27 blocks left and 8 seeds](docs/images/readme-play.jpg)
 
 **Three plants, three directions.** Each grows by its own tendency. The
 **Climber** goes up, following edges — window frames, string courses,
@@ -63,13 +63,21 @@ support, and becomes a surface they grow on in turn.
 
 ![All eight living structures from the Architecture page, each a specimen grown in a real game: a bridge between two towers, a balcony braced out from a wall, a scaffold spiralling up beside a tower, a terrace on columns, a canopy held out from a wall, a suspended walkway slung between two towers, a hanging pod under an eave, and a root column holding up a walkway](docs/images/readme-architecture.jpg)
 
+**The land.** The town sits in a small clearing in a shallow hollow: a meadow
+of ground cover and wildflower drifts, footpaths coming in from the forest to
+each building, a stream cut into the land at the foot of a ridge, and a forest
+of mixed groves beyond. All of it is generated from a seed and saved as one,
+and none of it touches the ground the game is played on.
+
 **Seasons.** The year turns on its own: four seasons set the real rain, sun
 and warmth the plants grow by, eased across each change, and shown — leaf
-colour, sky, rain, snow, brown leaves falling where plants wither. Tuned over
+colour, sky, rain, snow, brown leaves falling where plants wither — and the
+land turns with them: the forest and undergrowth colour together, flowers
+close, leaves float down the stream, and in winter its edges frost. Tuned over
 ten seeds so the goal comes as often as before, with winter costing about a
 third of the plants and spring growing them back.
 
-![One world in its four seasons, close on a tower with a hanging pod, a suspended walkway and a living bridge: fresh green in spring, deep green in summer, red-orange leaves falling under a warm sky in autumn, a cool cast with snow in winter — inhabitants in each](docs/images/readme-seasons.jpg)
+![One world in its four seasons, from the same view across the clearing to the stream and the forest: fresh green in spring with flowers in the meadow, warmer green in summer, the forest and the plants on the buildings orange under a warm sky in autumn with leaves falling, a cool cast with snow and a frosted stream in winter — inhabitants on the structures in each](docs/images/readme-seasons.jpg)
 
 **Inhabitants.** Small creatures live on the green: they walk only where
 plants grow or on mature living architecture, so two buildings are separate
@@ -83,6 +91,11 @@ They make the consequences of growth visible.
 <p><img src="docs/images/readme-inhabitants-animations.gif" width="100%" alt="The four coats, each in one of the four animations: Moss idle, Lichen walking, Blossom discovering, Bark puzzled"></p>
 
 <p><img src="docs/images/readme-inhabitants-bridge.gif" width="100%" alt="The Inhabitants studio: two inhabitants walking across a living bridge, the camera following, while the inspector beside it counts down the cells left to the east building"></p>
+
+The studio shows why each does what it does: its state machine, drawn from
+the same table every change is checked against, and its goals scored.
+
+![The Inhabitants studio's mind panel: the state machine as a graph, Idle to Resting just taken and highlighted; beside it the four goals scored — Rest 0.12 chosen, with its reasons — and controls to change the season, its nature and its needs](docs/images/inhabitants-mind.png)
 
 Worlds can be saved and reopened, signed in, as state rather than a picture —
 a loaded world carries on growing exactly as it would have.
@@ -117,6 +130,14 @@ the player places to the living architecture the plants grow, and back:
 The full account, with every formula and constant, is
 [`docs/project/how-it-works.md`](docs/project/how-it-works.md); in the app,
 **Project → How it works**.
+
+To watch the mechanisms at work in a real game, open **Debug** in Play: it
+draws the simulation's own data over the scene — growth nodes and tip
+directions, surface suitability, the node rules' radii and the next structure
+to form, each inhabitant's state, goal and route — with Pause, Step and a
+time scale. It only reads; nothing it shows changes what grows.
+
+![Play with the Debug panel open and paused at step 380: growth nodes and mutation points drawn on the stepping-stone tower and the east building, labelled with what met and how close each is to forming, a walkway 40% to mature, and two inhabitants tagged with their states](docs/images/play-debug.png)
 
 ## The pages
 
@@ -290,6 +311,7 @@ src/
 │   ├── reactionDiffusion.ts  Gray–Scott
 │   ├── erosion.ts            Virtual-pipe hydraulic erosion
 │   ├── boids.ts              Fish schooling
+│   ├── shading.ts            One surface shaded eight ways: the comparison's scene
 │   └── index.ts              The strategy registry
 ├── study/                    Shared by the Topic 5–8 studies
 │   ├── terrain.ts            Small eroded terrain: height, slope, distance to water
@@ -393,6 +415,7 @@ src/
 │   ├── landscape.ts          The land round the town: terrain, fields, forest, stream, paths, scatter
 │   ├── features.ts           Lines through the land: nearest-segment index, rounding, A* routing
 │   ├── landscapeDecor.ts     The land drawn: trees, decorations, water, paths, their seasons
+│   ├── landscapePrefs.ts     Show decorations: a display preference shared by Play and the Lab
 │   ├── living.ts             Mutation nodes and what grows from each combination
 │   ├── draperLiving.ts       The Draper's meetings, read from its curtain: root column, hanging pod, suspended walkway
 │   ├── livingMesh.ts         Living architecture drawn, grown in stages
@@ -402,11 +425,13 @@ src/
 │   ├── groundCover.ts        Ground spread from wall feet, roots and Draper roots
 │   ├── sky.ts                The clear-day sky
 │   ├── seasonFx.ts           The seasons made visible: leaf tint, lawn, sky, light, weather particles
+│   ├── debugLayer.ts         Play's Debug overlays: the simulation's own data, drawn over the scene
 │   ├── game.ts               One game, carried through every edit; the goal; seeds planted
 │   ├── worldState.ts         A world as data: what is saved, read back and checked
 │   ├── WorldMenu.tsx         Save, Save as, New world, My worlds, unsaved changes
 │   ├── BuildViewport.tsx     The scene, tools and picking
-│   └── BuildPage.tsx         The Lab's sidebar: goal, mode, plant behavior, interaction, environment, growth, living architecture, events
+│   ├── BuildPage.tsx         The Lab's sidebar: goal, mode, plant behavior, interaction, environment, growth, living architecture, events
+│   └── build.css             The viewport and the Lab's sidebar, shared with Play
 ├── game/                     Project Play: Wildform as a game, full-screen
 │   ├── PlayPage.tsx          The front door in the Project tabs
 │   ├── GamePage.tsx          The game: HUD, the opening, the voice, seasons, seeds, the win
@@ -414,20 +439,26 @@ src/
 │   ├── seasons.ts            The four seasons, eased; the badge's words; moods
 │   ├── seasonLook.ts         What each season looks like
 │   ├── UnsavedDialog.tsx     The warning before unsaved work is lost
+│   ├── DebugPanel.tsx        The Debug panel: overlays, Pause, Step, Speed
 │   └── game.css              The game's look
 ├── inhabitants/              Project Inhabitants: creatures that live on the green, and their studio
 │   ├── nav.ts                Where they can walk: the walkable rule, regions, routes
-│   ├── agent.ts              One inhabitant and its state machine, shared by every page
+│   ├── mind.ts               Needs, nature and the goals scored: what it wants, and where
+│   ├── agent.ts              One inhabitant and its state machine — the transition table every change is checked against
 │   ├── inhabitantMesh.ts     The model and its animations
 │   ├── population.ts         Play's and the Lab's inhabitants
 │   ├── visibility.ts         Show Inhabitants, a stored display preference
 │   ├── scenarios.ts          The studio's test scenes, each a real game
 │   ├── StudioViewport.tsx    The studio's stage: scenes, overlays, click to send
-│   └── InhabitantsPage.tsx   The studio: portrait, scenes, inspector, notes
+│   ├── StateGraph.tsx        The state machine, drawn from that table
+│   ├── MindPanel.tsx         Goals scored with their reasons; experiments; history
+│   ├── InhabitantsPage.tsx   The studio: portrait, scenes, inspector, notes
+│   └── inhabitants.css       The studio's look
 ├── architecture/             Project Architecture: the atlas of living structures
 │   ├── specimens.ts          Recipes, each grown as a real game until its structure forms
 │   ├── SpecimenViewport.tsx  The studio: views, timeline, labels, camera
 │   ├── ArchitecturePage.tsx  The page: plates, stage, variations, texts
+│   ├── architecture.css      The catalogue plate and its pale studio
 │   └── views.ts              View modes and their colours
 ├── wildform/                 The Wildform simulation Build runs, and the archived midterm Explore page
 │   ├── names.ts              Every name the page shows: title, species, mutation
@@ -439,7 +470,8 @@ src/
 │   ├── platformMesh.ts       The Living Platform as geometry, grown in
 │   ├── wildVegetation.ts     The two species drawn by shape
 │   ├── WildViewport.tsx      Scene, views, annotations, timeline re-runs
-│   └── WildformPage.tsx      The presentation sidebar
+│   ├── WildformPage.tsx      The presentation sidebar
+│   └── wildform.css          The midterm page's look
 ├── site/                     Project Site: Roosevelt Island from NYC Open Data
 │   ├── siteData.ts           The snapshot's types, loader and area helpers
 │   ├── campus.ts             The Cornell Tech buildings as growth-model cells
@@ -530,6 +562,9 @@ public/
 └── site/                     The Roosevelt Island snapshot, the far shores' buildings, the south's landscape
 
 tests/
+├── landscape.test.ts         The land: seeded, the town's ground untouched, gentle hills, a mixed forest, the stream in its banks, paths, saving
+├── inhabitants.test.ts       Goals and states: rest, shelter in rain, natures, replanning when growth withers, only listed transitions
+├── debug.test.ts             The Debug layer reads the game's own answers and changes nothing
 ├── seeds.test.ts             Seed counting: planting, refusals, growth, undo, save and load (npm test)
 ├── agents.test.ts            Topic 9: determinism, no agent in a wall, states, evaporation, emergence, blocks, saved shape
 ├── city.test.ts              Topic 10: polygon split, planar roads on land, plots off roads, threshold, coherence, buildings, saved shape
