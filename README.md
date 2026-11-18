@@ -171,7 +171,7 @@ chapter in [`docs/topics/`](docs/topics/).
 </tr>
 <tr>
 <td valign="top"><a href="docs/topics/topic-9-agent-systems.md"><img src="docs/images/readme-topic-9-agent-systems.jpg" alt="Topic 9: an amber trail network worn by agents across a walled field, one agent selected with its senses drawn"></a><br><b><a href="docs/topics/topic-9-agent-systems.md">9 · Agent Systems</a></b> — a state machine and a shared trail: agents nobody routes wear paths 8–17% longer than shortest, against 33–38% walking alone.</td>
-<td valign="top"></td>
+<td valign="top"><a href="docs/topics/topic-10-city.md"><img src="docs/images/readme-topic-10-city.jpg" alt="Topic 10: a generated town beside a lake, towers in the centre, houses at the edges, a planted countryside around it"></a><br><b><a href="docs/topics/topic-10-city.md">10 · City</a></b> — roads grown three ways, blocks read off the graph, plots cut and zoned by continuous maps, parametric buildings: districts nearly twice as coherent as categories dealt at random.</td>
 </tr>
 </table>
 
@@ -251,7 +251,8 @@ src/
 │   ├── PathPage.tsx          Topic 6 — path editor and elevation profile
 │   ├── FlowPage.tsx          Topic 7 — field and particle controls
 │   ├── BranchingPage.tsx     Topic 8 — grammar, geometry, distribution, LOD, display
-│   └── AgentsPage.tsx        Topic 9 — presets, parameters, inspector, state diagram, measurements
+│   ├── AgentsPage.tsx        Topic 9 — presets, parameters, inspector, state diagram, measurements
+│   └── CityPage.tsx          Topic 10 — five experiment tabs, decision list, probe, measurements
 ├── SceneCanvas.tsx           Topic 1 Three.js scene, render loop, disposal
 ├── RotationGizmo.tsx         Draggable XYZ orientation widget
 ├── shapes.ts                 Shape definitions and geometry factory
@@ -315,6 +316,20 @@ src/
 │   ├── colours.ts            State and trail colours, shared by the map and the legend
 │   ├── AgentViewport.tsx     Canvas 2D: heatmap, agents, senses, picking and blocks
 │   └── agents.css            Inspector, state diagram, sparkline, the phone layout
+├── city/                     Topic 10 — algorithms are pure modules, reusable outside the page
+│   ├── ground.ts             The tilted site terrain, behind a five-question Ground interface
+│   ├── roads.ts              Road growth: priority queue, five local rules, grid/organic/layered goals, tidying
+│   ├── blocks.ts             Blocks as faces of the planar road graph, inset to the kerb
+│   ├── plots.ts              Regular and irregular subdivision, frontage, dead-end crossings
+│   ├── geometry.ts           Split a concave polygon by a line, oriented box, inset, simplicity
+│   ├── fields.ts             Five zoning maps: density, vegetation, moisture, elevation, distance
+│   ├── zoning.ts             The seven-rule decision, hard or soft threshold, random control, coherence
+│   ├── building.ts           A parametric building as a list of box and prism parts
+│   ├── site.ts               Footprints fitted to plots, the type ladder, vegetation
+│   ├── explanations.ts       Concept, algorithm, parameters and Wildform use, per experiment
+│   ├── cityMeshes.ts         Draped roads and plots, instanced buildings and trees
+│   ├── CityViewport.tsx      One scene, two stages (site, studio); one effect per layer; plot picking
+│   └── city.css              Tabs, decision list, probe, the phone layout
 ├── AuthBar.tsx               Header sign-in / sign-out
 ├── Workspace.tsx             Three resizable columns: library, canvas, inspector
 ├── ViewControls.tsx          Floating View popover over the viewport, display-only controls
@@ -421,7 +436,8 @@ src/
 │   ├── pathConfig.ts         Topic 6's saved shape
 │   ├── flowConfig.ts         Topic 7's saved shape
 │   ├── branchingConfig.ts    Topic 8's saved shape, and its slider definitions
-│   └── agentConfig.ts        Topic 9's saved shape: seed, parameters, placed blocks
+│   ├── agentConfig.ts        Topic 9's saved shape: seed, parameters, placed blocks
+│   └── cityConfig.ts         Topic 10's saved shape: seed and every experiment's parameters; slider definitions
 ├── project/                  The Project section — separate from the topics, not a topic itself
 │   ├── ProjectLayout.tsx     Reading shell: measured column (or wide page), own scroller
 │   ├── ProjectOverview.tsx   The idea, the question, the system as a flow, scope
@@ -444,7 +460,8 @@ docs/
 │   ├── topic-6-paths.md
 │   ├── topic-7-vector-fields.md
 │   ├── topic-8-branching.md
-│   └── topic-9-agent-systems.md
+│   ├── topic-9-agent-systems.md
+│   └── topic-10-city.md
 ├── analysis/                 Measurement and comparison reports
 │   ├── energy-and-idle-cost.md
 │   └── topic-3-meshing-and-chunking.md
@@ -472,7 +489,8 @@ public/
 
 tests/
 ├── seeds.test.ts             Seed counting: planting, refusals, growth, undo, save and load (npm test)
-└── agents.test.ts            Topic 9: determinism, no agent in a wall, states, evaporation, emergence, blocks, saved shape
+├── agents.test.ts            Topic 9: determinism, no agent in a wall, states, evaporation, emergence, blocks, saved shape
+└── city.test.ts              Topic 10: polygon split, planar roads on land, plots off roads, threshold, coherence, buildings, saved shape
 
 scripts/
 ├── run-tests.mjs             Bundles tests/*.test.ts with rolldown and runs them on node:test

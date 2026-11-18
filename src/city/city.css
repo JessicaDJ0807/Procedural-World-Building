@@ -1,0 +1,282 @@
+/* Topic 10: City. Built from the shared tokens and the study overlays; only
+   what the shared classes do not cover lives here. */
+
+.city-viewport {
+  cursor: default;
+}
+
+.city-header h2 {
+  margin: 0 0 6px;
+}
+
+.city-header p {
+  margin: 0 0 14px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* Five experiments in one row: a letter for the order, a word for the subject. */
+.city-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-1);
+}
+
+.city-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.city-tab:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.city-tab.is-active {
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.city-tab-letter {
+  font-size: 10.5px;
+  font-weight: var(--weight-strong);
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.city-tab.is-active .city-tab-letter {
+  color: var(--accent-strong);
+}
+
+.city-tab-title {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.city-lede {
+  margin: 10px 0 12px;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: var(--weight-strong);
+}
+
+.city-seed-row {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.city-seed-row .reset-button {
+  width: auto;
+  margin: 0;
+}
+
+.city-seed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.city-seed input {
+  width: 58px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.city-segmented .segmented-option {
+  font-size: 12.5px;
+}
+
+.city-maps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 2px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.city-maps .segmented-option {
+  font-size: 12px;
+}
+
+/* The decision list: the order is the logic, so it is numbered. */
+.city-rules {
+  margin: 4px 0 6px;
+  padding: 0;
+  list-style: none;
+  counter-reset: rule;
+  font-size: 12px;
+}
+
+.city-rules li {
+  display: grid;
+  grid-template-columns: 16px 1fr auto 30px;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  counter-increment: rule;
+}
+
+.city-rules li::before {
+  content: counter(rule);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.city-rules li.is-active {
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+}
+
+.city-rule-to {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.city-rule-count {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.city-readout {
+  line-height: 1.6;
+}
+
+.city-counts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+.city-dim {
+  color: var(--text-muted);
+}
+
+.city-explain dl {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.city-explain dt {
+  margin-top: 8px;
+  color: var(--text-primary);
+  font-weight: var(--weight-strong);
+}
+
+.city-explain dd {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+}
+
+.city-legend {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: calc(100% - 24px);
+}
+
+.city-heat-key {
+  gap: 6px;
+}
+
+.city-heat-bar {
+  display: inline-block;
+  width: 96px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.city-probe {
+  top: 12px;
+  bottom: auto;
+  max-width: min(460px, calc(100% - 24px));
+}
+
+.city-probe .city-dim {
+  margin-bottom: 4px;
+}
+
+.city-probe-table th {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+/* Phone width: stack, as Topic 9 does, scoped to this page. */
+@media (max-width: 720px) {
+  .workspace:has(.city-viewport) {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .workspace:has(.city-viewport) > .workspace-divider {
+    display: none;
+  }
+
+  .workspace:has(.city-viewport) > .workspace-canvas {
+    flex: none;
+    order: 0;
+    height: min(64vh, 100vw);
+  }
+
+  .workspace:has(.city-viewport) > .workspace-inspector,
+  .workspace:has(.city-viewport) > .workspace-library {
+    width: 100% !important;
+    overflow: visible;
+  }
+
+  .workspace:has(.city-viewport) > .workspace-inspector {
+    order: 1;
+  }
+
+  .workspace:has(.city-viewport) > .workspace-library {
+    order: 2;
+    border-top: 1px solid var(--border);
+  }
+
+  .workspace:has(.city-viewport) .control-sidebar {
+    height: auto;
+    overflow: visible;
+  }
+
+  .city-probe {
+    display: none;
+  }
+}
